@@ -39,9 +39,9 @@ stages:
 
     - script: |
         if [ "$(service)" == "frontend" ]; then
-          echo "##vso[task.setvariable variable=BUILD_PATH]projects/boutique-microservices/frontend"
+          echo "##vso[task.setvariable variable=BUILD_PATH]frontend"
         else
-          echo "##vso[task.setvariable variable=BUILD_PATH]projects/boutique-microservices/backend/services/$(service)"
+          echo "##vso[task.setvariable variable=BUILD_PATH]backend/services/$(service)"
         fi
       displayName: 'Set Build Path'
 
@@ -82,26 +82,32 @@ stages:
       persistCredentials: true
 
     - script: |
+        # Clone GitOps repo
+        # Requires PAT or Service Connection with write access to GitOps repo
+        git clone https://$(System.AccessToken)@dev.azure.com/YOUR_ORG/YOUR_PROJECT/_git/boutique-gitops
+        cd boutique-gitops
+        
         NEW_TAG=$(Build.SourceVersion)
         REGISTRY=$(acrLoginServer)
 
         for SERVICE in auth gateway orders product-service; do
-          MANIFEST="gitops/azure/base/k8s/backend/${SERVICE}.yml"
+          MANIFEST="azure/base/k8s/backend/${SERVICE}.yml"
           if [ -f "$MANIFEST" ]; then
             sed -i "s|image:.*|image: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $MANIFEST
           fi
         done
 
-        FRONTEND_MANIFEST="gitops/azure/base/k8s/frontend/deployment.yml"
+        FRONTEND_MANIFEST="azure/base/k8s/frontend/deployment.yml"
         if [ -f "$FRONTEND_MANIFEST" ]; then
           sed -i "s|image:.*|image: ${REGISTRY}/frontend:${NEW_TAG}|g" $FRONTEND_MANIFEST
         fi
-      displayName: 'Update image tags in GitOps manifests'
+      displayName: 'Clone GitOps repo and update image tags'
 
     - script: |
+        cd boutique-gitops
         git config user.name "azure-devops"
         git config user.email "azure-devops@boutique.com"
-        git add gitops/azure/base/
+        git add azure/base/
         git diff --staged --quiet || git commit -m "ci: update ACR image tags to $(Build.SourceVersion)"
         git push origin HEAD:main
-      displayName: 'Commit and push changes'
+      displayName: 'Commit and push changes to GitOps repo'
