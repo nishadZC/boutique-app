@@ -5,6 +5,12 @@ variables:
   acrLoginServer: 'boutiqueacrshared.azurecr.io'
   dockerRegistryServiceConnection: 'boutique-acr-svc-conn'
 
+resources:
+  repositories:
+  - repository: gitops
+    type: git
+    name: boutique-gitops
+
 stages:
 - stage: BuildAndPush
   jobs:
