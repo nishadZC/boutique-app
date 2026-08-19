@@ -84,7 +84,7 @@ stages:
     - script: |
         # Clone GitOps repo
         # Requires PAT or Service Connection with write access to GitOps repo
-        git clone https://$(System.AccessToken)@dev.azure.com/YOUR_ORG/YOUR_PROJECT/_git/boutique-gitops
+        git clone https://$(System.AccessToken)@dev.azure.com/makkenamqmb/Boutique%20project/_git/boutique-gitops
         cd boutique-gitops
         
         NEW_TAG=$(Build.SourceVersion)
