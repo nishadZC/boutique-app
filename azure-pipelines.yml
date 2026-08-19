@@ -81,15 +81,11 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     steps:
-    - checkout: self
+    - checkout: gitops
       persistCredentials: true
 
     - script: |
         set -e
-        # Clone GitOps repo
-        git clone https://$(System.AccessToken)@dev.azure.com/makkenamqmb/Boutique%20project/_git/boutique-gitops
-        cd boutique-gitops
-        
         NEW_TAG=$(Build.SourceVersion)
         REGISTRY=$(acrLoginServer)
 
@@ -104,11 +100,10 @@ stages:
         if [ -f "$FRONTEND_MANIFEST" ]; then
           sed -i "s|image:.*|image: ${REGISTRY}/frontend:${NEW_TAG}|g" $FRONTEND_MANIFEST
         fi
-      displayName: 'Clone GitOps repo and update image tags'
+      displayName: 'Update image tags'
 
     - script: |
         set -e
-        cd boutique-gitops
         git config user.name "azure-devops"
         git config user.email "azure-devops@boutique.com"
         git add azure/base/
