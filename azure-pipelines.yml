@@ -55,13 +55,17 @@ stages:
 
     - task: SonarQubeAnalyze@7
       
+    - script: |
+        npm install --package-lock-only
+      displayName: 'Generate package-lock.json for npm ci'
+
     - task: Docker@2
       displayName: Build and Push image to ACR
       inputs:
         command: buildAndPush
         repository: $(service)
         dockerfile: '$(buildPath)/Dockerfile'
-        buildContext: '$(buildPath)'
+        buildContext: '.'
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(imageTag)
@@ -108,5 +112,5 @@ stages:
         git config user.email "azure-devops@boutique.com"
         git add azure/base/
         git diff --staged --quiet || git commit -m "ci: update ACR image tags to $(Build.SourceVersion)"
-        git push origin HEAD:main
+        git push origin HEAD:master
       displayName: 'Commit and push changes to GitOps repo'

@@ -1,41 +1,27 @@
-# Orders Service Dockerfile
 FROM node:20-alpine AS builder
 
-RUN apk update && apk upgrade --no-cache
-
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-RUN npm install
+COPY backend/services/orders/package*.json ./backend/services/orders/
+RUN npm ci
 
-# Copy source code
-COPY . .
+COPY backend/services/orders ./backend/services/orders
+RUN npm run build -w orders-service
 
-# Build TypeScript
-RUN npm run build
-
-# Production stage
-FROM node:20-alpine
+FROM node:20-alpine3.19
 
 RUN apk update && apk upgrade --no-cache
 
 WORKDIR /app
 
-# Copy package files and install production dependencies only
-COPY package*.json ./
-RUN npm install --omit=dev && npm cache clean --force
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/backend/services/orders/node_modules ./backend/services/orders/node_modules
+COPY --from=builder /app/backend/services/orders/dist ./backend/services/orders/dist
+COPY --from=builder /app/backend/services/orders/package.json ./backend/services/orders/
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && chown -R appuser:appgroup /app
+USER appuser
 
-# Create non-root user
-RUN apk add --no-cache shadow
-RUN groupadd -r -g 1001 nodejs
-RUN useradd -r -u 1001 -g nodejs nodejs
-
-USER nodejs
-
-EXPOSE 3005
-
-CMD ["node", "dist/index.js"]
+EXPOSE 3002
+CMD ["node", "backend/services/orders/dist/index.js"]

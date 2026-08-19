@@ -5,43 +5,26 @@ RUN apk update && apk upgrade --no-cache
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-RUN npm install --prefer-offline --no-audit
+COPY frontend/package*.json ./frontend/
+RUN npm ci
 
-# Copy source code
-COPY . .
+COPY frontend ./frontend
 
-# Build the React app
-RUN npm run build
+RUN npm run build -w frontend
 
 # Production stage - serve with nginx
 FROM nginx:1.25-alpine
 
-RUN apk update && apk upgrade --no-cache && \
-    addgroup -g 101 -S nginx && \
-    adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx || true
+RUN apk update && apk upgrade --no-cache &&     addgroup -g 101 -S nginx &&     adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx || true
 
-# Copy built app from builder
-COPY --from=builder --chown=nginx:nginx /app/build /usr/share/nginx/html
+COPY --from=builder --chown=nginx:nginx /app/frontend/build /usr/share/nginx/html
+COPY frontend/nginx.conf /etc/nginx/nginx.conf
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+RUN mkdir -p /var/cache/nginx &&     chown -R nginx:nginx /var/cache/nginx /var/log/nginx /etc/nginx/conf.d &&     rm -f /etc/nginx/conf.d/default.conf
 
-# Create nginx cache directory and remove default config
-RUN mkdir -p /var/cache/nginx && \
-    chown -R nginx:nginx /var/cache/nginx /var/log/nginx /etc/nginx/conf.d && \
-    rm -f /etc/nginx/conf.d/default.conf
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3     CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
-
-# Run as nginx user for security
 USER nginx
-
-# Expose port
 EXPOSE 80
-
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

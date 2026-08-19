@@ -1,41 +1,27 @@
-# Gateway Service Dockerfile
 FROM node:20-alpine AS builder
 
-RUN apk update && apk upgrade --no-cache
-
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-RUN npm install
+COPY backend/services/gateway/package*.json ./backend/services/gateway/
+RUN npm ci
 
-# Copy source code
-COPY . .
+COPY backend/services/gateway ./backend/services/gateway
+RUN npm run build -w gateway-service
 
-# Build TypeScript
-RUN npm run build
-
-# Production stage
-FROM node:20-alpine
+FROM node:20-alpine3.19
 
 RUN apk update && apk upgrade --no-cache
 
 WORKDIR /app
 
-# Copy package files and install production dependencies only
-COPY package*.json ./
-RUN npm install --omit=dev && npm cache clean --force
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/backend/services/gateway/node_modules ./backend/services/gateway/node_modules
+COPY --from=builder /app/backend/services/gateway/dist ./backend/services/gateway/dist
+COPY --from=builder /app/backend/services/gateway/package.json ./backend/services/gateway/
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && chown -R appuser:appgroup /app
+USER appuser
 
-# Create non-root group & user
-RUN apk add --no-cache shadow
-RUN groupadd -r -g 1001 nodejs
-RUN useradd -r -u 1001 -g nodejs nodejs
-
-USER nodejs
-
-EXPOSE 3001
-
-CMD ["node", "dist/index.js"]
+EXPOSE 3000
+CMD ["node", "backend/services/gateway/dist/index.js"]
