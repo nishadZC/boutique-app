@@ -21,15 +21,19 @@ stages:
       matrix:
         auth:
           service: 'auth'
+          buildPath: 'backend/services/auth'
         gateway:
           service: 'gateway'
+          buildPath: 'backend/services/gateway'
         orders:
           service: 'orders'
+          buildPath: 'backend/services/orders'
         product_service:
           service: 'product-service'
-
+          buildPath: 'backend/services/product-service'
         frontend:
           service: 'frontend'
+          buildPath: 'frontend'
     
     steps:
     - checkout: self
@@ -42,14 +46,7 @@ stages:
         configMode: 'manual'
         cliProjectKey: 'boutique-$(service)'
         cliProjectName: 'Boutique $(service)'
-
-    - script: |
-        if [ "$(service)" == "frontend" ]; then
-          echo "##vso[task.setvariable variable=BUILD_PATH]frontend"
-        else
-          echo "##vso[task.setvariable variable=BUILD_PATH]backend/services/$(service)"
-        fi
-      displayName: 'Set Build Path'
+        cliSources: '$(buildPath)'
 
     - script: |
         PARAMS=$(echo $SONARQUBE_SCANNER_PARAMS | jq 'del(.["sonar.branch.name"])' -c)
@@ -63,8 +60,8 @@ stages:
       inputs:
         command: buildAndPush
         repository: $(service)
-        dockerfile: '$(BUILD_PATH)/Dockerfile'
-        buildContext: '$(BUILD_PATH)'
+        dockerfile: '$(buildPath)/Dockerfile'
+        buildContext: '$(buildPath)'
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(imageTag)
