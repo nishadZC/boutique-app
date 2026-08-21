@@ -92,25 +92,30 @@ stages:
         set -e
         NEW_TAG=$(Build.SourceVersion)
         REGISTRY=$(acrLoginServer)
-
-        for SERVICE in auth gateway orders product-service; do
-          MANIFEST="azure/base/k8s/backend/${SERVICE}.yml"
-          if [ -f "$MANIFEST" ]; then
-            sed -i "s|image:.*|image: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $MANIFEST
-          fi
-        done
-
-        FRONTEND_MANIFEST="azure/base/k8s/frontend/deployment.yml"
-        if [ -f "$FRONTEND_MANIFEST" ]; then
-          sed -i "s|image:.*|image: ${REGISTRY}/frontend:${NEW_TAG}|g" $FRONTEND_MANIFEST
+        
+        VALUES_FILE="helm/boutique-app/values.yaml"
+        if [ -f "$VALUES_FILE" ]; then
+          for SERVICE in auth gateway orders product-service; do
+            # Using sed to update the specific image line in the values.yaml file.
+            # Example target line: auth: boutiqueacrshared.azurecr.io/auth:latest
+            # We match the service key and replace the tag
+            if [ "$SERVICE" = "product-service" ]; then
+              sed -i "s|productService: .*|productService: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $VALUES_FILE
+            else
+              sed -i "s|${SERVICE}: .*|${SERVICE}: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $VALUES_FILE
+            fi
+          done
+          
+          # Update frontend tag
+          sed -i "s|frontend: .*|frontend: ${REGISTRY}/frontend:${NEW_TAG}|g" $VALUES_FILE
         fi
-      displayName: 'Update image tags'
+      displayName: 'Update image tags in values.yaml'
 
     - script: |
         set -e
         git config user.name "azure-devops"
         git config user.email "azure-devops@boutique.com"
-        git add azure/base/
-        git diff --staged --quiet || git commit -m "ci: update ACR image tags to $(Build.SourceVersion)"
+        git add helm/boutique-app/values.yaml
+        git diff --staged --quiet || git commit -m "ci: update Helm values image tags to $(Build.SourceVersion)"
         git push origin HEAD:master
       displayName: 'Commit and push changes to GitOps repo'
