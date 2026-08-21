@@ -3,7 +3,7 @@ trigger: none
 variables:
   imageTag: '$(Build.SourceVersion)'
   acrLoginServer: 'boutiqueacrshared.azurecr.io'
-  dockerRegistryServiceConnection: 'boutique-acr-svc-conn'
+  azureServiceConnection: 'Azure Resource Group'
 
 resources:
   repositories:
@@ -59,17 +59,17 @@ stages:
         npm install --package-lock-only
       displayName: 'Generate package-lock.json for npm ci'
 
-    - task: Docker@2
+    - task: AzureCLI@2
       displayName: Build and Push image to ACR
       inputs:
-        command: buildAndPush
-        repository: $(service)
-        dockerfile: '$(buildPath)/Dockerfile'
-        buildContext: '$(buildPath)'
-        containerRegistry: $(dockerRegistryServiceConnection)
-        tags: |
-          $(imageTag)
-          latest
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -e
+          az acr login --name boutiqueacrshared
+          docker build -f $(buildPath)/Dockerfile -t $(acrLoginServer)/$(service):$(imageTag) -t $(acrLoginServer)/$(service):latest $(buildPath)
+          docker push $(acrLoginServer)/$(service) --all-tags
 
     - task: trivy@1
       inputs:
