@@ -48,7 +48,8 @@ router.post('/', async (req, res) => {
       orderItems.push({
         product_id: item.productId,
         quantity: item.quantity,
-        price: product.price
+        price: product.price,
+        size: item.selectedSize
       });
     }
 
@@ -63,10 +64,10 @@ router.post('/', async (req, res) => {
     const insertedItems: any[] = [];
     for (const item of orderItems) {
       const itemResult = await query(`
-        INSERT INTO order_items (order_id, product_id, quantity, price)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO order_items (order_id, product_id, quantity, price, size)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING id
-      `, [order.id, item.product_id, item.quantity, item.price]);
+      `, [order.id, item.product_id, item.quantity, item.price, item.size]);
       insertedItems.push({ ...item, id: itemResult.rows[0].id });
     }
 
@@ -83,7 +84,8 @@ router.post('/', async (req, res) => {
           orderId: order.id,
           productId: item.product_id,
           quantity: item.quantity,
-          price: item.price
+          price: item.price,
+          size: item.size
         })),
         totalAmount: order.total_amount,
         status: order.status,
@@ -133,7 +135,8 @@ router.get('/my-orders', async (req, res) => {
                  'id', oi.id,
                  'productId', oi.product_id,
                  'quantity', oi.quantity,
-                 'price', oi.price
+                 'price', oi.price,
+                 'size', oi.size
                )
              ) as items
       FROM orders o
@@ -216,6 +219,31 @@ router.patch('/:id/status', async (req, res) => {
   } catch (error) {
     console.error('Update order status error:', error);
     res.status(500).json({ success: false, error: 'Failed to update order status' });
+  }
+});
+
+router.patch('/:id/payment-status', async (req, res) => {
+  try {
+    const { paymentStatus } = req.body;
+    const { id } = req.params;
+
+    if (!['pending', 'paid', 'failed', 'refunded'].includes(paymentStatus)) {
+      return res.status(400).json({ success: false, error: 'Invalid payment status' });
+    }
+
+    const result = await query(
+      'UPDATE orders SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+      [paymentStatus, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    return res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Update payment status error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to update payment status' });
   }
 });
 

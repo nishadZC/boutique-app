@@ -19,8 +19,11 @@ app.use(metricsMiddleware);
 
 const services = {
   auth: process.env.AUTH_SERVICE_URL || 'http://localhost:3002',
+  users: process.env.USER_SERVICE_URL || 'http://localhost:3004',
   products: process.env.PRODUCTS_SERVICE_URL || 'http://localhost:3003',
   orders: process.env.ORDERS_SERVICE_URL || 'http://localhost:3005',
+  payments: process.env.PAYMENTS_SERVICE_URL || 'http://localhost:3006',
+  wishlist: process.env.WISHLIST_SERVICE_URL || 'http://localhost:3007',
 };
 
 app.use('/api/auth', createProxyMiddleware({
@@ -29,6 +32,11 @@ app.use('/api/auth', createProxyMiddleware({
   pathRewrite: { '^/api/auth': '' },
 }));
 
+app.use('/api/users', createProxyMiddleware({
+  target: services.users,
+  changeOrigin: true,
+  pathRewrite: { '^/api/users': '' },
+}));
 app.use('/api/products', createProxyMiddleware({
   target: services.products,
   changeOrigin: true,
@@ -39,6 +47,18 @@ app.use('/api/orders', createProxyMiddleware({
   target: services.orders,
   changeOrigin: true,
   pathRewrite: { '^/api/orders': '' },
+}));
+
+app.use('/api/payments', createProxyMiddleware({
+  target: services.payments,
+  changeOrigin: true,
+  pathRewrite: { '^/api/payments': '' },
+}));
+
+app.use('/api/wishlist', createProxyMiddleware({
+  target: services.wishlist,
+  changeOrigin: true,
+  pathRewrite: { '^/api/wishlist': '/wishlist' },
 }));
 
 // Root health check for Azure App Gateway

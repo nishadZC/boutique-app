@@ -2,9 +2,11 @@ import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { Product } from '../types';
+import { useToast } from './ToastContext';
 
 interface CartItem extends Product {
   quantity: number;
+  selectedSize?: string;
 }
 
 interface CartState {
@@ -14,9 +16,9 @@ interface CartState {
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: Product }
-  | { type: 'REMOVE_ITEM'; payload: string }
-  | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
+  | { type: 'ADD_ITEM'; payload: { product: Product; selectedSize?: string } }
+  | { type: 'REMOVE_ITEM'; payload: { id: string; selectedSize?: string } }
+  | { type: 'UPDATE_QUANTITY'; payload: { id: string; selectedSize?: string; quantity: number } }
   | { type: 'CLEAR_CART' };
 
 const loadInitialState = (): CartState => {
@@ -40,11 +42,11 @@ const initialState: CartState = loadInitialState();
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const existingItem = state.items.find(item => item.id === action.payload.id);
+      const existingItem = state.items.find(item => item.id === action.payload.product.id && item.selectedSize === action.payload.selectedSize);
       
       if (existingItem) {
         const updatedItems = state.items.map(item =>
-          item.id === action.payload.id
+          item.id === action.payload.product.id && item.selectedSize === action.payload.selectedSize
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -56,7 +58,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         };
       }
       
-      const newItems = [...state.items, { ...action.payload, quantity: 1 }];
+      const newItems = [...state.items, { ...action.payload.product, selectedSize: action.payload.selectedSize, quantity: 1 }];
       return {
         ...state,
         items: newItems,
@@ -66,7 +68,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
     }
     
     case 'REMOVE_ITEM': {
-      const newItems = state.items.filter(item => item.id !== action.payload);
+      const newItems = state.items.filter(item => item.id !== action.payload.id || item.selectedSize !== action.payload.selectedSize);
       return {
         ...state,
         items: newItems,
@@ -76,10 +78,10 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
     }
     
     case 'UPDATE_QUANTITY': {
-      const { id, quantity } = action.payload;
+      const { id, selectedSize, quantity } = action.payload;
       
       if (quantity === 0) {
-        const newItems = state.items.filter(item => item.id !== id);
+        const newItems = state.items.filter(item => item.id !== id || item.selectedSize !== selectedSize);
         return {
           ...state,
           items: newItems,
@@ -89,7 +91,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       }
       
       const newItems = state.items.map(item =>
-        item.id === id ? { ...item, quantity } : item
+        item.id === id && item.selectedSize === selectedSize ? { ...item, quantity } : item
       );
       
       return {
@@ -122,9 +124,9 @@ const calculateItemCount = (items: CartItem[]): number =>
   items.reduce((count, item) => count + item.quantity, 0);
 
 interface CartContextType extends CartState {
-  addItem: (product: Product) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addItem: (product: Product, selectedSize?: string, showFeedback?: boolean) => boolean;
+  removeItem: (productId: string, selectedSize?: string) => void;
+  updateQuantity: (productId: string, selectedSize: string | undefined, quantity: number) => void;
   clearCart: () => void;
 }
 
@@ -134,29 +136,34 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [state, dispatch] = useReducer(cartReducer, initialState);
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const { showToast } = useToast();
 
   React.useEffect(() => {
     localStorage.setItem('boutique_cart', JSON.stringify(state));
   }, [state]);
 
-  const addItem = (product: Product) => {
+  const addItem = (product: Product, selectedSize?: string, showFeedback = true): boolean => {
     if (!isAuthenticated) {
+      showToast('Please sign in to add products to your cart.', 'warning');
       navigate('/login');
-      return;
+      return false;
     }
-    if (user && (!user.phone || !user.address)) {
+    if (user && (!user.firstName || !user.lastName || !user.phone || !user.address)) {
+      showToast('Please complete your profile before adding products to your cart.', 'warning');
       navigate('/profile');
-      return;
+      return false;
     }
-    dispatch({ type: 'ADD_ITEM', payload: product });
+    dispatch({ type: 'ADD_ITEM', payload: { product, selectedSize } });
+    if (showFeedback) showToast(`${product.name} added to your cart.`, 'success');
+    return true;
   };
 
-  const removeItem = (productId: string) => {
-    dispatch({ type: 'REMOVE_ITEM', payload: productId });
+  const removeItem = (productId: string, selectedSize?: string) => {
+    dispatch({ type: 'REMOVE_ITEM', payload: { id: productId, selectedSize } });
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
-    dispatch({ type: 'UPDATE_QUANTITY', payload: { id: productId, quantity } });
+  const updateQuantity = (productId: string, selectedSize: string | undefined, quantity: number) => {
+    dispatch({ type: 'UPDATE_QUANTITY', payload: { id: productId, selectedSize, quantity } });
   };
 
   const clearCart = () => {

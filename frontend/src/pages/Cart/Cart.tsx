@@ -4,19 +4,11 @@ import {
   Typography,
   Box,
   Button,
-  Card,
-  CardContent,
   CardMedia,
   IconButton,
   Grid,
   Paper,
   Divider,
-  Stepper,
-  Step,
-  StepLabel,
-  Alert,
-  Snackbar,
-  TextField,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -28,74 +20,37 @@ import {
 } from '@mui/icons-material';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-
-import { orderService } from '../../services/orderService';
+import { useToast } from '../../contexts/ToastContext';
+import { useCheckout } from '../../hooks/useCheckout';
+import { calculateCartTotals } from '../../utils/cartPricing';
+import { AddressForm } from '../../components/AddressForm/AddressForm';
+import { addressFromString, formatAddress, AddressFields } from '../../types/address';
 const Cart: React.FC = () => {
-  const { items, total, removeItem, updateQuantity, clearCart } = useCart();
-  const { user, updateProfile } = useAuth();
-  const navigate = useNavigate();
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [removedItemName, setRemovedItemName] = useState('');
-  const [address, setAddress] = useState(user?.address || '');
+  const { items, removeItem, updateQuantity, clearCart } = useCart();
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const [addressFields, setAddressFields] = useState<AddressFields>(() => addressFromString(user?.address));
+  const address = formatAddress(addressFields);
   const [addressError, setAddressError] = useState('');
+  const { finalTotal, isCheckingOut, handleCheckout } = useCheckout({ address, setAddressError });
 
   React.useEffect(() => {
-    if (user?.address && !address) {
-      setAddress(user.address);
-    }
-  }, [user]);
+    if (user?.address && !formatAddress(addressFields)) setAddressFields(addressFromString(user.address));
+  }, [user, addressFields]);
 
-  const handleQuantityChange = (productId: string, delta: number) => {
-    const item = items.find(item => item.id === productId);
+  const handleQuantityChange = (productId: string, delta: number, selectedSize?: string) => {
+    const item = items.find(item => item.id === productId && item.selectedSize === selectedSize);
     if (item) {
       const newQuantity = item.quantity + delta;
       if (newQuantity >= 1 && newQuantity <= item.inventory) {
-        updateQuantity(productId, newQuantity);
+        updateQuantity(productId, selectedSize, newQuantity);
       }
     }
   };
 
-  const handleRemoveItem = (productId: string, productName: string) => {
-    removeItem(productId);
-    setRemovedItemName(productName);
-    setSnackbarOpen(true);
-  };
-
-  const handleCheckout = async () => {
-    if (!address.trim()) {
-      setAddressError('Please enter a shipping address before proceeding to checkout.');
-      return;
-    }
-    setAddressError('');
-    try {
-      const orderData = {
-        items: items.map(item => ({ productId: item.id, quantity: item.quantity })),
-        shippingAddress: { address: address }
-      };
-      
-      // Update the user's profile address if it has changed
-      if (user && user.address !== address) {
-        try {
-          await updateProfile({
-            firstName: user.firstName,
-            lastName: user.lastName,
-            phone: user.phone,
-            address: address
-          });
-        } catch (profileError) {
-          console.error('Failed to update profile address during checkout:', profileError);
-        }
-      }
-
-      await orderService.createOrder(orderData);
-      clearCart();
-      navigate('/orders');
-    } catch (error) {
-      console.error('Failed to create order:', error);
-      setRemovedItemName('Failed to process checkout');
-      setSnackbarOpen(true);
-    }
+  const handleRemoveItem = (productId: string, productName: string, selectedSize?: string) => {
+    removeItem(productId, selectedSize);
+    showToast(`${productName} removed from your cart.`, 'info');
   };
 
   if (items.length === 0) {
@@ -122,10 +77,7 @@ const Cart: React.FC = () => {
     );
   }
 
-  const subtotal = total;
-  const shipping = subtotal > 500 ? 0 : 15;
-  const tax = subtotal * 0.08;
-  const finalTotal = subtotal + shipping + tax;
+  const { subtotal, shipping, tax } = calculateCartTotals(items);
 
   return (
     <Container maxWidth="lg">
@@ -141,7 +93,7 @@ const Cart: React.FC = () => {
           <Grid size={{ xs: 12, md: 8 }}>
             <Paper elevation={2} sx={{ p: 3 }}>
               {items.map((item, index) => (
-                <Box key={item.id}>
+                <Box key={`${item.id}-${item.selectedSize || 'one-size'}`}>
                   <Box sx={{ py: 2 }}>
                     <Grid container spacing={3} alignItems="center">
                       <Grid size={{ xs: 12, sm: 2 }}>
@@ -173,7 +125,7 @@ const Cart: React.FC = () => {
                       <Grid size={{ xs: 12, sm: 3 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <IconButton
-                            onClick={() => handleQuantityChange(item.id, -1)}
+                            onClick={() => handleQuantityChange(item.id, -1, item.selectedSize)}
                             disabled={item.quantity <= 1}
                             sx={{
                               backgroundColor: 'background.paper',
@@ -197,7 +149,7 @@ const Cart: React.FC = () => {
                             {item.quantity}
                           </Typography>
                           <IconButton
-                            onClick={() => handleQuantityChange(item.id, 1)}
+                            onClick={() => handleQuantityChange(item.id, 1, item.selectedSize)}
                             disabled={item.quantity >= item.inventory}
                             sx={{
                               backgroundColor: 'background.paper',
@@ -224,7 +176,7 @@ const Cart: React.FC = () => {
                             ₹{((typeof item.price === 'string' ? parseFloat(item.price) : item.price) * item.quantity).toFixed(2)}
                           </Typography>
                           <IconButton
-                            onClick={() => handleRemoveItem(item.id, item.name)}
+                            onClick={() => handleRemoveItem(item.id, item.name, item.selectedSize)}
                             color="error"
                             sx={{
                               '&:hover': {
@@ -311,20 +263,8 @@ const Cart: React.FC = () => {
                 <Typography variant="subtitle2" gutterBottom>
                   Shipping Address
                 </Typography>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={2}
-                  size="small"
-                  placeholder="Enter your shipping address"
-                  value={address}
-                  onChange={(e) => {
-                    setAddress(e.target.value);
-                    if (addressError) setAddressError('');
-                  }}
-                  error={!!addressError}
-                  helperText={addressError}
-                />
+                <AddressForm value={addressFields} onChange={setAddressFields} />
+                {addressError && <Typography variant="caption" color="error">{addressError}</Typography>}
               </Box>
 
               <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
@@ -333,6 +273,7 @@ const Cart: React.FC = () => {
                   fullWidth
                   size="large"
                   onClick={handleCheckout}
+                  disabled={isCheckingOut}
                   sx={{
                     py: 1.5,
                     backgroundColor: '#000000',
@@ -361,16 +302,6 @@ const Cart: React.FC = () => {
         </Grid>
       </Box>
 
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSnackbarOpen(false)} severity="success">
-          {removedItemName} removed from cart
-        </Alert>
-      </Snackbar>
     </Container>
   );
 };

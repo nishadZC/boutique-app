@@ -21,10 +21,11 @@ import {
   Visibility as ViewIcon,
 } from '@mui/icons-material';
 import { Product } from '../../types';
+import { productRequiresSize } from '../../utils/productSizing';
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: (product: Product) => void;
+  onAddToCart: (product: Product, selectedSize?: string) => void;
   onToggleWishlist?: (productId: string) => void;
   isInWishlist?: boolean;
   showQuickView?: boolean;
@@ -51,13 +52,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
     
     // Fallback to placeholder image
-    return '/images/placeholder.svg';
+    return 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg';
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.currentTarget;
     // Try the local placeholder image
-    target.src = '/images/placeholder.svg';
+    target.src = 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg';
     target.onerror = () => {
       // Ultimate fallback - use a data URI for a simple placeholder
       target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik04NSA3NUgxMTVWMTI1SDg1Vjc1WiIgZmlsbD0iI0QxRDFEMSIvPgo8Y2lyY2xlIGN4PSI5MCIgY3k9IjkwIiByPSI1IiBmaWxsPSIjOUExQTFIIi8+CjxwYXRoIGQ9Ik03NSAxMjVIMTI1VjE0MEg3NVYxMjVaIiBmaWxsPSIjQTFBMUExIi8+Cjwvc3ZnPgo=';
@@ -304,12 +305,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
           startIcon={<AddToCartIcon />}
           onClick={(e) => {
             e.stopPropagation();
-            onAddToCart(product);
+            if (productRequiresSize(product)) {
+              navigate(`/products/${product.id}`);
+            } else {
+              onAddToCart(product, 'One Size');
+            }
           }}
           disabled={isOutOfStock}
           sx={{ width: '100%' }}
         >
-          {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+          {isOutOfStock ? 'Out of Stock' : productRequiresSize(product) ? 'Choose Size' : 'Add to Cart'}
         </Button>
       </CardActions>
     </Card>

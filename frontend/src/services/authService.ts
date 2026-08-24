@@ -7,6 +7,11 @@ export const authService = {
     return response.data;
   },
 
+  loginWithGoogle: async (credential: string): Promise<AuthResponse> => {
+    const response = await apiClient.post('/auth/google', { credential });
+    return response.data;
+  },
+
   register: async (credentials: RegisterCredentials): Promise<AuthResponse> => {
     const response = await apiClient.post('/auth/register', credentials);
     return response.data;
@@ -28,8 +33,4 @@ export const authService = {
     return response.data;
   },
 
-  updateProfile: async (data: { firstName: string; lastName: string; phone?: string; address?: string }): Promise<User> => {
-    const response = await apiClient.put('/auth/profile', data);
-    return response.data;
-  },
 };

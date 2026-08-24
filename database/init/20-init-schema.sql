@@ -70,6 +70,17 @@ CREATE TABLE IF NOT EXISTS product_images (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+\c auth_db
+
+CREATE TABLE IF NOT EXISTS wishlist_items (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    product_id UUID NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, product_id)
+);
+
+\c products_db
+
 INSERT INTO categories (id, name, description) VALUES
 ('10000000-0000-0000-0000-000000000001', 'Dresses', 'Elegant dresses for special occasions'),
 ('10000000-0000-0000-0000-000000000002', 'Accessories', 'Luxury accessories and fashion items'),
@@ -122,5 +133,6 @@ CREATE TABLE IF NOT EXISTS order_items (
     product_id UUID,
     quantity INTEGER NOT NULL,
     price DECIMAL(10,2) NOT NULL,
+    size VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

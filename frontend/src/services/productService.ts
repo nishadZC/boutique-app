@@ -9,7 +9,7 @@ const getImageUrl = (product: any): string => {
   }
   
   // Default fallback
-  return '/product-images/placeholder.jpg';
+  return 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg';
 };
 
 export const productService = {

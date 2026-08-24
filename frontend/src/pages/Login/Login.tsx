@@ -10,11 +10,12 @@ import {
   Paper,
 } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, loading, error, clearError } = useAuth();
+  const { login, loginWithGoogle, loading, error, clearError } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,6 +24,18 @@ const Login: React.FC = () => {
     
     try {
       await login(email, password);
+      navigate('/');
+    } catch (error) {
+      // Error is handled by the auth context
+    }
+  };
+
+  const handleGoogleSuccess = async (response: { credential?: string }) => {
+    clearError();
+    if (!response.credential) return;
+
+    try {
+      await loginWithGoogle(response.credential);
       navigate('/');
     } catch (error) {
       // Error is handled by the auth context
@@ -85,6 +98,14 @@ const Login: React.FC = () => {
             >
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>
+
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => clearError()}
+                useOneTap={false}
+              />
+            </Box>
             
             <Box sx={{ textAlign: 'center' }}>
               <Link to="/register" style={{ textDecoration: 'none' }}>

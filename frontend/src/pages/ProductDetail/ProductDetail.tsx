@@ -14,11 +14,12 @@ import {
   Paper,
   Breadcrumbs,
   Link,
-  Skeleton,
-  Snackbar,
-  Alert,
   Tabs,
   Tab,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -33,7 +34,10 @@ import {
 import { productService } from '../../services/productService';
 import { Product } from '../../types';
 import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import { getSizeOptions } from '../../utils/productSizing';
+import { useToast } from '../../contexts/ToastContext';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -62,9 +66,11 @@ const ProductDetail: React.FC = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const { addItem } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
+  const [selectedSize, setSelectedSize] = useState('');
+  const { showToast } = useToast();
 
   const relatedProducts: Product[] = []; // This would come from an API call
 
@@ -88,11 +94,14 @@ const ProductDetail: React.FC = () => {
 
   const handleAddToCart = () => {
     if (product) {
-      for (let i = 0; i < quantity; i++) {
-        addItem(product);
+      if (!selectedSize) {
+        showToast('Please select a size before adding this item.', 'warning');
+        return;
       }
-      setSnackbarOpen(true);
-      setQuantity(1);
+      if (addItem(product, selectedSize)) {
+        for (let i = 1; i < quantity; i++) addItem(product, selectedSize, false);
+        setQuantity(1);
+      }
     }
   };
 
@@ -256,6 +265,19 @@ const ProductDetail: React.FC = () => {
                   </Typography>
                 ) : (
                   <>
+                    <FormControl fullWidth sx={{ mb: 3 }}>
+                      <InputLabel id="product-size-label">Size</InputLabel>
+                      <Select
+                        labelId="product-size-label"
+                        value={selectedSize}
+                        label="Size"
+                        onChange={(event) => setSelectedSize(event.target.value)}
+                      >
+                        {getSizeOptions(product).map((size) => (
+                          <MenuItem value={size} key={size}>{size}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                       <Typography variant="body1" sx={{ mr: 2, minWidth: 80 }}>
                         Quantity:
@@ -328,6 +350,9 @@ const ProductDetail: React.FC = () => {
                   </Button>
                   
                   <IconButton
+                    onClick={() => toggleWishlist(product.id)}
+                    color={isInWishlist(product.id) ? 'error' : 'default'}
+                    aria-label={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                     sx={{
                       border: '1px solid',
                       borderColor: 'divider',
@@ -466,16 +491,6 @@ const ProductDetail: React.FC = () => {
         )}
       </Box>
       
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSnackbarOpen(false)} severity="success">
-          {quantity} {quantity === 1 ? 'item' : 'items'} added to cart
-        </Alert>
-      </Snackbar>
     </Container>
   );
 };

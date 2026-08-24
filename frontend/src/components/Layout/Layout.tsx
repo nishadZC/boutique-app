@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -18,17 +18,17 @@ import {
   AccountCircle,
   Home,
   ShoppingBag,
+  Favorite,
   Menu as MenuIcon,
   ExitToApp as LogoutIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
-import { useState } from 'react';
 
 const drawerWidth = 240;
 
 const Layout: React.FC = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const { itemCount } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
@@ -64,6 +64,12 @@ const Layout: React.FC = () => {
                 <ShoppingBag />
               </ListItemIcon>
               <ListItemText primary="Orders" />
+            </ListItem>
+            <ListItem component={RouterLink} to="/wishlist">
+              <ListItemIcon>
+                <Favorite />
+              </ListItemIcon>
+              <ListItemText primary="Wishlist" />
             </ListItem>
             <ListItem component={RouterLink} to="/profile">
               <ListItemIcon>

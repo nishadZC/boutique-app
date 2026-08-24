@@ -4,6 +4,8 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
+import { WishlistProvider } from './contexts/WishlistContext';
+import { ToastProvider } from './contexts/ToastContext';
 import Layout from './components/Layout/Layout';
 import Home from './pages/Home/Home';
 import Products from './pages/Products/Products';
@@ -13,6 +15,7 @@ import Login from './pages/Login/Login';
 import Register from './pages/Register/Register';
 import Profile from './pages/Profile/Profile';
 import Orders from './pages/Orders/Orders';
+import Wishlist from './pages/Wishlist/Wishlist';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
 const theme = createTheme({
@@ -263,14 +266,17 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <AuthProvider>
-          <CartProvider>
-            <Routes>
+        <ToastProvider>
+          <AuthProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <Routes>
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
                 <Route path="products" element={<Products />} />
                 <Route path="products/:id" element={<ProductDetail />} />
                 <Route path="cart" element={<Cart />} />
+                <Route path="wishlist" element={<Wishlist />} />
                 <Route path="login" element={<Login />} />
                 <Route path="register" element={<Register />} />
                 <Route
@@ -291,9 +297,11 @@ function App() {
                 />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </CartProvider>
-        </AuthProvider>
+                </Routes>
+              </WishlistProvider>
+            </CartProvider>
+          </AuthProvider>
+        </ToastProvider>
       </Router>
     </ThemeProvider>
   );

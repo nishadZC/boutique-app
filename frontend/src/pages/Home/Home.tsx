@@ -20,6 +20,7 @@ import {
 import { productService } from '../../services/productService';
 import { Product } from '../../types';
 import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 import ProductCard from '../../components/common/ProductCard';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
@@ -27,6 +28,7 @@ const Home: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { addItem } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -290,6 +292,8 @@ const Home: React.FC = () => {
                 <ProductCard
                   product={product}
                   onAddToCart={addItem}
+                  onToggleWishlist={toggleWishlist}
+                  isInWishlist={isInWishlist(product.id)}
                 />
               </Grid>
             ))}

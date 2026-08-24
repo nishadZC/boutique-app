@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { User } from '../types';
 import { authService } from '../services/authService';
+import { userService } from '../services/userService';
 
 interface AuthState {
   user: User | null;
@@ -42,6 +43,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: { firstName: string; lastName: string; phone?: string; address?: string }) => Promise<void>;
   clearError: () => void;
@@ -86,6 +88,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithGoogle = async (credential: string) => {
+    try {
+      dispatch({ type: 'LOGIN_START' });
+      const response = await authService.loginWithGoogle(credential);
+      localStorage.setItem('accessToken', response.token);
+      localStorage.setItem('refreshToken', response.refreshToken);
+      dispatch({ type: 'LOGIN_SUCCESS', payload: response.user });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Google sign-in failed';
+      dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
+      throw new Error(errorMessage);
+    }
+  };
+
   const logout = async () => {
     try {
       await authService.logout();
@@ -97,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (data: { firstName: string; lastName: string; phone?: string; address?: string }) => {
     try {
-      const updatedUser = await authService.updateProfile(data);
+      const updatedUser = await userService.updateProfile(data);
       dispatch({ type: 'LOGIN_SUCCESS', payload: updatedUser });
     } catch (error: any) {
       console.error('Update profile error:', error);
@@ -110,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, updateProfile, clearError }}>
+    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, logout, updateProfile, clearError }}>
       {children}
     </AuthContext.Provider>
   );

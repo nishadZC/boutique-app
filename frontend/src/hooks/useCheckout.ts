@@ -1,0 +1,105 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
+import { useToast } from '../contexts/ToastContext';
+import { orderService } from '../services/orderService';
+import { paymentService } from '../services/paymentService';
+import { calculateCartTotals } from '../utils/cartPricing';
+
+interface CheckoutOptions {
+  address: string;
+  setAddressError: (message: string) => void;
+}
+
+interface RazorpayResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+export const useCheckout = ({ address, setAddressError }: CheckoutOptions) => {
+  const { items, clearCart } = useCart();
+  const { user, updateProfile } = useAuth();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const { total: finalTotal } = calculateCartTotals(items);
+
+  const handleCheckout = async (): Promise<void> => {
+    if (!address.trim()) {
+      setAddressError('Please enter a shipping address before proceeding to checkout.');
+      showToast('Please enter a shipping address before checkout.', 'warning');
+      return;
+    }
+    if (!user || !user.firstName || !user.lastName || !user.phone || (!user.address && !address.trim())) {
+      showToast('Please complete your profile before checkout.', 'warning');
+      navigate('/profile');
+      return;
+    }
+
+    setAddressError('');
+    setIsCheckingOut(true);
+    let createdOrderId: string | undefined;
+
+    try {
+      if (user.address !== address) {
+        await updateProfile({
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phone: user.phone,
+          address,
+        }).catch((error) => console.error('Failed to update profile address during checkout:', error));
+      }
+
+      const order = await orderService.createOrder({
+        items: items.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          selectedSize: item.selectedSize,
+        })),
+        shippingAddress: { address },
+      });
+      createdOrderId = order.id;
+      const paymentOrder = await paymentService.createPaymentOrder(finalTotal, order.id);
+
+      await new Promise<void>((resolve, reject) => {
+        paymentService.openCheckout({
+          key: paymentOrder.keyId,
+          amount: paymentOrder.amount,
+          currency: paymentOrder.currency,
+          name: 'Boutique',
+          description: `Payment for order ${order.id}`,
+          order_id: paymentOrder.id,
+          prefill: { name: `${user.firstName} ${user.lastName}`, email: user.email },
+          handler: async (response: RazorpayResponse) => {
+            try {
+              await paymentService.verifyPayment({
+                orderId: order.id,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              });
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          },
+          modal: { ondismiss: () => reject(new Error('Payment cancelled')) },
+        });
+      });
+
+      showToast('Payment successful. Your order is confirmed.', 'success');
+      clearCart();
+      navigate('/orders');
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      if (createdOrderId) await paymentService.markPaymentFailed(createdOrderId).catch(() => undefined);
+      showToast('Payment failed or was cancelled. Your order is not complete.', 'error');
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
+
+  return { finalTotal, isCheckingOut, handleCheckout };
+};

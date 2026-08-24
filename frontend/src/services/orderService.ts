@@ -3,7 +3,7 @@ import { Order } from '../types';
 
 export const orderService = {
   createOrder: async (orderData: {
-    items: { productId: string; quantity: number }[];
+    items: { productId: string; quantity: number; selectedSize?: string }[];
     shippingAddress: any;
   }): Promise<Order> => {
     const response = await apiClient.post('/orders', orderData);

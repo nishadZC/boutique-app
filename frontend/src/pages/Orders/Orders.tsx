@@ -208,9 +208,17 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
                       
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Chip
-                          icon={getStatusIcon(order.status)}
-                          label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                          color={getStatusColor(order.status)}
+                          icon={order.paymentStatus === 'paid' ? undefined : getStatusIcon(order.status)}
+                          label={order.paymentStatus && order.paymentStatus !== 'pending'
+                            ? order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)
+                            : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          color={order.paymentStatus === 'paid'
+                            ? 'success'
+                            : order.paymentStatus === 'failed'
+                              ? 'error'
+                              : order.paymentStatus === 'refunded'
+                                ? 'warning'
+                                : getStatusColor(order.status)}
                           variant="outlined"
                         />
                         <IconButton size="small">
@@ -252,7 +260,7 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
                                 </ListItemIcon>
                                 <ListItemText
                                   primary={item.product.name}
-                                  secondary={`Quantity: ${item.quantity} × ₹${typeof item.price === 'string' ? parseFloat(item.price).toFixed(2) : item.price.toFixed(2)}`}
+                                  secondary={`Size: ${item.size || 'One Size'} | Quantity: ${item.quantity} x ₹${typeof item.price === 'string' ? parseFloat(item.price).toFixed(2) : item.price.toFixed(2)}`}
                                   primaryTypographyProps={{ variant: 'subtitle2' }}
                                   secondaryTypographyProps={{ variant: 'body2' }}
                                 />

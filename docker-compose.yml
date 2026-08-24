@@ -8,9 +8,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres123
       POSTGRES_MULTIBYTE: auth_db,products_db,orders_db
-      POSTGRES_INITDB_ARGS: -c shared_buffers=256MB -c max_connections=200 -c effective_cache_size=1GB -c work_mem=4MB
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
@@ -132,8 +131,11 @@ services:
       - PORT=3001
       - LOG_LEVEL=info
       - AUTH_SERVICE_URL=http://auth:3002
+      - USER_SERVICE_URL=http://user-service:3004
       - PRODUCTS_SERVICE_URL=http://product-service:3003
       - ORDERS_SERVICE_URL=http://orders:3005
+      - PAYMENTS_SERVICE_URL=http://payment:3006
+      - WISHLIST_SERVICE_URL=http://wishlist-service:3007
     depends_on:
       postgres:
         condition: service_healthy
@@ -172,6 +174,7 @@ services:
       - NODE_ENV=production
       - PORT=3002
       - LOG_LEVEL=info
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:?Set GOOGLE_CLIENT_ID in .env}
       - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/auth_db
     depends_on:
       postgres:
@@ -199,6 +202,32 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # User profile service
+  user-service:
+    build:
+      context: ./backend/services/user-service
+      dockerfile: Dockerfile
+    container_name: boutique-user-service
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/auth_db
+      - AZURE_MAPS_SUBSCRIPTION_KEY=${AZURE_MAPS_SUBSCRIPTION_KEY:?Set AZURE_MAPS_SUBSCRIPTION_KEY in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - boutique-network
+    restart: unless-stopped
+
   # Product Service
   product-service:
     build:
@@ -212,6 +241,12 @@ services:
       - PORT=3003
       - LOG_LEVEL=info
       - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/products_db
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:?Set CLOUDINARY_CLOUD_NAME in .env}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:?Set CLOUDINARY_API_KEY in .env}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:?Set CLOUDINARY_API_SECRET in .env}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:?Set CLOUDINARY_CLOUD_NAME in .env}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:?Set CLOUDINARY_API_KEY in .env}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:?Set CLOUDINARY_API_SECRET in .env}
     depends_on:
       postgres:
         condition: service_healthy
@@ -237,6 +272,31 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # Wishlist Service
+  wishlist-service:
+    build:
+      context: ./backend/services/wishlist-service
+      dockerfile: Dockerfile
+    container_name: boutique-wishlist
+    ports:
+      - "3008:3007"
+    environment:
+      - NODE_ENV=production
+      - PORT=3007
+      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/auth_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - boutique-network
+    restart: unless-stopped
 
   # Orders Service (Order Management)
   orders:
@@ -278,6 +338,40 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Razorpay payment service
+  payment:
+    build:
+      context: ./backend/services/payment
+      dockerfile: Dockerfile
+    container_name: boutique-payment
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=production
+      - PORT=3006
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:?Set RAZORPAY_KEY_ID in .env}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:?Set RAZORPAY_KEY_SECRET in .env}
+      - ORDERS_SERVICE_URL=http://orders:3005
+    depends_on:
+      postgres:
+        condition: service_healthy
+      orders:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - boutique-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   # Frontend
   frontend:
     build:
@@ -285,7 +379,7 @@ services:
       dockerfile: Dockerfile
     container_name: boutique-frontend
     ports:
-      - "3008:80"
+      - "3000:80"
     environment:
       - REACT_APP_API_URL=http://gateway:3001/api
     depends_on:

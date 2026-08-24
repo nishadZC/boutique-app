@@ -10,8 +10,6 @@ import {
   CardContent,
   Avatar,
   Chip,
-  Divider,
-  IconButton,
   List,
   ListItem,
   ListItemText,
@@ -30,15 +28,19 @@ import {
   ExitToApp as LogoutIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
+import { AddressForm } from '../../components/AddressForm/AddressForm';
+import { addressFromString, emptyAddress, formatAddress, AddressFields } from '../../types/address';
 
 const Profile: React.FC = () => {
   const { user, logout, updateProfile } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [editOpen, setEditOpen] = React.useState(false);
   const [editData, setEditData] = React.useState({
@@ -47,6 +49,7 @@ const Profile: React.FC = () => {
     phone: '',
     address: ''
   });
+  const [editAddress, setEditAddress] = React.useState<AddressFields>(emptyAddress);
   const [updating, setUpdating] = React.useState(false);
 
   React.useEffect(() => {
@@ -57,6 +60,7 @@ const Profile: React.FC = () => {
         phone: user.phone || '',
         address: user.address || ''
       });
+      setEditAddress(addressFromString(user.address));
     }
   }, [user]);
 
@@ -68,11 +72,12 @@ const Profile: React.FC = () => {
   const handleSaveProfile = async () => {
     try {
       setUpdating(true);
-      await updateProfile(editData);
+      await updateProfile({ ...editData, address: formatAddress(editAddress) });
       setEditOpen(false);
+      showToast('Profile updated successfully.', 'success');
     } catch (err) {
       console.error(err);
-      alert('Failed to update profile');
+      showToast('Failed to update profile. Please try again.', 'error');
     } finally {
       setUpdating(false);
     }
@@ -301,14 +306,7 @@ const Profile: React.FC = () => {
               value={editData.phone}
               onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
             />
-            <TextField
-              label="Address"
-              fullWidth
-              multiline
-              rows={3}
-              value={editData.address}
-              onChange={(e) => setEditData({ ...editData, address: e.target.value })}
-            />
+            <AddressForm value={editAddress} onChange={setEditAddress} />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>

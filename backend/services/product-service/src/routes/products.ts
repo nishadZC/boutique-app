@@ -53,7 +53,7 @@ let whereClause = 'WHERE 1=1';
       SELECT p.id, p.name, p.description, p.price, p.compare_price, 
              p.brand, p.inventory_quantity, p.is_featured, p.created_at, p.updated_at,
              COALESCE(c.name, 'Uncategorized') as category,
-             COALESCE(pi.image_url, '/product-images/placeholder.jpg') as image_url
+             COALESCE(NULLIF(pi.image_url, ''), 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg') as image_url
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
@@ -75,7 +75,10 @@ let whereClause = 'WHERE 1=1';
     const response = {
       success: true,
       data: {
-        products: productsResult.rows,
+        products: productsResult.rows.map((product: any) => ({
+          ...product,
+          image_url: product.image_url || 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg'
+        })),
         pagination: {
           currentPage: pageNum,
           totalPages,
@@ -101,7 +104,7 @@ router.get('/:id', async (req, res) => {
       SELECT p.id, p.name, p.description, p.price, p.compare_price, 
              p.brand, p.inventory_quantity, p.is_featured, p.created_at, p.updated_at,
              COALESCE(c.name, 'Uncategorized') as category,
-             COALESCE(pi.image_url, '/product-images/placeholder.jpg') as image_url
+             COALESCE(NULLIF(pi.image_url, ''), 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg') as image_url
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
@@ -114,7 +117,10 @@ router.get('/:id', async (req, res) => {
 
     const response = {
       success: true,
-      data: result.rows[0]
+      data: {
+        ...result.rows[0],
+        image_url: result.rows[0].image_url || 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg'
+      }
     };
 
     res.json(response);

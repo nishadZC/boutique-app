@@ -3,18 +3,12 @@ import {
   Container,
   Typography,
   Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  CardActions,
   Button,
-  TextField,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
   Box,
-  Chip,
   Drawer,
   useMediaQuery,
   IconButton,
@@ -23,7 +17,6 @@ import {
 import {
   FilterList as FilterIcon,
   Close as CloseIcon,
-  Sort as SortIcon,
   ViewList as ViewListIcon,
   ViewModule as ViewModuleIcon,
 } from '@mui/icons-material';
@@ -31,6 +24,7 @@ import { useTheme } from '@mui/material/styles';
 import { productService } from '../../services/productService';
 import { Product } from '../../types';
 import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 import ProductCard from '../../components/common/ProductCard';
 import SearchBar from '../../components/common/SearchBar';
 import FilterPanel from '../../components/common/FilterPanel';
@@ -50,6 +44,7 @@ const Products: React.FC = () => {
   const [activeFilters, setActiveFilters] = useState<any>({});
   const [resetKey, setResetKey] = useState(0);
   const { addItem } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
 
   const categories = [
     'clothing',
@@ -245,6 +240,8 @@ const Products: React.FC = () => {
             <ProductCard
               product={product}
               onAddToCart={addItem}
+              onToggleWishlist={toggleWishlist}
+              isInWishlist={isInWishlist(product.id)}
               variant={viewMode}
             />
           </Grid>
