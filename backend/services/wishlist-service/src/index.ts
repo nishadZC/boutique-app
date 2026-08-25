@@ -3,10 +3,11 @@ import dotenv from 'dotenv';
 import express, { Request, Response } from 'express';
 import helmet from 'helmet';
 import { Pool } from 'pg';
-import { metricsMiddleware, setupMetrics } from './metrics';
+import { metricsMiddleware, setDatabasePool, setupMetrics } from './metrics';
 
 dotenv.config();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+setDatabasePool(pool);
 const app = express();
 const port = Number(process.env.PORT) || 3007;
 

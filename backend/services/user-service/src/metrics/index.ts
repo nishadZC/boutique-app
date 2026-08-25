@@ -7,6 +7,13 @@ export const httpRequestTotal = new Counter({ name: 'http_requests_total', help:
 export const httpRequestsInProgress = new Gauge({ name: 'http_requests_in_progress', help: 'Number of HTTP requests in progress', labelNames: ['method', 'route', 'service_name'], registers: [register] });
 export const serviceInfo = new Gauge({ name: 'service_info', help: 'Static information about service', labelNames: ['service_name', 'version'], registers: [register] });
 
+interface PoolStats { totalCount: number; idleCount: number; waitingCount: number; }
+let databasePool: PoolStats | undefined;
+export const databasePoolConnections = new Gauge({ name: 'db_pool_connections', help: 'Total PostgreSQL connections in the pool', registers: [register], collect() { this.set(databasePool?.totalCount || 0); } });
+export const databasePoolIdleConnections = new Gauge({ name: 'db_pool_idle_connections', help: 'Idle PostgreSQL connections in the pool', registers: [register], collect() { this.set(databasePool?.idleCount || 0); } });
+export const databasePoolWaitingClients = new Gauge({ name: 'db_pool_waiting_clients', help: 'Clients waiting for a PostgreSQL connection', registers: [register], collect() { this.set(databasePool?.waitingCount || 0); } });
+export const setDatabasePool = (pool: PoolStats): void => { databasePool = pool; };
+
 export const metricsMiddleware = (req: any, res: any, next: any): void => {
   const start = Date.now();
   const route = req.route?.path || req.path || 'unknown';
