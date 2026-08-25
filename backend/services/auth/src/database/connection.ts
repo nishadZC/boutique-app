@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { setDatabasePool } from '../metrics';
 
 let pool: Pool;
 
@@ -27,6 +28,7 @@ export const connectDB = async (): Promise<void> => {
       });
     }
 
+    setDatabasePool(pool);
     await pool.query('SELECT NOW()');
     console.log('Connected to PostgreSQL database');
   } catch (error) {

@@ -39,6 +39,45 @@ export const boutiqueTotalUsers = new Gauge({
   registers: [register],
 });
 
+interface PoolStats {
+  totalCount: number;
+  idleCount: number;
+  waitingCount: number;
+}
+
+let databasePool: PoolStats | undefined;
+
+export const databasePoolConnections = new Gauge({
+  name: 'db_pool_connections',
+  help: 'Total PostgreSQL connections in the pool',
+  registers: [register],
+  collect() {
+    this.set(databasePool?.totalCount || 0);
+  },
+});
+
+export const databasePoolIdleConnections = new Gauge({
+  name: 'db_pool_idle_connections',
+  help: 'Idle PostgreSQL connections in the pool',
+  registers: [register],
+  collect() {
+    this.set(databasePool?.idleCount || 0);
+  },
+});
+
+export const databasePoolWaitingClients = new Gauge({
+  name: 'db_pool_waiting_clients',
+  help: 'Clients waiting for a PostgreSQL connection',
+  registers: [register],
+  collect() {
+    this.set(databasePool?.waitingCount || 0);
+  },
+});
+
+export const setDatabasePool = (pool: PoolStats): void => {
+  databasePool = pool;
+};
+
 export interface MetricsOptions {
   serviceName: string;
   serviceVersion?: string;

@@ -9,7 +9,9 @@ import { calculateCartTotals } from '../utils/cartPricing';
 
 interface CheckoutOptions {
   address: string;
+  phone: string;
   setAddressError: (message: string) => void;
+  onAddressSaved: () => void;
 }
 
 interface RazorpayResponse {
@@ -18,7 +20,7 @@ interface RazorpayResponse {
   razorpay_signature: string;
 }
 
-export const useCheckout = ({ address, setAddressError }: CheckoutOptions) => {
+export const useCheckout = ({ address, phone, setAddressError, onAddressSaved }: CheckoutOptions) => {
   const { items, clearCart } = useCart();
   const { user, updateProfile } = useAuth();
   const { showToast } = useToast();
@@ -32,7 +34,7 @@ export const useCheckout = ({ address, setAddressError }: CheckoutOptions) => {
       showToast('Please enter a shipping address before checkout.', 'warning');
       return;
     }
-    if (!user || !user.firstName || !user.lastName || !user.phone || (!user.address && !address.trim())) {
+    if (!user || !user.firstName || !user.lastName || !phone || !address.trim()) {
       showToast('Please complete your profile before checkout.', 'warning');
       navigate('/profile');
       return;
@@ -43,11 +45,11 @@ export const useCheckout = ({ address, setAddressError }: CheckoutOptions) => {
     let createdOrderId: string | undefined;
 
     try {
-      if (user.address !== address) {
+      if (user.address !== address || user.phone !== phone) {
         await updateProfile({
           firstName: user.firstName,
           lastName: user.lastName,
-          phone: user.phone,
+          phone,
           address,
         }).catch((error) => console.error('Failed to update profile address during checkout:', error));
       }
@@ -90,6 +92,7 @@ export const useCheckout = ({ address, setAddressError }: CheckoutOptions) => {
       });
 
       showToast('Payment successful. Your order is confirmed.', 'success');
+      onAddressSaved();
       clearCart();
       navigate('/orders');
     } catch (error) {

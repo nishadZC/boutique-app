@@ -9,6 +9,11 @@ import {
   Grid,
   Paper,
   Divider,
+  FormControl,
+  FormControlLabel,
+  Radio,
+  RadioGroup,
+  TextField,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -24,19 +29,69 @@ import { useToast } from '../../contexts/ToastContext';
 import { useCheckout } from '../../hooks/useCheckout';
 import { calculateCartTotals } from '../../utils/cartPricing';
 import { AddressForm } from '../../components/AddressForm/AddressForm';
-import { addressFromString, formatAddress, AddressFields } from '../../types/address';
+import { addressFromString, formatAddress, AddressFields, SavedAddress } from '../../types/address';
 const Cart: React.FC = () => {
   const { items, removeItem, updateQuantity, clearCart } = useCart();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [addressFields, setAddressFields] = useState<AddressFields>(() => addressFromString(user?.address));
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('current');
   const address = formatAddress(addressFields);
   const [addressError, setAddressError] = useState('');
-  const { finalTotal, isCheckingOut, handleCheckout } = useCheckout({ address, setAddressError });
+  const savedAddressKey = user ? `savedAddresses:${user.id}` : '';
+
+  const saveCurrentAddress = () => {
+    if (!user || !address.trim() || !phone.trim()) return;
+    const nextAddress: SavedAddress = {
+      id: `${Date.now()}`,
+      label: savedAddresses.length === 0 ? 'Primary address' : `Address ${savedAddresses.length + 1}`,
+      fields: addressFields,
+      phone,
+    };
+    const withoutDuplicate = savedAddresses.filter(saved => formatAddress(saved.fields) !== address || saved.phone !== phone);
+    const nextAddresses = [...withoutDuplicate, nextAddress];
+    localStorage.setItem(savedAddressKey, JSON.stringify(nextAddresses));
+    setSavedAddresses(nextAddresses);
+  };
+
+  const { finalTotal, isCheckingOut, handleCheckout } = useCheckout({
+    address,
+    phone,
+    setAddressError,
+    onAddressSaved: saveCurrentAddress,
+  });
 
   React.useEffect(() => {
-    if (user?.address && !formatAddress(addressFields)) setAddressFields(addressFromString(user.address));
-  }, [user, addressFields]);
+    if (!user) return;
+    setPhone(user.phone || '');
+    const stored = localStorage.getItem(`savedAddresses:${user.id}`);
+    let parsed: SavedAddress[] = [];
+    try {
+      parsed = stored ? JSON.parse(stored) : [];
+    } catch {
+      localStorage.removeItem(`savedAddresses:${user.id}`);
+    }
+    if (parsed.length > 0) {
+      setSavedAddresses(parsed);
+    } else if (user.address) {
+      setSavedAddresses([{
+        id: 'profile-address',
+        label: 'Profile address',
+        fields: addressFromString(user.address),
+        phone: user.phone || '',
+      }]);
+    }
+    if (user.address && !formatAddress(addressFields)) setAddressFields(addressFromString(user.address));
+  }, [user]);
+
+  const selectSavedAddress = (saved: SavedAddress) => {
+    setSelectedAddressId(saved.id);
+    setAddressFields(saved.fields);
+    setPhone(saved.phone);
+    setAddressError('');
+  };
 
   const handleQuantityChange = (productId: string, delta: number, selectedSize?: string) => {
     const item = items.find(item => item.id === productId && item.selectedSize === selectedSize);
@@ -263,7 +318,50 @@ const Cart: React.FC = () => {
                 <Typography variant="subtitle2" gutterBottom>
                   Shipping Address
                 </Typography>
-                <AddressForm value={addressFields} onChange={setAddressFields} />
+                {savedAddresses.length > 0 && (
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <RadioGroup value={selectedAddressId}>
+                      {savedAddresses.map(saved => (
+                        <FormControlLabel
+                          key={saved.id}
+                          value={saved.id}
+                          control={<Radio />}
+                          onChange={() => selectSavedAddress(saved)}
+                          label={
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>{saved.label}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {formatAddress(saved.fields)} | {saved.phone || 'No phone saved'}
+                              </Typography>
+                            </Box>
+                          }
+                          sx={{ alignItems: 'flex-start', mr: 0 }}
+                        />
+                      ))}
+                      <FormControlLabel
+                        value="current"
+                        control={<Radio />}
+                        onChange={() => setSelectedAddressId('current')}
+                        label="Enter a new delivery address"
+                      />
+                    </RadioGroup>
+                  </FormControl>
+                )}
+                <TextField
+                  label="Phone Number"
+                  required
+                  fullWidth
+                  value={phone}
+                  onChange={event => setPhone(event.target.value)}
+                  sx={{ mb: 2 }}
+                />
+                <AddressForm
+                  value={addressFields}
+                  onChange={value => {
+                    setSelectedAddressId('current');
+                    setAddressFields(value);
+                  }}
+                />
                 {addressError && <Typography variant="caption" color="error">{addressError}</Typography>}
               </Box>
 
@@ -282,8 +380,9 @@ const Cart: React.FC = () => {
                     fontSize: '1.1rem',
                     border: '2px solid #000000',
                     '&:hover': {
-                      backgroundColor: '#ffffff',
-                      color: '#000000',
+                      backgroundColor: '#1a1a1a',
+                      color: '#ffffff',
+                      borderColor: '#1a1a1a',
                     }
                   }}
                 >
