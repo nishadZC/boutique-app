@@ -177,7 +177,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </Box>
         )}
         
-        <Box sx={{ position: 'absolute', top: 8, right: showQuickView ? 48 : 8, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
           {onToggleWishlist && (
             <Tooltip title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}>
               <IconButton
@@ -201,8 +201,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </IconButton>
             </Tooltip>
           )}
-          
-          {showQuickView && onQuickView && (
+        </Box>
+
+        {showQuickView && onQuickView && (
+          <Box sx={{ position: 'absolute', top: 48, right: 8 }}>
             <Tooltip title="Quick view">
               <IconButton
                 onClick={(e) => {
@@ -220,8 +222,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 <ViewIcon />
               </IconButton>
             </Tooltip>
-          )}
-        </Box>
+          </Box>
+        )}
       </Box>
 
       <CardContent sx={{ flexGrow: 1, pb: 1 }}>
@@ -314,7 +316,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           disabled={isOutOfStock}
           sx={{ width: '100%' }}
         >
-          {isOutOfStock ? 'Out of Stock' : productRequiresSize(product) ? 'Choose Size' : 'Add to Cart'}
+          {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
         </Button>
       </CardActions>
     </Card>

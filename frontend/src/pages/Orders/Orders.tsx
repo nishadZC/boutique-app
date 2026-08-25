@@ -26,7 +26,6 @@ import {
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
-  Visibility as ViewIcon,
   Download as DownloadIcon,
   LocalShipping as ShippingIcon,
   CheckCircle as DeliveredIcon,
@@ -69,10 +68,11 @@ const Orders: React.FC = () => {
 INVOICE
 Order ID: ${order.id}
 Date: ${new Date(order.createdAt).toLocaleString()}
-Status: ${order.status}
+Status: ${order.paymentStatus || order.status}
+Fulfillment Status: ${order.status}
 
 Items:
-${order.items.map(item => `- ${item.product.name} (Qty: ${item.quantity}) - ₹${typeof item.price === 'string' ? parseFloat(item.price).toFixed(2) : item.price.toFixed(2)}`).join('\n')}
+${order.items.map(item => `- ${item.product.name}${item.size ? ` (Size: ${item.size})` : ''} (Qty: ${item.quantity}) - ₹${typeof item.price === 'string' ? parseFloat(item.price).toFixed(2) : item.price.toFixed(2)}`).join('\n')}
 
 Total Amount: ₹${typeof order.totalAmount === 'string' ? parseFloat(order.totalAmount).toFixed(2) : order.totalAmount.toFixed(2)}
 Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shippingAddress === 'string' ? order.shippingAddress : 'N/A')}
@@ -221,9 +221,6 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
                                 : getStatusColor(order.status)}
                           variant="outlined"
                         />
-                        <IconButton size="small">
-                          <ViewIcon />
-                        </IconButton>
                       </Box>
                     </Box>
 

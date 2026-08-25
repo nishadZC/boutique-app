@@ -7,6 +7,13 @@ export interface AddressFields {
   country: string;
 }
 
+export interface SavedAddress {
+  id: string;
+  label: string;
+  fields: AddressFields;
+  phone: string;
+}
+
 export const emptyAddress: AddressFields = {
   houseNumber: '',
   street: '',
