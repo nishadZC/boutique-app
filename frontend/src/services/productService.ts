@@ -16,7 +16,7 @@ export const productService = {
   getAll: async (): Promise<Product[]> => {
     console.log('[ProductService] Fetching products from:', process.env.REACT_APP_API_URL || '/api');
     try {
-      const response = await apiClient.get('/products');
+      const response = await apiClient.get('/products?limit=100');
       const apiResponse = response.data;
       
       // Transform API response to match frontend types

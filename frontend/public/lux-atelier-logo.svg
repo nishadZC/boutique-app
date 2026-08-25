@@ -1,0 +1,34 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goldGradient" x1="200" y1="120" x2="820" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F9E7A2"/>
+      <stop offset="0.18" stop-color="#E7C468"/>
+      <stop offset="0.38" stop-color="#F7D77B"/>
+      <stop offset="0.52" stop-color="#C99A2D"/>
+      <stop offset="0.72" stop-color="#F5DA8C"/>
+      <stop offset="1" stop-color="#B77B1E"/>
+    </linearGradient>
+    <radialGradient id="bgGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 430) rotate(90) scale(560 620)">
+      <stop stop-color="#1A1A1A"/>
+      <stop offset="1" stop-color="#0D0D0D"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bgGlow)"/>
+
+  <rect x="68" y="68" width="888" height="888" rx="110" fill="#0B0B0B" stroke="url(#goldGradient)" stroke-width="8"/>
+
+  <g filter="url(#shadow)">
+    <path d="M495 256C442 249 370 263 315 321C279 357 255 406 255 462C255 520 277 570 319 606C356 638 408 654 463 658L475 658L476 744C476 762 463 778 444 782C428 786 408 781 393 767C350 724 316 671 291 610C261 534 251 453 266 384C284 309 343 250 425 224C456 214 481 211 512 211C542 211 566 214 595 220C628 228 658 244 684 268L654 313C632 295 607 282 584 275C560 268 538 266 513 266C506 266 500 267 495 268V256Z" fill="url(#goldGradient)"/>
+    <path d="M537 259C565 267 590 281 610 302C637 331 653 372 659 421C667 488 651 555 606 617C577 656 532 687 483 705C468 711 454 717 440 723C429 728 420 739 420 752C420 765 429 776 442 781C469 793 496 800 521 800C553 800 584 792 612 776C676 738 719 668 736 590C755 503 746 416 690 342C642 278 573 239 502 230C488 228 475 225 463 220C454 216 449 207 449 197C449 183 458 172 473 169C491 165 508 162 524 162C537 162 550 163 562 166C594 174 621 188 647 206L615 251C599 241 580 233 560 227C551 224 543 220 537 219V259Z" fill="url(#goldGradient)" opacity="0.9"/>
+    <path d="M451 327C480 334 507 349 531 367C554 385 572 407 592 433C616 466 628 507 629 548C630 587 620 621 599 651C573 688 532 714 480 729C449 739 417 747 386 749C372 750 360 742 355 728C351 716 358 703 372 695C392 684 413 670 430 654C457 629 476 596 483 559C490 523 482 490 461 457C446 433 425 409 395 387C370 367 342 352 315 344C294 338 280 325 276 305C273 286 280 271 296 261C321 245 353 236 392 233C424 230 452 229 477 234L451 327Z" fill="url(#goldGradient)" opacity="0.8"/>
+  </g>
+
+  <g fill="url(#goldGradient)">
+    <text x="512" y="698" text-anchor="middle" font-size="120" font-weight="600" letter-spacing="12" font-family="Georgia, 'Times New Roman', serif">LUX</text>
+    <text x="512" y="790" text-anchor="middle" font-size="48" font-weight="500" letter-spacing="12" font-family="Georgia, 'Times New Roman', serif">ATELIER</text>
+  </g>
+</svg>

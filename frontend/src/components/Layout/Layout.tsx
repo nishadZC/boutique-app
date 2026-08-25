@@ -41,7 +41,7 @@ const Layout: React.FC = () => {
     <Box>
       <Toolbar>
         <Typography variant="h6" noWrap component="div">
-          Boutique
+          Lux Atelier
         </Typography>
       </Toolbar>
       <List>
@@ -103,7 +103,7 @@ const Layout: React.FC = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Luxury Boutique
+            Lux Atelier
           </Typography>
           <IconButton color="inherit" onClick={() => navigate('/cart')}>
             <Badge badgeContent={itemCount} color="error">

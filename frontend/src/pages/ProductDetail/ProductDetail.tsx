@@ -20,6 +20,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  TextField,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -70,6 +71,13 @@ const ProductDetail: React.FC = () => {
   const { addItem } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [selectedSize, setSelectedSize] = useState('');
+  const [isCustomizing, setIsCustomizing] = useState(false);
+  const [customMeasurements, setCustomMeasurements] = useState({
+    shoulder: '',
+    chest: '',
+    sleeve: '',
+    neck: ''
+  });
   const { showToast } = useToast();
 
   const relatedProducts: Product[] = []; // This would come from an API call
@@ -94,13 +102,24 @@ const ProductDetail: React.FC = () => {
 
   const handleAddToCart = () => {
     if (product) {
-      if (!selectedSize) {
+      let finalSize = selectedSize;
+      
+      if (isCustomizing) {
+        if (!customMeasurements.shoulder || !customMeasurements.chest || !customMeasurements.sleeve || !customMeasurements.neck) {
+          showToast('Please fill out all custom measurements.', 'warning');
+          return;
+        }
+        finalSize = `Custom (Shoulder: ${customMeasurements.shoulder}, Chest: ${customMeasurements.chest}, Sleeve: ${customMeasurements.sleeve}, Neck: ${customMeasurements.neck})`;
+      } else if (!finalSize) {
         showToast('Please select a size before adding this item.', 'warning');
         return;
       }
-      if (addItem(product, selectedSize)) {
-        for (let i = 1; i < quantity; i++) addItem(product, selectedSize, false);
+      
+      if (addItem(product, finalSize)) {
+        for (let i = 1; i < quantity; i++) addItem(product, finalSize, false);
         setQuantity(1);
+        setIsCustomizing(false);
+        setSelectedSize('');
       }
     }
   };
@@ -140,6 +159,8 @@ const ProductDetail: React.FC = () => {
       </Container>
     );
   }
+
+  const isShirt = product.category.toLowerCase().includes('shirt') || product.name.toLowerCase().includes('shirt');
 
   return (
     <Container maxWidth="lg">
@@ -265,19 +286,92 @@ const ProductDetail: React.FC = () => {
                   </Typography>
                 ) : (
                   <>
-                    <FormControl fullWidth sx={{ mb: 3 }}>
-                      <InputLabel id="product-size-label">Size</InputLabel>
-                      <Select
-                        labelId="product-size-label"
-                        value={selectedSize}
-                        label="Size"
-                        onChange={(event) => setSelectedSize(event.target.value)}
-                      >
-                        {getSizeOptions(product).map((size) => (
-                          <MenuItem value={size} key={size}>{size}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 3 }}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel id="product-size-label">Size</InputLabel>
+                        <Select
+                          labelId="product-size-label"
+                          value={selectedSize}
+                          label="Size"
+                          onChange={(event) => setSelectedSize(event.target.value)}
+                          disabled={isCustomizing}
+                        >
+                          {getSizeOptions(product).map((size) => (
+                            <MenuItem value={size} key={size}>{size}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      
+                      {isShirt && (
+                        <Button
+                          variant={isCustomizing ? "contained" : "outlined"}
+                          onClick={() => setIsCustomizing(!isCustomizing)}
+                          sx={{ 
+                            minWidth: '120px', 
+                            height: '40px',
+                            borderColor: '#d4af37',
+                            color: isCustomizing ? '#000' : '#d4af37',
+                            backgroundColor: isCustomizing ? '#d4af37' : 'transparent',
+                            '&:hover': {
+                              backgroundColor: isCustomizing ? '#b8941f' : 'rgba(212,175,55,0.1)',
+                              borderColor: '#d4af37'
+                            }
+                          }}
+                        >
+                          Customize
+                        </Button>
+                      )}
+                    </Box>
+
+                    {isCustomizing && (
+                      <Box sx={{ mb: 4, p: 2, border: '1px dashed #d4af37', borderRadius: 2, background: 'rgba(212,175,55,0.03)' }}>
+                        <Typography variant="subtitle2" sx={{ color: '#d4af37', mb: 2 }}>
+                          Enter your exact measurements (inches)
+                        </Typography>
+                        <Grid container spacing={2}>
+                          <Grid size={{ xs: 6, sm: 3 }}>
+                            <TextField 
+                              size="small" 
+                              label="Shoulder" 
+                              placeholder="e.g. 18"
+                              value={customMeasurements.shoulder}
+                              onChange={(e) => setCustomMeasurements({...customMeasurements, shoulder: e.target.value})}
+                              fullWidth 
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 6, sm: 3 }}>
+                            <TextField 
+                              size="small" 
+                              label="Chest" 
+                              placeholder="e.g. 40"
+                              value={customMeasurements.chest}
+                              onChange={(e) => setCustomMeasurements({...customMeasurements, chest: e.target.value})}
+                              fullWidth 
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 6, sm: 3 }}>
+                            <TextField 
+                              size="small" 
+                              label="Sleeve" 
+                              placeholder="e.g. 25"
+                              value={customMeasurements.sleeve}
+                              onChange={(e) => setCustomMeasurements({...customMeasurements, sleeve: e.target.value})}
+                              fullWidth 
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 6, sm: 3 }}>
+                            <TextField 
+                              size="small" 
+                              label="Neck" 
+                              placeholder="e.g. 16"
+                              value={customMeasurements.neck}
+                              onChange={(e) => setCustomMeasurements({...customMeasurements, neck: e.target.value})}
+                              fullWidth 
+                            />
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    )}
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                       <Typography variant="body1" sx={{ mr: 2, minWidth: 80 }}>
                         Quantity:

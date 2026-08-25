@@ -61,6 +61,13 @@ app.use('/api/wishlist', createProxyMiddleware({
   pathRewrite: { '^/api/wishlist': '/wishlist' },
 }));
 
+// POST /api/recommendations → Express product-service (which internally calls FastAPI)
+app.use('/api/recommendations', createProxyMiddleware({
+  target: services.products,
+  changeOrigin: true,
+  pathRewrite: { '^/api/recommendations': '/recommendations' },
+}));
+
 // Root health check for Azure App Gateway
 app.get('/', (req, res) => {
   res.status(200).send('OK');

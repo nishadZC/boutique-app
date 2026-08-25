@@ -298,7 +298,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </Typography>
       </CardContent>
 
-      <CardActions sx={{ pt: 0, flexDirection: 'column', gap: 1 }}>
+      <CardActions sx={{ 
+        pt: variant === 'list' ? 2 : 0, 
+        px: variant === 'list' ? 3 : 1,
+        flexDirection: 'column', 
+        justifyContent: 'center',
+        gap: 1,
+        minWidth: variant === 'list' ? 200 : 'auto' 
+      }}>
         <Button
           variant="contained"
           size="small"
@@ -314,7 +321,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           disabled={isOutOfStock}
           sx={{ width: '100%' }}
         >
-          {isOutOfStock ? 'Out of Stock' : productRequiresSize(product) ? 'Choose Size' : 'Add to Cart'}
+          {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
         </Button>
       </CardActions>
     </Card>

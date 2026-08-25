@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
     const limitNum = parseInt(limit as string);
     const offset = (pageNum - 1) * limitNum;
 
-let whereClause = 'WHERE 1=1';
+    let whereClause = 'WHERE 1=1';
     const filterParams: any[] = [];
     let paramIndex = 1;
 
@@ -52,6 +52,8 @@ let whereClause = 'WHERE 1=1';
     const productsQuery = `
       SELECT p.id, p.name, p.description, p.price, p.compare_price, 
              p.brand, p.inventory_quantity, p.is_featured, p.created_at, p.updated_at,
+             COALESCE(p.base_colour, '') as base_colour,
+             COALESCE(p.skin_tone_tags, '{}') as skin_tone_tags,
              COALESCE(c.name, 'Uncategorized') as category,
              COALESCE(NULLIF(pi.image_url, ''), 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg') as image_url
       FROM products p
@@ -97,12 +99,54 @@ let whereClause = 'WHERE 1=1';
   }
 });
 
+// GET /by-skin-tone/:group — filter products by skin tone group (e.g. 'deep', 'medium', 'fair', 'very_fair')
+router.get('/by-skin-tone/:group', async (req, res) => {
+  try {
+    const { group } = req.params;
+    const { limit = '18' } = req.query;
+    const limitNum = parseInt(limit as string);
+
+    const result = await query(`
+      SELECT p.id, p.name, p.description, p.price, p.compare_price,
+             p.brand, p.inventory_quantity, p.is_featured,
+             COALESCE(p.base_colour, '') as base_colour,
+             COALESCE(p.skin_tone_tags, '{}') as skin_tone_tags,
+             COALESCE(c.name, 'Uncategorized') as category,
+             COALESCE(NULLIF(pi.image_url, ''), 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg') as image_url
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
+      WHERE $1 = ANY(p.skin_tone_tags)
+      ORDER BY c.name, p.name
+      LIMIT $2
+    `, [group, limitNum]);
+
+    const shirts = result.rows.filter((p: any) => p.category === 'Formal Shirts').slice(0, 6);
+    const trousers = result.rows.filter((p: any) => p.category === 'Trousers & Pants').slice(0, 5);
+    const shoes = result.rows.filter((p: any) => p.category === 'Formal Shoes').slice(0, 6);
+
+    res.json({
+      success: true,
+      data: {
+        group,
+        all: result.rows,
+        byCategory: { shirts, trousers, shoes }
+      }
+    });
+  } catch (error: any) {
+    console.error('Get by-skin-tone error:', error);
+    res.status(500).json({ success: false, error: 'Failed to get products by skin tone', details: error.message });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await query(`
       SELECT p.id, p.name, p.description, p.price, p.compare_price, 
              p.brand, p.inventory_quantity, p.is_featured, p.created_at, p.updated_at,
+             COALESCE(p.base_colour, '') as base_colour,
+             COALESCE(p.skin_tone_tags, '{}') as skin_tone_tags,
              COALESCE(c.name, 'Uncategorized') as category,
              COALESCE(NULLIF(pi.image_url, ''), 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg') as image_url
       FROM products p
@@ -135,7 +179,7 @@ router.get('/categories', async (req, res) => {
     const result = await query(`
       SELECT c.*, COUNT(p.id) as product_count 
       FROM categories c 
-      LEFT JOIN products p ON c.name = p.category 
+      LEFT JOIN products p ON c.id = p.category_id 
       GROUP BY c.id, c.name, c.description, c.image_url
       ORDER BY c.name
     `);

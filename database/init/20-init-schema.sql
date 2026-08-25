@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS products (
     care_instructions TEXT,
     inventory_quantity INTEGER DEFAULT 0,
     is_featured BOOLEAN DEFAULT false,
+    skin_tone_tags TEXT[] DEFAULT '{}',
+    base_colour VARCHAR(100) DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -81,33 +83,8 @@ CREATE TABLE IF NOT EXISTS wishlist_items (
 
 \c products_db
 
-INSERT INTO categories (id, name, description) VALUES
-('10000000-0000-0000-0000-000000000001', 'Dresses', 'Elegant dresses for special occasions'),
-('10000000-0000-0000-0000-000000000002', 'Accessories', 'Luxury accessories and fashion items'),
-('10000000-0000-0000-0000-000000000003', 'Bags', 'Designer handbags and tote bags'),
-('10000000-0000-0000-0000-000000000004', 'Outerwear', 'Coats and jackets'),
-('10000000-0000-0000-0000-000000000005', 'Shoes', 'Designer footwear and heels');
 
-INSERT INTO products (id, name, slug, description, short_description, sku, brand, category_id, price, compare_price, inventory_quantity, is_featured) VALUES
-(gen_random_uuid(), 'Silk Evening Gown', 'silk-evening-gown',
-'Beautiful floor-length gown crafted from premium silk', 'Luxurious silk evening gown', 'LEG-001', 'LUXE BOUTIQUE',
-'10000000-0000-0000-0000-000000000001', 1899.00, 2299.00, 15, true),
 
-(gen_random_uuid(), 'Cashmere Coat', 'cashmere-coat',
-'Elegant wool and cashmere blend coat for winter', 'Warm luxury coat', 'COAT-001', 'LUXE BOUTIQUE',
-'10000000-0000-0000-0000-000000000004', 899.00, 1200.00, 20, true),
-
-(gen_random_uuid(), 'Leather Handbag', 'leather-handbag',
-'Premium Italian leather tote bag', 'Luxury leather tote', 'BAG-001', 'LUXE BOUTIQUE',
-'10000000-0000-0000-0000-000000000003', 599.00, 799.00, 25, true),
-
-(gen_random_uuid(), 'Diamond Necklace', 'diamond-necklace',
-'Stunning diamond pendant necklace', 'Elegant diamond jewelry', 'JWL-001', 'LUXE BOUTIQUE',
-'10000000-0000-0000-0000-000000000004', 2999.00, 3999.00, 10, true),
-
-(gen_random_uuid(), 'Designer Heels', 'designer-heels',
-'Elegant stiletto heels in premium leather', 'Luxury high heels', 'SHOES-001', 'LUXE BOUTIQUE',
-'10000000-0000-0000-0000-000000000005', 499.00, 699.00, 18, true);
 
 -- ============================================================
 -- ORDERS DB

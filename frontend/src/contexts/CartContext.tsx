@@ -142,6 +142,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('boutique_cart', JSON.stringify(state));
   }, [state]);
 
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      const emptyCartState = { items: [], total: 0, itemCount: 0 };
+      const savedCart = localStorage.getItem('boutique_cart');
+
+      if (savedCart) {
+        const parsedCart = JSON.parse(savedCart);
+        if (parsedCart && (parsedCart.items?.length || parsedCart.itemCount > 0 || parsedCart.total > 0)) {
+          dispatch({ type: 'CLEAR_CART' });
+          localStorage.setItem('boutique_cart', JSON.stringify(emptyCartState));
+        }
+      }
+    }
+  }, [isAuthenticated]);
+
   const addItem = (product: Product, selectedSize?: string, showFeedback = true): boolean => {
     if (!isAuthenticated) {
       showToast('Please sign in to add products to your cart.', 'warning');

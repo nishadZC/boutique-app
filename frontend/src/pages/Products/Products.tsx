@@ -13,12 +13,14 @@ import {
   useMediaQuery,
   IconButton,
   Fab,
+  Pagination,
 } from '@mui/material';
 import {
   FilterList as FilterIcon,
   Close as CloseIcon,
   ViewList as ViewListIcon,
   ViewModule as ViewModuleIcon,
+  AutoAwesome as SparkleIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { productService } from '../../services/productService';
@@ -29,6 +31,7 @@ import ProductCard from '../../components/common/ProductCard';
 import SearchBar from '../../components/common/SearchBar';
 import FilterPanel from '../../components/common/FilterPanel';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import SkinToneAdvisor from '../../components/SkinToneAdvisor/SkinToneAdvisor';
 
 const Products: React.FC = () => {
   const theme = useTheme();
@@ -41,8 +44,11 @@ const Products: React.FC = () => {
   const [sortBy, setSortBy] = useState('featured');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<any>({});
   const [resetKey, setResetKey] = useState(0);
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 9;
   const { addItem } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
@@ -145,6 +151,7 @@ const Products: React.FC = () => {
     });
 
     setFilteredProducts(filtered);
+    setPage(1); // Reset to first page on filter/sort change
   }, [products, searchQuery, sortBy, activeFilters]);
 
   const handleFilterChange = (filters: any) => {
@@ -223,11 +230,30 @@ const Products: React.FC = () => {
             Filters
           </Button>
         )}
+
+        <Button
+          variant="contained"
+          startIcon={<SparkleIcon />}
+          onClick={() => setAdvisorOpen(true)}
+          sx={{
+            background: 'linear-gradient(135deg, #d4af37 0%, #f4e5a0 50%, #d4af37 100%)',
+            color: '#000',
+            fontWeight: 700,
+            ml: 'auto',
+            boxShadow: '0 4px 14px rgba(212,175,55,0.4)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #b8941f 0%, #d4af37 100%)',
+              boxShadow: '0 6px 20px rgba(212,175,55,0.6)',
+            }
+          }}
+        >
+          Find My Style
+        </Button>
       </Box>
 
       {/* Products Grid */}
       <Grid container spacing={viewMode === 'list' ? 2 : 4}>
-        {filteredProducts.map((product) => (
+        {filteredProducts.slice((page - 1) * itemsPerPage, page * itemsPerPage).map((product) => (
           <Grid 
             size={{
               xs: 12,
@@ -247,6 +273,21 @@ const Products: React.FC = () => {
           </Grid>
         ))}
       </Grid>
+
+      {filteredProducts.length > itemsPerPage && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6, mb: 2 }}>
+          <Pagination 
+            count={Math.ceil(filteredProducts.length / itemsPerPage)} 
+            page={page} 
+            onChange={(e, value) => {
+              setPage(value);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }} 
+            color="primary" 
+            size="large" 
+          />
+        </Box>
+      )}
 
       {filteredProducts.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -329,6 +370,9 @@ const Products: React.FC = () => {
           <FilterIcon />
         </Fab>
       )}
+      
+      {/* Skin Tone Advisor Modal */}
+      <SkinToneAdvisor open={advisorOpen} onClose={() => setAdvisorOpen(false)} />
     </Container>
   );
 };

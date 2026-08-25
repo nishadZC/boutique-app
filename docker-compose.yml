@@ -136,6 +136,7 @@ services:
       - ORDERS_SERVICE_URL=http://orders:3005
       - PAYMENTS_SERVICE_URL=http://payment:3006
       - WISHLIST_SERVICE_URL=http://wishlist-service:3007
+      - SKIN_TONE_SERVICE_URL=http://skin-tone-service:5001
     depends_on:
       postgres:
         condition: service_healthy
@@ -244,9 +245,8 @@ services:
       - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:?Set CLOUDINARY_CLOUD_NAME in .env}
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:?Set CLOUDINARY_API_KEY in .env}
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:?Set CLOUDINARY_API_SECRET in .env}
-      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:?Set CLOUDINARY_CLOUD_NAME in .env}
-      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:?Set CLOUDINARY_API_KEY in .env}
-      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:?Set CLOUDINARY_API_SECRET in .env}
+      - SKIN_TONE_SERVICE_URL=http://skin-tone-service:5001
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -402,6 +402,37 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Skin Tone Analysis Service (Python Flask)
+  skin-tone-service:
+    build:
+      context: ./backend/services/skin-tone-service
+      dockerfile: Dockerfile
+    container_name: boutique-skin-tone
+    ports:
+      - "5001:5001"
+    networks:
+      - boutique-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     logging:
       driver: "json-file"
       options:

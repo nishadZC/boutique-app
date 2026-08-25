@@ -5,6 +5,7 @@ import * as dotenv from 'dotenv';
 import multer from 'multer';
 import { uploadProductImage } from './services/imageService';
 import { productRoutes } from './routes/products';
+import { recommendationRoutes } from './routes/recommendations';
 import { connectDB } from './database/connection';
 import { query } from './database/connection';
 import { metricsMiddleware, setupMetrics } from './metrics';
@@ -23,6 +24,7 @@ setupMetrics(app, { serviceName: 'product-service', serviceVersion: '1.0.0' });
 app.use(metricsMiddleware);
 
 app.use('', productRoutes);
+app.use('/recommendations', recommendationRoutes);
 
 app.post('/products/:id/images', multer({ storage: multer.memoryStorage() }).single('image'), async (req, res) => {
   if (!req.file) {

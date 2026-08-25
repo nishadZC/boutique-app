@@ -80,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authService.login({ email, password });
       localStorage.setItem('accessToken', response.token);
       localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.removeItem('boutique_cart');
       dispatch({ type: 'LOGIN_SUCCESS', payload: response.user });
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Login failed';
@@ -94,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authService.loginWithGoogle(credential);
       localStorage.setItem('accessToken', response.token);
       localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.removeItem('boutique_cart');
       dispatch({ type: 'LOGIN_SUCCESS', payload: response.user });
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Google sign-in failed';
@@ -108,6 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Logout error:', error);
     }
+    localStorage.removeItem('boutique_cart');
     dispatch({ type: 'LOGOUT' });
   };
 
