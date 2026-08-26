@@ -111,11 +111,14 @@ stages:
             # Using sed to update the specific image line in the values.yaml file.
             # Example target line: auth: boutiqueacrshared.azurecr.io/auth:latest
             # We match the service key and replace the tag
-            if [ "$SERVICE" = "product-service" ]; then
-              sed -i "s|productService: .*|productService: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $VALUES_FILE
-            else
-              sed -i "s|${SERVICE}: .*|${SERVICE}: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $VALUES_FILE
-            fi
+            case "$SERVICE" in
+              product-service) KEY="productService" ;;
+              skin-tone-service) KEY="skinToneService" ;;
+              user-service) KEY="user" ;;
+              wishlist-service) KEY="wishlist" ;;
+              *) KEY="$SERVICE" ;;
+            esac
+            sed -i "s|${KEY}: .*|${KEY}: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $VALUES_FILE
           done
           
           # Update frontend tag
