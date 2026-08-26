@@ -309,13 +309,15 @@ const ProductDetail: React.FC = () => {
                           sx={{ 
                             minWidth: '120px', 
                             height: '40px',
-                            borderColor: '#d4af37',
-                            color: isCustomizing ? '#000' : '#d4af37',
-                            backgroundColor: isCustomizing ? '#d4af37' : 'transparent',
-                            '&:hover': {
-                              backgroundColor: isCustomizing ? '#b8941f' : 'rgba(212,175,55,0.1)',
-                              borderColor: '#d4af37'
-                            }
+                            ...(isCustomizing ? {
+                              bgcolor: '#d4af37',
+                              color: '#fff',
+                              '&:hover': { bgcolor: '#b8941f' }
+                            } : {
+                              borderColor: '#d4af37',
+                              color: '#d4af37',
+                              '&:hover': { borderColor: '#b8941f', bgcolor: 'rgba(212,175,55,0.08)' }
+                            })
                           }}
                         >
                           Customize
@@ -324,7 +326,7 @@ const ProductDetail: React.FC = () => {
                     </Box>
 
                     {isCustomizing && (
-                      <Box sx={{ mb: 4, p: 2, border: '1px dashed #d4af37', borderRadius: 2, background: 'rgba(212,175,55,0.03)' }}>
+                      <Box sx={{ mb: 4, p: 2, border: '1px dashed #d4af37', borderRadius: 2, bgcolor: 'rgba(212,175,55,0.05)' }}>
                         <Typography variant="subtitle2" sx={{ color: '#d4af37', mb: 2 }}>
                           Enter your exact measurements (inches)
                         </Typography>
@@ -336,7 +338,8 @@ const ProductDetail: React.FC = () => {
                               placeholder="e.g. 18"
                               value={customMeasurements.shoulder}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, shoulder: e.target.value})}
-                              fullWidth 
+                              fullWidth
+                              sx={{ input: { color: 'text.primary' } }}
                             />
                           </Grid>
                           <Grid size={{ xs: 6, sm: 3 }}>
@@ -346,7 +349,8 @@ const ProductDetail: React.FC = () => {
                               placeholder="e.g. 40"
                               value={customMeasurements.chest}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, chest: e.target.value})}
-                              fullWidth 
+                              fullWidth
+                              sx={{ input: { color: 'text.primary' } }}
                             />
                           </Grid>
                           <Grid size={{ xs: 6, sm: 3 }}>
@@ -356,7 +360,8 @@ const ProductDetail: React.FC = () => {
                               placeholder="e.g. 25"
                               value={customMeasurements.sleeve}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, sleeve: e.target.value})}
-                              fullWidth 
+                              fullWidth
+                              sx={{ input: { color: 'text.primary' } }}
                             />
                           </Grid>
                           <Grid size={{ xs: 6, sm: 3 }}>
@@ -366,7 +371,8 @@ const ProductDetail: React.FC = () => {
                               placeholder="e.g. 16"
                               value={customMeasurements.neck}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, neck: e.target.value})}
-                              fullWidth 
+                              fullWidth
+                              sx={{ input: { color: 'text.primary' } }}
                             />
                           </Grid>
                         </Grid>

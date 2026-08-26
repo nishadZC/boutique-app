@@ -235,406 +235,787 @@ const OutfitCard: React.FC<{ outfit: OutfitCombination; index: number }> = ({ ou
     </Box>
   );
 };
-
 // ── Main Component ────────────────────────────────────────────
+
 const SkinToneAdvisor: React.FC<Props> = ({ open, onClose }) => {
   const [step, setStep] = useState<StepId>('choose');
-  const [captureMode, setCaptureMode] = useState<'camera' | 'upload' | null>(null);
-  const [imageFile, setImageFile] = useState<File | Blob | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [cameraActive, setCameraActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RecommendationResult | null>(null);
   const [outfitTab, setOutfitTab] = useState<'outfits' | 'individual'>('outfits');
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  // Cleanup camera on unmount / close
-  const stopCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    streamRef.current = null;
-    setCameraActive(false);
-  }, []);
-
-  const handleClose = () => {
-    stopCamera();
-    setStep('choose'); setCaptureMode(null); setImageFile(null);
-    setPreviewUrl(null); setError(null); setResult(null);
-    onClose();
-  };
-
-  // Start device camera
-  const startCamera = async () => {
+  const resetState = () => {
+    setStep('choose');
+    setImageFile(null);
+    setPreviewUrl(null);
     setError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-      streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
-      setCameraActive(true);
-    } catch (err: any) {
-      if (err.name === 'NotFoundError' || err.message?.includes('Requested device not found')) {
-        setError('No camera device detected on your system. Please use the Upload Photo option.');
-      } else if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
-        setError('Camera blocked by browser (often due to insecure HTTP or denied permissions). Please use Upload Photo.');
-      } else {
-        setError('Camera access failed. Please use the Upload Photo option.');
-      }
+    setResult(null);
+    setOutfitTab('outfits');
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
-  const handleChooseCamera = () => { setCaptureMode('camera'); setStep('preview'); setTimeout(startCamera, 80); };
-  const handleChooseUpload = () => { setCaptureMode('upload'); setStep('preview'); };
-
-  // Capture frame from camera
-  const handleCapture = () => {
-    if (!videoRef.current) return;
-    const blob = recommendationService.captureVideoBlob(videoRef.current);
-    setImageFile(blob);
-    setPreviewUrl(recommendationService.getPreviewUrl(blob));
-    stopCamera();
+  const handleClose = () => {
+    resetState();
+    onClose();
   };
 
-  // File selected
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { setError('Please select an image file.'); return; }
-    setImageFile(file);
-    setPreviewUrl(recommendationService.getPreviewUrl(file));
+  const handleChoosePhoto = () => {
     setError(null);
+    fileInputRef.current?.click();
   };
 
-  // Run analysis — POST /api/recommendations
+  const handleFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file.');
+      return;
+    }
+
+    const maxSize = 10 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      setError('Image size must be less than 10MB.');
+      return;
+    }
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    const newPreviewUrl = URL.createObjectURL(file);
+
+    setImageFile(file);
+    setPreviewUrl(newPreviewUrl);
+    setError(null);
+    setStep('preview');
+  };
+
   const handleAnalyze = async () => {
-    if (!imageFile) return;
-    setStep('analyzing'); setError(null);
+    if (!imageFile) {
+      setError('Please select a photo first.');
+      setStep('choose');
+      return;
+    }
+
+    setStep('analyzing');
+    setError(null);
+
     try {
       const data = await recommendationService.analyze(imageFile);
+
       setResult(data);
       setStep('results');
     } catch (err: any) {
-      setError(err.message || 'Analysis failed. Please try with a clearer face photo.');
+      setError(
+        err?.message ||
+          'Analysis failed. Please try again with a clearer face photo.'
+      );
+
       setStep('preview');
     }
   };
 
   const handleRetry = () => {
-    setImageFile(null); setPreviewUrl(null); setError(null); setResult(null);
-    if (captureMode === 'camera') startCamera();
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    setImageFile(null);
+    setPreviewUrl(null);
+    setError(null);
+    setResult(null);
+    setStep('choose');
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  useEffect(() => () => stopCamera(), [stopCamera]);
-
-  const stepIndex = step === 'choose' ? 0 : step === 'preview' ? 1 : 2;
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth
-      PaperProps={{ sx: { borderRadius: 3, background: '#0d0d0d', color: '#fff', minHeight: '75vh' } }}>
-
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          background: '#0d0d0d',
+          color: '#fff',
+          minHeight: '75vh',
+        },
+      }}
+    >
       {/* ── Header ── */}
-      <DialogTitle sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #111 0%, #1e1e1e 100%)',
-        borderBottom: '1px solid #222', pb: 1.5,
-      }}>
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background:
+            'linear-gradient(135deg, #111 0%, #1e1e1e 100%)',
+          borderBottom: '1px solid #222',
+          pb: 1.5,
+        }}
+      >
         <Box>
-          <Typography variant="h5" fontWeight={700}
-            sx={{ fontFamily: '"Playfair Display", serif', color: '#d4af37' }}>
+          <Typography
+            variant="h5"
+            fontWeight={700}
+            sx={{
+              fontFamily: '"Playfair Display", serif',
+              color: '#d4af37',
+            }}
+          >
             🎨 Find Your Style
           </Typography>
-          <Typography variant="body2" sx={{ color: '#777', mt: 0.5 }}>
-            Upload or capture your photo → Skin tone detected → Outfit combinations generated
+
+          <Typography
+            variant="body2"
+            sx={{ color: '#777', mt: 0.8 }}
+          >
+            Select your photo → Preview → Skin tone detected → Outfit
+            recommendations generated
           </Typography>
         </Box>
-        <IconButton onClick={handleClose} sx={{ color: '#555', '&:hover': { color: '#fff' } }}>
+
+        <IconButton
+          onClick={handleClose}
+          sx={{
+            color: '#555',
+            '&:hover': { color: '#fff' },
+          }}
+        >
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0, background: '#0d0d0d' }}>
-        {/* Stepper */}
-        <Box sx={{ px: 4, pt: 2.5, pb: 2, background: '#111', borderBottom: '1px solid #1e1e1e' }}>
-          <Stepper activeStep={stepIndex} alternativeLabel>
-            {['Choose Method', 'Preview Photo', 'Your Outfits'].map(label => (
-              <Step key={label}>
-                <StepLabel sx={{
-                  '& .MuiStepLabel-label': { color: '#555', fontSize: '0.72rem' },
-                  '& .MuiStepLabel-label.Mui-active': { color: '#d4af37' },
-                  '& .MuiStepLabel-label.Mui-completed': { color: '#4caf50' },
-                  '& .MuiStepIcon-root': { color: '#222' },
-                  '& .MuiStepIcon-root.Mui-active': { color: '#d4af37' },
-                  '& .MuiStepIcon-root.Mui-completed': { color: '#4caf50' },
-                }}>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-        </Box>
+      <DialogContent sx={{ pt: 4 }}>
 
-        <Box sx={{ p: 4 }}>
+        {/* Hidden File Input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
 
-          {/* ══ STEP 1: CHOOSE ══ */}
-          {step === 'choose' && (
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h6" sx={{ color: '#ddd', mb: 1 }}>
-                How would you like to share your photo?
-              </Typography>
-              <Typography variant="body2" sx={{ color: '#666', mb: 4 }}>
-                Face must be clearly visible in good lighting for best results
-              </Typography>
-              <Grid container spacing={3} justifyContent="center">
-                {[
-                  { mode: 'upload', icon: <UploadIcon sx={{ fontSize: 60, color: '#d4af37' }} />, title: 'Upload Photo', desc: 'Choose an existing photo from your device' },
-                ].map(({ mode, icon, title, desc }) => (
-                  <Grid size={{ xs: 12, sm: 8 }} key={mode}>
-                    <Box onClick={() => mode === 'camera' ? handleChooseCamera() : handleChooseUpload()}
-                      sx={{
-                        border: '2px solid #222', borderRadius: 3, p: 5, cursor: 'pointer',
-                        transition: 'all 0.3s',
-                        '&:hover': { borderColor: '#d4af37', background: 'rgba(212,175,55,0.04)', transform: 'translateY(-4px)' },
-                      }}>
-                      {icon}
-                      <Typography variant="h6" sx={{ color: '#fff', mt: 1.5, mb: 0.5 }}>{title}</Typography>
-                      <Typography variant="body2" sx={{ color: '#666' }}>{desc}</Typography>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-              <Alert severity="info" icon={false}
-                sx={{ mt: 4, background: '#111', color: '#666', border: '1px solid #222', textAlign: 'left', fontSize: '0.78rem' }}>
-                🔒 Your photo is processed only for skin tone analysis and is not stored on our servers.
+        {/* ═══════════════════════════════════════
+            STEP 1 — CHOOSE PHOTO
+        ═══════════════════════════════════════ */}
+        {step === 'choose' && (
+          <Box sx={{ textAlign: 'center', py: 6 }}>
+            {error && (
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 3,
+                  background: '#1a0808',
+                  color: '#ffcdd2',
+                  border: '1px solid #3a1010',
+                }}
+              >
+                {error}
               </Alert>
+            )}
+
+            <UploadIcon
+              sx={{
+                fontSize: 64,
+                color: '#d4af37',
+                mb: 2,
+              }}
+            />
+
+            <Typography
+              variant="h6"
+              sx={{
+                color: '#fff',
+                mb: 1,
+                fontWeight: 700,
+              }}
+            >
+              Select Your Photo
+            </Typography>
+
+            <Typography
+              variant="body2"
+              sx={{
+                color: '#777',
+                mb: 4,
+              }}
+            >
+              Upload a clear photo of your face to get personalized color
+              and outfit recommendations.
+            </Typography>
+
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<UploadIcon />}
+              onClick={handleChoosePhoto}
+              sx={{
+                background: '#d4af37',
+                color: '#000',
+                fontWeight: 700,
+                px: 4,
+                py: 1.2,
+                '&:hover': {
+                  background: '#b8941f',
+                },
+              }}
+            >
+              Select Photo
+            </Button>
+
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                color: '#555',
+                mt: 2,
+              }}
+            >
+              JPG, PNG, WEBP supported · Maximum 10MB
+            </Typography>
+          </Box>
+        )}
+
+        {/* ═══════════════════════════════════════
+            STEP 1 — PREVIEW
+        ═══════════════════════════════════════ */}
+        {step === 'preview' && imageFile && previewUrl && (
+          <Box sx={{ textAlign: 'center', py: 2 }}>
+            {error && (
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 3,
+                  background: '#1a0808',
+                  color: '#ffcdd2',
+                  border: '1px solid #3a1010',
+                }}
+              >
+                {error}
+              </Alert>
+            )}
+
+            <Typography
+              variant="h6"
+              sx={{
+                color: '#fff',
+                mb: 1,
+              }}
+            >
+              Preview Your Photo
+            </Typography>
+
+            <Typography
+              variant="body2"
+              sx={{
+                color: '#888',
+                mb: 3,
+              }}
+            >
+              If the photo looks correct, click Analyze to get your
+              personalized recommendations.
+            </Typography>
+
+            <Box
+              sx={{
+                display: 'inline-block',
+                borderRadius: 3,
+                overflow: 'hidden',
+                border: '2px solid #d4af37',
+                mb: 3,
+                maxWidth: '100%',
+              }}
+            >
+              <img
+                src={previewUrl}
+                alt="Selected preview"
+                style={{
+                  maxWidth: 360,
+                  width: '100%',
+                  maxHeight: 400,
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
             </Box>
-          )}
 
-          {/* ══ STEP 2: PREVIEW ══ */}
-          {step === 'preview' && (
-            <Box>
-              {error && (
-                <Alert severity="error" sx={{ mb: 3, background: '#1a0808', color: '#ffcdd2', border: '1px solid #3a1010' }}>
-                  {error}
-                </Alert>
-              )}
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 2,
+                justifyContent: 'center',
+                flexWrap: 'wrap',
+              }}
+            >
+              <Button
+                variant="contained"
+                size="large"
+                endIcon={<ArrowIcon />}
+                onClick={handleAnalyze}
+                sx={{
+                  background: '#d4af37',
+                  color: '#000',
+                  fontWeight: 700,
+                  px: 4,
+                  '&:hover': {
+                    background: '#b8941f',
+                  },
+                }}
+              >
+                Analyze & Get Outfits
+              </Button>
 
-              {/* Camera view */}
-              {captureMode === 'camera' && !imageFile && (
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>
-                    Centre your face in the frame, then click Capture
-                  </Typography>
-                  <Box sx={{ position: 'relative', display: 'inline-block', borderRadius: 3, overflow: 'hidden', border: '2px solid #d4af37' }}>
-                    <video ref={videoRef} autoPlay playsInline muted
-                      style={{ display: 'block', width: '100%', maxWidth: 480, height: 360, objectFit: 'cover', transform: 'scaleX(-1)' }} />
-                    <Box sx={{
-                      position: 'absolute', top: '10%', left: '25%', width: '50%', height: '70%',
-                      border: '2px dashed rgba(212,175,55,0.5)', borderRadius: '50% 50% 45% 45%',
-                      pointerEvents: 'none',
-                    }} />
-                  </Box>
-                  <Box sx={{ mt: 2.5, display: 'flex', gap: 2, justifyContent: 'center' }}>
-                    {cameraActive && (
-                      <Button variant="contained" size="large" startIcon={<CameraIcon />} onClick={handleCapture}
-                        sx={{ background: '#d4af37', color: '#000', fontWeight: 700, '&:hover': { background: '#b8941f' } }}>
-                        Capture Photo
-                      </Button>
-                    )}
-                    {error && (
-                      <Button variant="contained" size="large" startIcon={<UploadIcon />} onClick={() => { stopCamera(); handleChooseUpload(); }}
-                        sx={{ background: '#d4af37', color: '#000', fontWeight: 700, '&:hover': { background: '#b8941f' } }}>
-                        Upload Photo
-                      </Button>
-                    )}
-                    <Button variant="outlined" sx={{ color: '#555', borderColor: '#333' }}
-                      onClick={() => { stopCamera(); setStep('choose'); }}>Back</Button>
-                  </Box>
-                </Box>
-              )}
-
-              {/* Upload area */}
-              {captureMode === 'upload' && !imageFile && (
-                <Box sx={{ textAlign: 'center' }}>
-                  <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
-                  <Box onClick={() => fileInputRef.current?.click()}
-                    sx={{
-                      border: '2px dashed #d4af37', borderRadius: 3, p: 8, cursor: 'pointer',
-                      transition: 'background 0.3s', '&:hover': { background: 'rgba(212,175,55,0.03)' },
-                    }}>
-                    <UploadIcon sx={{ fontSize: 56, color: '#d4af37', mb: 1 }} />
-                    <Typography sx={{ color: '#bbb' }}>Click to select a photo</Typography>
-                    <Typography variant="body2" sx={{ color: '#555', mt: 0.5 }}>JPG, PNG supported · Max 10MB</Typography>
-                  </Box>
-                  <Button variant="outlined" sx={{ color: '#555', borderColor: '#333', mt: 2 }} onClick={() => setStep('choose')}>Back</Button>
-                </Box>
-              )}
-
-              {/* Preview captured/uploaded image */}
-              {imageFile && previewUrl && (
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="body1" sx={{ color: '#ccc', mb: 2 }}>
-                    ✅ Photo ready! Click <strong style={{ color: '#d4af37' }}>Analyze</strong> to detect your skin tone and get outfit recommendations.
-                  </Typography>
-                  <Box sx={{ display: 'inline-block', borderRadius: 3, overflow: 'hidden', border: '2px solid #d4af37', mb: 3 }}>
-                    <img src={previewUrl} alt="Preview"
-                      style={{ maxWidth: 360, maxHeight: 300, objectFit: 'cover', display: 'block' }} />
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                    <Button variant="contained" size="large" endIcon={<ArrowIcon />} onClick={handleAnalyze}
-                      sx={{ background: '#d4af37', color: '#000', fontWeight: 700, px: 4, '&:hover': { background: '#b8941f' } }}>
-                      Analyze &amp; Get Outfits
-                    </Button>
-                    <Button variant="outlined" startIcon={<RefreshIcon />}
-                      sx={{ color: '#555', borderColor: '#333' }} onClick={handleRetry}>Retake</Button>
-                  </Box>
-                </Box>
-              )}
+              <Button
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={handleRetry}
+                sx={{
+                  color: '#aaa',
+                  borderColor: '#444',
+                  '&:hover': {
+                    borderColor: '#d4af37',
+                    color: '#d4af37',
+                  },
+                }}
+              >
+                Choose Another Photo
+              </Button>
             </Box>
-          )}
+          </Box>
+        )}
 
-          {/* ══ ANALYZING ══ */}
-          {step === 'analyzing' && (
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <CircularProgress size={72} thickness={2} sx={{ color: '#d4af37', mb: 3 }} />
-              <Typography variant="h6" sx={{ color: '#fff', mb: 1 }}>Analyzing your skin tone...</Typography>
-              <Typography variant="body2" sx={{ color: '#555' }}>
-                Detecting face → Estimating skin tone → Querying matching formal wear → Building outfit combinations
-              </Typography>
-            </Box>
-          )}
+        {/* ═══════════════════════════════════════
+            ANALYZING
+        ═══════════════════════════════════════ */}
+        {step === 'analyzing' && (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <CircularProgress
+              size={72}
+              thickness={2}
+              sx={{
+                color: '#d4af37',
+                mb: 3,
+              }}
+            />
 
-          {/* ══ STEP 3: RESULTS ══ */}
-          {step === 'results' && result && (
-            <Box>
-              {/* Skin Tone Card */}
-              <Box sx={{
-                display: 'flex', alignItems: 'center', gap: 3, p: 3, borderRadius: 3,
-                background: '#111', border: '1px solid #222', mb: 4,
-              }}>
-                <Box sx={{
-                  width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
+            <Typography
+              variant="h6"
+              sx={{
+                color: '#fff',
+                mb: 1,
+              }}
+            >
+              Analyzing your skin tone...
+            </Typography>
+
+            <Typography
+              variant="body2"
+              sx={{
+                color: '#555',
+              }}
+            >
+              Detecting face → Estimating skin tone → Finding matching
+              colors → Building outfit combinations
+            </Typography>
+          </Box>
+        )}
+
+        {/* ═══════════════════════════════════════
+            STEP 2 — RESULTS
+        ═══════════════════════════════════════ */}
+        {step === 'results' && result && (
+          <Box>
+
+            {/* Skin Tone Card */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+                p: 3,
+                borderRadius: 3,
+                background: '#111',
+                border: '1px solid #222',
+                mb: 4,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 68,
+                  height: 68,
+                  borderRadius: '50%',
+                  flexShrink: 0,
                   background: result.skinTone.hex,
                   border: '3px solid #d4af37',
                   boxShadow: `0 0 24px ${result.skinTone.hex}60`,
-                }} />
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6" sx={{ color: '#d4af37', fontFamily: '"Playfair Display", serif' }}>
-                    {result.skinTone.name} Skin Tone
+                }}
+              />
+
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: '#d4af37',
+                    fontFamily: '"Playfair Display", serif',
+                  }}
+                >
+                  {result.skinTone.name} Skin Tone
+                </Typography>
+
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: '#888',
+                    mt: 0.5,
+                  }}
+                >
+                  Hex:{' '}
+                  <span
+                    style={{
+                      color: '#ccc',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {result.skinTone.hex}
+                  </span>
+
+                  &ensp;·&ensp;Confidence:{' '}
+
+                  <span style={{ color: '#4caf50' }}>
+                    {Math.round(
+                      result.skinTone.confidence * 100
+                    )}
+                    %
+                  </span>
+                </Typography>
+
+                {!result.skinTone.faceDetected && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: '#ff9800',
+                      mt: 0.5,
+                    }}
+                  >
+                    Face not clearly detected — results may be approximate
                   </Typography>
-                  <Typography variant="body2" sx={{ color: '#888', mt: 0.5 }}>
-                    Hex: <span style={{ color: '#ccc', fontWeight: 600 }}>{result.skinTone.hex}</span>
-                    &ensp;·&ensp;Confidence: <span style={{ color: '#4caf50' }}>{Math.round(result.skinTone.confidence * 100)}%</span>
-                  </Typography>
-                  {!result.skinTone.faceDetected && (
-                    <Typography variant="body2" sx={{ color: '#ff9800', mt: 0.5 }}>
-                      ⚠️ Face not clearly detected — results may be approximate
-                    </Typography>
-                  )}
-                </Box>
-                <Button size="small" startIcon={<RefreshIcon />}
-                  sx={{ color: '#555', borderColor: '#333' }} variant="outlined"
-                  onClick={() => { setStep('choose'); setImageFile(null); setPreviewUrl(null); setResult(null); }}>
-                  Try Again
-                </Button>
+                )}
               </Box>
 
-              {/* Recommended Color Palette */}
-              <Typography variant="subtitle1" sx={{ color: '#fff', mb: 1.5, fontWeight: 700 }}>
-                Your Recommended Color Palette
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 4 }}>
-                {result.recommendedColors.slice(0, 10).map(color => (
-                  <Tooltip key={color} title={color} arrow>
-                    <Chip label={color} sx={{
-                      background: getHex(color),
-                      color: LIGHT_COLORS.has(color) ? '#111' : '#fff',
-                      fontWeight: 600, fontSize: '0.73rem',
-                      border: '2px solid rgba(255,255,255,0.1)',
-                    }} />
+              <Button
+                size="small"
+                startIcon={<RefreshIcon />}
+                variant="outlined"
+                onClick={handleRetry}
+                sx={{
+                  color: '#aaa',
+                  borderColor: '#444',
+                  '&:hover': {
+                    borderColor: '#d4af37',
+                    color: '#d4af37',
+                  },
+                }}
+              >
+                Try Again
+              </Button>
+            </Box>
+
+            {/* Recommended Colors */}
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color: '#fff',
+                mb: 1.5,
+                fontWeight: 700,
+              }}
+            >
+              Your Recommended Color Palette
+            </Typography>
+
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 1.5,
+                mb: 4,
+              }}
+            >
+              {result.recommendedColors
+                .slice(0, 10)
+                .map((color) => (
+                  <Tooltip
+                    key={color}
+                    title={color}
+                    arrow
+                  >
+                    <Chip
+                      label={color}
+                      sx={{
+                        background: getHex(color),
+                        color: LIGHT_COLORS.has(color)
+                          ? '#111'
+                          : '#fff',
+                        fontWeight: 600,
+                        fontSize: '0.73rem',
+                        border:
+                          '2px solid rgba(255,255,255,0.1)',
+                      }}
+                    />
                   </Tooltip>
                 ))}
-              </Box>
-
-              <Divider sx={{ borderColor: '#1e1e1e', mb: 3 }} />
-
-              {/* Tab: Outfits vs Individual */}
-              <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-                {[
-                  { id: 'outfits', label: '✨ Outfit Combinations', icon: <OutfitIcon sx={{ fontSize: 16 }} /> },
-                  { id: 'individual', label: '🛍 Individual Products', icon: <BagIcon sx={{ fontSize: 16 }} /> },
-                ].map(tab => (
-                  <Button key={tab.id} size="small" startIcon={tab.icon}
-                    variant={outfitTab === tab.id ? 'contained' : 'outlined'}
-                    onClick={() => setOutfitTab(tab.id as any)}
-                    sx={outfitTab === tab.id
-                      ? { background: '#d4af37', color: '#000', fontWeight: 700, '&:hover': { background: '#b8941f' } }
-                      : { color: '#666', borderColor: '#333', '&:hover': { borderColor: '#555' } }}>
-                    {tab.label}
-                  </Button>
-                ))}
-              </Box>
-
-              {/* ── Outfit Combinations ── */}
-              {outfitTab === 'outfits' && (
-                <>
-                  <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>
-                    Complete formal outfit combinations curated for your skin tone
-                  </Typography>
-                  {result.outfits.length > 0 ? (
-                    <Grid container spacing={2}>
-                      {result.outfits.map((outfit, i) => (
-                        <Grid size={{ xs: 12, sm: 6 }} key={i}>
-                          <OutfitCard outfit={outfit} index={i} />
-                        </Grid>
-                      ))}
-                    </Grid>
-                  ) : (
-                    <Alert severity="warning"
-                      sx={{ background: '#1a1a00', color: '#ffd54f', border: '1px solid #3a3a00' }}>
-                      No outfit combinations found. Try browsing the individual products below.
-                    </Alert>
-                  )}
-                </>
-              )}
-
-              {/* ── Individual Products ── */}
-              {outfitTab === 'individual' && (
-                <>
-                  {([
-                    { label: '👔 Formal Shirts', items: result.recommendations.topwear, cat: 'Formal+Shirts' },
-                    { label: '👖 Trousers & Pants', items: result.recommendations.pants, cat: 'Trousers+%26+Pants' },
-                    { label: '👞 Formal Shoes', items: result.recommendations.shoes, cat: 'Formal+Shoes' },
-                  ] as const).map(({ label, items, cat }) => (
-                    items.length > 0 && (
-                      <Box key={label} sx={{ mb: 4 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                          <Typography variant="subtitle1" sx={{ color: '#d4af37', fontWeight: 700 }}>{label}</Typography>
-                          <Button size="small" endIcon={<ArrowIcon />} sx={{ color: '#555', fontSize: '0.72rem' }}
-                            onClick={() => navigate(`/products?category=${cat}`)}>View All</Button>
-                        </Box>
-                        <Grid container spacing={2}>
-                          {items.slice(0, 4).map(p => (
-                            <Grid size={{ xs: 6, sm: 3 }} key={p.id}>
-                              <MiniCard product={p} label={p.color} />
-                            </Grid>
-                          ))}
-                        </Grid>
-                      </Box>
-                    )
-                  ))}
-                </>
-              )}
-
-              <Box sx={{ textAlign: 'center', mt: 4 }}>
-                <Button variant="contained" size="large" endIcon={<ArrowIcon />}
-                  onClick={() => { handleClose(); navigate('/products'); }}
-                  sx={{ background: '#d4af37', color: '#000', fontWeight: 700, px: 4, '&:hover': { background: '#b8941f' } }}>
-                  Browse Full Collection
-                </Button>
-              </Box>
             </Box>
-          )}
-        </Box>
+
+            <Divider
+              sx={{
+                borderColor: '#1e1e1e',
+                mb: 3,
+              }}
+            />
+
+            {/* Tabs */}
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1,
+                mb: 3,
+                flexWrap: 'wrap',
+              }}
+            >
+              {[
+                {
+                  id: 'outfits',
+                  label: 'Outfit Combinations',
+                  icon: <OutfitIcon sx={{ fontSize: 16 }} />,
+                },
+                {
+                  id: 'individual',
+                  label: 'Individual Products',
+                  icon: <BagIcon sx={{ fontSize: 16 }} />,
+                },
+              ].map((tab) => (
+                <Button
+                  key={tab.id}
+                  size="small"
+                  startIcon={tab.icon}
+                  variant={
+                    outfitTab === tab.id
+                      ? 'contained'
+                      : 'outlined'
+                  }
+                  onClick={() =>
+                    setOutfitTab(
+                      tab.id as 'outfits' | 'individual'
+                    )
+                  }
+                  sx={
+                    outfitTab === tab.id
+                      ? {
+                          background: '#d4af37',
+                          color: '#000',
+                          fontWeight: 700,
+                          '&:hover': {
+                            background: '#b8941f',
+                          },
+                        }
+                      : {
+                          color: '#666',
+                          borderColor: '#333',
+                          '&:hover': {
+                            borderColor: '#555',
+                          },
+                        }
+                  }
+                >
+                  {tab.label}
+                </Button>
+              ))}
+            </Box>
+
+            {/* Outfit Combinations */}
+            {outfitTab === 'outfits' && (
+              <>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: '#666',
+                    mb: 2,
+                  }}
+                >
+                  Complete formal outfit combinations curated for your skin tone
+                </Typography>
+
+                {result.outfits.length > 0 ? (
+                  <Grid
+                    container
+                    spacing={2}
+                  >
+                    {result.outfits.map((outfit, i) => (
+                      <Grid
+                        size={{ xs: 12, sm: 6 }}
+                        key={i}
+                      >
+                        <OutfitCard
+                          outfit={outfit}
+                          index={i}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                ) : (
+                  <Alert
+                    severity="warning"
+                    sx={{
+                      background: '#1a1a00',
+                      color: '#ffd54f',
+                      border: '1px solid #3a3a00',
+                    }}
+                  >
+                    No outfit combinations found. Try browsing the individual
+                    products below.
+                  </Alert>
+                )}
+              </>
+            )}
+
+            {/* Individual Products */}
+            {outfitTab === 'individual' && (
+              <>
+                {(
+                  [
+                    {
+                      label: 'Formal Shirts',
+                      items: result.recommendations.topwear,
+                      cat: 'Formal+Shirts',
+                    },
+                    {
+                      label: 'Trousers & Pants',
+                      items: result.recommendations.pants,
+                      cat: 'Trousers+%26+Pants',
+                    },
+                    {
+                      label: 'Formal Shoes',
+                      items: result.recommendations.shoes,
+                      cat: 'Formal+Shoes',
+                    },
+                  ] as const
+                ).map(({ label, items, cat }) =>
+                  items.length > 0 ? (
+                    <Box
+                      key={label}
+                      sx={{ mb: 4 }}
+                    >
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          mb: 2,
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            color: '#d4af37',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {label}
+                        </Typography>
+
+                        <Button
+                          size="small"
+                          endIcon={<ArrowIcon />}
+                          sx={{
+                            color: '#555',
+                            fontSize: '0.72rem',
+                          }}
+                          onClick={() =>
+                            navigate(
+                              `/products?category=${cat}`
+                            )
+                          }
+                        >
+                          View All
+                        </Button>
+                      </Box>
+
+                      <Grid
+                        container
+                        spacing={2}
+                      >
+                        {items.slice(0, 4).map((product) => (
+                          <Grid
+                            size={{ xs: 6, sm: 3 }}
+                            key={product.id}
+                          >
+                            <MiniCard
+                              product={product}
+                              label={product.color}
+                            />
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </Box>
+                  ) : null
+                )}
+              </>
+            )}
+
+            <Box
+              sx={{
+                textAlign: 'center',
+                mt: 4,
+              }}
+            >
+              <Button
+                variant="contained"
+                size="large"
+                endIcon={<ArrowIcon />}
+                onClick={() => {
+                  handleClose();
+                  navigate('/products');
+                }}
+                sx={{
+                  background: '#d4af37',
+                  color: '#000',
+                  fontWeight: 700,
+                  px: 4,
+                  '&:hover': {
+                    background: '#b8941f',
+                  },
+                }}
+              >
+                Browse Full Collection
+              </Button>
+            </Box>
+          </Box>
+        )}
       </DialogContent>
     </Dialog>
   );

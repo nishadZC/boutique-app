@@ -83,16 +83,17 @@ async function getProductsByColors(categoryName: string, colors: string[], limit
 // ── Helper: build outfit combinations ────────────────────────
 function buildOutfits(shirts: any[], trousers: any[], shoes: any[], count = 5) {
   const outfits: any[] = [];
-  for (const shirt of shirts) {
-    for (const trouser of trousers) {
-      for (const shoe of shoes) {
-        outfits.push({
-          topwear: { id: shirt.id, name: shirt.name, color: shirt.color, image_url: shirt.image_url, price: shirt.price },
-          pants:   { id: trouser.id, name: trouser.name, color: trouser.color, image_url: trouser.image_url, price: trouser.price },
-          shoes:   { id: shoe.id, name: shoe.name, color: shoe.color, image_url: shoe.image_url, price: shoe.price },
-        });
-        if (outfits.length >= count) return outfits;
-      }
+  const max = Math.max(shirts.length, trousers.length, shoes.length);
+  for (let i = 0; i < max && outfits.length < count; i++) {
+    const shirt = shirts[i % shirts.length];
+    const trouser = trousers[i % trousers.length];
+    const shoe = shoes[i % shoes.length];
+    if (shirt && trouser && shoe) {
+      outfits.push({
+        topwear: { id: shirt.id, name: shirt.name, color: shirt.color, image_url: shirt.image_url, price: shirt.price },
+        pants:   { id: trouser.id, name: trouser.name, color: trouser.color, image_url: trouser.image_url, price: trouser.price },
+        shoes:   { id: shoe.id, name: shoe.name, color: shoe.color, image_url: shoe.image_url, price: shoe.price },
+      });
     }
   }
   return outfits;
