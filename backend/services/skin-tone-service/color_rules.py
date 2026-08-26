@@ -42,6 +42,7 @@ class Colors:
     DARK_GREY = "Dark Grey"
     DEEP_TEAL = "Deep Teal"
     PINK = "Pink"
+    GREY = "Grey"
 
 SKIN_TONE_MAP = {
     "#373028": {
