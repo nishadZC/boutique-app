@@ -42,6 +42,19 @@ export interface RecommendationResult {
   outfits: OutfitCombination[];
 }
 
+const FALLBACK_IMAGE = 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg';
+
+const normalizeProductItem = (item: Partial<ProductItem> & { imageUrl?: string }): ProductItem => ({
+  id: item.id || '',
+  name: item.name || 'Formal Wear',
+  price: Number(item.price || 0),
+  compare_price: Number(item.compare_price || item.price || 0),
+  brand: item.brand || 'Lux Atelier',
+  color: item.color || 'Neutral',
+  category: item.category || 'Formal Wear',
+  image_url: item.image_url || item.imageUrl || FALLBACK_IMAGE,
+});
+
 export const recommendationService = {
   /**
    * Send an image file to Express POST /api/recommendations.
@@ -62,7 +75,16 @@ export const recommendationService = {
       throw new Error((err as any).error || `Request failed with status ${response.status}`);
     }
 
-    return response.json();
+    const result = await response.json() as RecommendationResult;
+    result.recommendations.topwear = (result.recommendations?.topwear || []).map(normalizeProductItem);
+    result.recommendations.pants = (result.recommendations?.pants || []).map(normalizeProductItem);
+    result.recommendations.shoes = (result.recommendations?.shoes || []).map(normalizeProductItem);
+    result.outfits = (result.outfits || []).map(outfit => ({
+      topwear: normalizeProductItem(outfit.topwear),
+      pants: normalizeProductItem(outfit.pants),
+      shoes: normalizeProductItem(outfit.shoes),
+    }));
+    return result;
   },
 
   /**

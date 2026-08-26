@@ -3,6 +3,7 @@ import {
   Dialog, DialogContent, DialogTitle, Box, Button, Typography,
   IconButton, CircularProgress, Chip, Grid, Card, CardMedia,
   CardContent, CardActions, Divider, Alert, Stepper, Step, StepLabel, Tooltip,
+  FormControl, InputLabel, Select, MenuItem, TextField,
 } from '@mui/material';
 import {
   Close as CloseIcon, CameraAlt as CameraIcon, Upload as UploadIcon,
@@ -17,6 +18,8 @@ import {
   OutfitCombination,
 } from '../../services/skinToneService';
 import { useCart } from '../../contexts/CartContext';
+import { getSizeOptions } from '../../utils/productSizing';
+import { Product } from '../../types';
 
 // ── Types ─────────────────────────────────────────────────────
 interface Props { open: boolean; onClose: () => void; }
@@ -35,6 +38,14 @@ const CSS_COLORS: Record<string, string> = {
 };
 const getHex = (name: string) => CSS_COLORS[name] || '#888';
 const LIGHT_COLORS = new Set(['White', 'Cream', 'Beige', 'Peach', 'Lavender', 'Light Blue', 'Pink', 'Mustard']);
+const FALLBACK_IMAGE = 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg';
+
+const getProductImage = (product: ProductItem) => product.image_url || FALLBACK_IMAGE;
+
+const handleRecommendationImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  const image = event.currentTarget;
+  if (image.src !== FALLBACK_IMAGE) image.src = FALLBACK_IMAGE;
+};
 
 // ── Mini product card ─────────────────────────────────────────
 const MiniCard: React.FC<{ product: ProductItem; label: string }> = ({ product, label }) => {
@@ -50,8 +61,8 @@ const MiniCard: React.FC<{ product: ProductItem; label: string }> = ({ product, 
       onClick={() => navigate(`/products/${product.id}`)}
     >
       <Box sx={{ position: 'relative' }}>
-        <CardMedia component="img" height="140" image={product.image_url} alt={product.name}
-          sx={{ objectFit: 'cover' }} />
+          <CardMedia component="img" height="140" image={getProductImage(product)} alt={product.name}
+            onError={handleRecommendationImageError} sx={{ objectFit: 'cover' }} />
         <Chip label={label} size="small"
           sx={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.75)',
                 color: '#d4af37', fontSize: '0.65rem', fontWeight: 700, height: 20 }} />
@@ -69,7 +80,7 @@ const MiniCard: React.FC<{ product: ProductItem; label: string }> = ({ product, 
       </CardContent>
       <CardActions sx={{ p: 1, pt: 0 }}>
         <Button size="small" variant="outlined" fullWidth startIcon={<BagIcon sx={{ fontSize: 13 }} />}
-          onClick={e => { e.stopPropagation(); addItem(product as any); }}
+          onClick={e => { e.stopPropagation(); navigate(`/products/${product.id}`); }}
           sx={{ fontSize: '0.68rem', py: 0.4, color: '#888', borderColor: '#333',
                '&:hover': { borderColor: '#d4af37', color: '#d4af37' } }}>
           Add to Cart
@@ -81,9 +92,51 @@ const MiniCard: React.FC<{ product: ProductItem; label: string }> = ({ product, 
 
 // ── Outfit Card ───────────────────────────────────────────────
 const OutfitCard: React.FC<{ outfit: OutfitCombination; index: number }> = ({ outfit, index }) => {
-  const navigate = useNavigate();
   const { addItem } = useCart();
+  const navigate = useNavigate();
+  const [configOpen, setConfigOpen] = useState(false);
+  const outfitItems = [
+    { item: outfit.topwear, label: 'Shirt' },
+    { item: outfit.pants, label: 'Trousers' },
+    { item: outfit.shoes, label: 'Shoes' },
+  ];
+  const [sizes, setSizes] = useState<Record<string, string>>(() =>
+    Object.fromEntries(outfitItems.map(({ item }) => [item.id, '']))
+  );
+  const [customizing, setCustomizing] = useState(false);
+  const [measurements, setMeasurements] = useState({ shoulder: '', chest: '', sleeve: '', neck: '' });
   const total = Number(outfit.topwear.price || 0) + Number(outfit.pants.price || 0) + Number(outfit.shoes.price || 0);
+
+  const toCartProduct = (item: ProductItem): Product => ({
+    id: item.id,
+    name: item.name,
+    description: `Premium ${item.category} from Lux Atelier`,
+    price: Number(item.price || 0),
+    originalPrice: Number(item.compare_price || item.price || 0),
+    imageUrl: getProductImage(item),
+    category: item.category,
+    brand: item.brand,
+    inventory: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+
+  const addCompleteOutfit = () => {
+    if (outfitItems.some(({ item }) => !sizes[item.id])) return;
+    if (customizing && Object.values(measurements).some(value => !value)) return;
+
+    const shirtSize = customizing
+      ? `Custom (Shoulder: ${measurements.shoulder}, Chest: ${measurements.chest}, Sleeve: ${measurements.sleeve}, Neck: ${measurements.neck})`
+      : sizes[outfit.topwear.id];
+    const addedShirt = addItem(toCartProduct(outfit.topwear), shirtSize, false);
+    const addedPants = addItem(toCartProduct(outfit.pants), sizes[outfit.pants.id], false);
+    const addedShoes = addItem(toCartProduct(outfit.shoes), sizes[outfit.shoes.id], false);
+
+    if (addedShirt && addedPants && addedShoes) {
+      setConfigOpen(false);
+      navigate('/cart');
+    }
+  };
 
   return (
     <Box sx={{
@@ -100,7 +153,7 @@ const OutfitCard: React.FC<{ outfit: OutfitCombination; index: number }> = ({ ou
           { item: outfit.shoes,   label: 'Shoes' },
         ].map(({ item, label }) => (
           <Grid size={{ xs: 4 }} key={item.id}>
-            <Box
+              <Box
               sx={{ textAlign: 'center', cursor: 'pointer' }}
               onClick={() => navigate(`/products/${item.id}`)}
             >
@@ -109,7 +162,7 @@ const OutfitCard: React.FC<{ outfit: OutfitCombination; index: number }> = ({ ou
                 border: '1px solid #2a2a2a',
                 '&:hover': { borderColor: '#d4af37' },
               }}>
-                <img src={item.image_url} alt={item.name}
+                <img src={getProductImage(item)} alt={item.name} onError={handleRecommendationImageError}
                   style={{ width: '100%', height: 90, objectFit: 'cover', display: 'block' }} />
               </Box>
               <Typography variant="caption" sx={{ color: '#888', fontSize: '0.62rem' }}>{label}</Typography>
@@ -126,16 +179,59 @@ const OutfitCard: React.FC<{ outfit: OutfitCombination; index: number }> = ({ ou
         </Typography>
         <Button size="small" variant="contained"
           startIcon={<BagIcon sx={{ fontSize: 13 }} />}
-          onClick={() => {
-            addItem(outfit.topwear as any);
-            addItem(outfit.pants as any);
-            addItem(outfit.shoes as any);
-          }}
+          onClick={() => setConfigOpen(true)}
           sx={{ fontSize: '0.68rem', py: 0.4, px: 1.5, background: '#d4af37', color: '#000',
                '&:hover': { background: '#b8941f' } }}>
-          Add All
+          Select outfit
         </Button>
       </Box>
+
+      <Dialog open={configOpen} onClose={() => setConfigOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Configure Outfit {index + 1}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Select a size for every item before adding the complete combination.
+          </Typography>
+          {outfitItems.map(({ item, label }) => (
+            <Box key={item.id} sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+              <CardMedia component="img" image={getProductImage(item)} alt={item.name}
+                onError={handleRecommendationImageError} sx={{ width: 56, height: 56, borderRadius: 1, objectFit: 'cover' }} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="caption" color="text.secondary">{label}</Typography>
+                <Typography variant="body2" noWrap>{item.name}</Typography>
+              </Box>
+              <FormControl size="small" sx={{ minWidth: 110 }}>
+                <InputLabel>{label} size</InputLabel>
+                <Select value={sizes[item.id]} label={`${label} size`}
+                  onChange={event => setSizes({ ...sizes, [item.id]: event.target.value })}>
+                  {getSizeOptions(item).map(size => <MenuItem value={size} key={size}>{size}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Box>
+          ))}
+          <Button size="small" variant={customizing ? 'contained' : 'outlined'}
+            onClick={() => setCustomizing(!customizing)} disabled={!sizes[outfit.topwear.id]}
+            sx={{ mb: 2 }}>
+            Customize shirt
+          </Button>
+          {customizing && (
+            <Grid container spacing={1.5} sx={{ mb: 2 }}>
+              {(['shoulder', 'chest', 'sleeve', 'neck'] as const).map(field => (
+                <Grid size={{ xs: 6 }} key={field}>
+                  <TextField size="small" fullWidth label={field[0].toUpperCase() + field.slice(1)}
+                    value={measurements[field]}
+                    onChange={event => setMeasurements({ ...measurements, [field]: event.target.value })} />
+                </Grid>
+              ))}
+            </Grid>
+          )}
+          <Button fullWidth variant="contained" onClick={addCompleteOutfit}
+            disabled={outfitItems.some(({ item }) => !sizes[item.id]) || (customizing && Object.values(measurements).some(value => !value))}
+            startIcon={<BagIcon />}>
+            Add complete outfit to cart
+          </Button>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

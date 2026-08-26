@@ -41,6 +41,7 @@ const Cart: React.FC = () => {
   const address = formatAddress(addressFields);
   const [addressError, setAddressError] = useState('');
   const savedAddressKey = user ? `savedAddresses:${user.id}` : '';
+  const fallbackImage = 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg';
 
   const saveCurrentAddress = () => {
     if (!user || !address.trim() || !phone.trim()) return;
@@ -160,7 +161,10 @@ const Cart: React.FC = () => {
                             borderRadius: 2,
                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                           }}
-                          image={item.imageUrl}
+                          image={item.imageUrl || fallbackImage}
+                          onError={(event) => {
+                            if (event.currentTarget.src !== fallbackImage) event.currentTarget.src = fallbackImage;
+                          }}
                           alt={item.name}
                         />
                       </Grid>
