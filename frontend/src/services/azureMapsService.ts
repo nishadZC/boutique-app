@@ -13,7 +13,13 @@ export const getCurrentAddress = (): Promise<AddressFields> => new Promise((reso
   }
   navigator.geolocation.getCurrentPosition(
     ({ coords }) => reverseGeocode(coords.latitude, coords.longitude).then(resolve).catch(reject),
-    () => reject(new Error('Location permission was denied')),
+    (error) => {
+      if (!window.isSecureContext) {
+        reject(new Error('Location requires HTTPS on non-localhost domains. Please use HTTPS.'));
+      } else {
+        reject(new Error('Location permission was denied by the user.'));
+      }
+    },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
   );
 });
