@@ -1,6 +1,6 @@
 import express from 'express';
 import { query } from '../database/connection';
-import { Product, ServiceResponse, PaginationParams } from '../types';
+import { ServiceResponse } from '../types';
 
 const router = express.Router();
 

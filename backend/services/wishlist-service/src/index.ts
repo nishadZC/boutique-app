@@ -1,6 +1,6 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
-import express, { Request, Response } from 'express';
+import express, { Request } from 'express';
 import helmet from 'helmet';
 import { Pool } from 'pg';
 import { metricsMiddleware, setDatabasePool, setupMetrics } from './metrics';

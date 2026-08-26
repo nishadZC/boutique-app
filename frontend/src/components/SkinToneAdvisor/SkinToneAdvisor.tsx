@@ -1,12 +1,12 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog, DialogContent, DialogTitle, Box, Button, Typography,
   IconButton, CircularProgress, Chip, Grid, Card, CardMedia,
-  CardContent, CardActions, Divider, Alert, Stepper, Step, StepLabel, Tooltip,
+  CardContent, CardActions, Divider, Alert, Tooltip,
   FormControl, InputLabel, Select, MenuItem, TextField,
 } from '@mui/material';
 import {
-  Close as CloseIcon, CameraAlt as CameraIcon, Upload as UploadIcon,
+  Close as CloseIcon, Upload as UploadIcon,
   ArrowForward as ArrowIcon, Refresh as RefreshIcon, ShoppingBag as BagIcon,
   CheckroomOutlined as OutfitIcon,
 } from '@mui/icons-material';
