@@ -31,6 +31,18 @@ stages:
         product_service:
           service: 'product-service'
           buildPath: 'backend/services/product-service'
+        payment:
+          service: 'payment'
+          buildPath: 'backend/services/payment'
+        skin_tone:
+          service: 'skin-tone-service'
+          buildPath: 'backend/services/skin-tone-service'
+        user_service:
+          service: 'user-service'
+          buildPath: 'backend/services/user-service'
+        wishlist:
+          service: 'wishlist-service'
+          buildPath: 'backend/services/wishlist-service'
         frontend:
           service: 'frontend'
           buildPath: 'frontend'
@@ -95,7 +107,7 @@ stages:
         
         VALUES_FILE="helm/boutique-app/values.yaml"
         if [ -f "$VALUES_FILE" ]; then
-          for SERVICE in auth gateway orders product-service; do
+          for SERVICE in auth gateway orders product-service payment skin-tone-service user-service wishlist-service; do
             # Using sed to update the specific image line in the values.yaml file.
             # Example target line: auth: boutiqueacrshared.azurecr.io/auth:latest
             # We match the service key and replace the tag
