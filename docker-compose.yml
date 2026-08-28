@@ -1,5 +1,4 @@
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: boutique-postgres
@@ -9,14 +8,16 @@ services:
       POSTGRES_PASSWORD: postgres123
       POSTGRES_MULTIBYTE: auth_db,products_db,orders_db
     ports:
-      - "5433:5432"
+    - 5433:5432
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d
+    - postgres_data:/var/lib/postgresql/data
+    - ./database/init:/docker-entrypoint-initdb.d
     networks:
-      - boutique-network
+    - boutique-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres && psql -U postgres -d postgres -c 'SELECT 1'"]
+      test:
+      - CMD-SHELL
+      - pg_isready -U postgres && psql -U postgres -d postgres -c 'SELECT 1'
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,35 +31,38 @@ services:
           cpus: '0.5'
           memory: 512M
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
-
-
-
-  # Prometheus
+        max-size: 10m
+        max-file: '3'
   prometheus:
     image: prom/prometheus:latest
     container_name: boutique-prometheus
     ports:
-      - "9090:9090"
+    - 9090:9090
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
+    - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    - ./prometheus/rules:/etc/prometheus/rules
+    - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.enable-lifecycle'
+    - --config.file=/etc/prometheus/prometheus.yml
+    - --storage.tsdb.path=/prometheus
+    - --storage.tsdb.retention.time=30d
+    - --web.enable-lifecycle
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9090/-/healthy"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:9090/-/healthy
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 20s
     networks:
-      - boutique-network
+    - boutique-network
     restart: unless-stopped
     deploy:
       resources:
@@ -69,35 +73,39 @@ services:
           cpus: '0.25'
           memory: 256M
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Grafana
+        max-size: 10m
+        max-file: '3'
   grafana:
     image: grafana/grafana:latest
     container_name: boutique-grafana
     ports:
-      - "3008:3000"
+    - 3008:3000
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel
-      - GF_SECURITY_COOKIE_SECURE=true
-      - GF_SECURITY_COOKIE_HTTPONLY=true
+    - GF_SECURITY_ADMIN_USER=admin
+    - GF_SECURITY_ADMIN_PASSWORD=admin
+    - GF_USERS_ALLOW_SIGN_UP=false
+    - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    - GF_SECURITY_COOKIE_SECURE=true
+    - GF_SECURITY_COOKIE_HTTPONLY=true
     volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - grafana_data:/var/lib/grafana
+    - ./grafana/provisioning:/etc/grafana/provisioning
+    - grafana_data:/var/lib/grafana
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:3000/api/health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
     networks:
-      - boutique-network
+    - boutique-network
     depends_on:
       prometheus:
         condition: service_healthy
@@ -111,43 +119,68 @@ services:
           cpus: '0.25'
           memory: 256M
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
-
-
-
-  # API Gateway
+        max-size: 10m
+        max-file: '3'
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: boutique-alertmanager
+    ports:
+    - 9093:9093
+    volumes:
+    - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    - ./alertmanager/pagerduty_key.txt:/etc/alertmanager/pagerduty_key.txt
+    command:
+    - --config.file=/etc/alertmanager/alertmanager.yml
+    networks:
+    - boutique-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
   gateway:
     build:
       context: ./backend/services/gateway
       dockerfile: Dockerfile
     container_name: boutique-gateway
     ports:
-      - "3001:3001"
+    - 3001:3001
     environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - LOG_LEVEL=info
-      - AUTH_SERVICE_URL=http://auth:3002
-      - USER_SERVICE_URL=http://user-service:3004
-      - PRODUCTS_SERVICE_URL=http://product-service:3003
-      - ORDERS_SERVICE_URL=http://orders:3005
-      - PAYMENTS_SERVICE_URL=http://payment:3006
-      - WISHLIST_SERVICE_URL=http://wishlist-service:3007
-      - SKIN_TONE_SERVICE_URL=http://skin-tone-service:5001
+    - NODE_ENV=production
+    - PORT=3001
+    - LOG_LEVEL=info
+    - AUTH_SERVICE_URL=http://auth:3002
+    - USER_SERVICE_URL=http://user-service:3004
+    - PRODUCTS_SERVICE_URL=http://product-service:3003
+    - ORDERS_SERVICE_URL=http://orders:3005
+    - PAYMENTS_SERVICE_URL=http://payment:3006
+    - WISHLIST_SERVICE_URL=http://wishlist-service:3007
+    - SKIN_TONE_SERVICE_URL=http://skin-tone-service:5001
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3001/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:3001/health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     networks:
-      - boutique-network
+    - boutique-network
     restart: unless-stopped
     deploy:
       resources:
@@ -158,36 +191,40 @@ services:
           cpus: '0.25'
           memory: 256M
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Auth Service
+        max-size: 10m
+        max-file: '3'
   auth:
     build:
       context: ./backend/services/auth
       dockerfile: Dockerfile
     container_name: boutique-auth
     ports:
-      - "3002:3002"
+    - 3002:3002
     environment:
-      - NODE_ENV=production
-      - PORT=3002
-      - LOG_LEVEL=info
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:?Set GOOGLE_CLIENT_ID in .env}
-      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/auth_db
+    - NODE_ENV=production
+    - PORT=3002
+    - LOG_LEVEL=info
+    - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:?Set GOOGLE_CLIENT_ID in .env}
+    - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/auth_db
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3002/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:3002/health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     networks:
-      - boutique-network
+    - boutique-network
     restart: unless-stopped
     deploy:
       resources:
@@ -198,66 +235,76 @@ services:
           cpus: '0.25'
           memory: 256M
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
-
-  # User profile service
+        max-size: 10m
+        max-file: '3'
   user-service:
     build:
       context: ./backend/services/user-service
       dockerfile: Dockerfile
     container_name: boutique-user-service
     ports:
-      - "3004:3004"
+    - 3004:3004
     environment:
-      - NODE_ENV=production
-      - PORT=3004
-      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/auth_db
-      - AZURE_MAPS_SUBSCRIPTION_KEY=${AZURE_MAPS_SUBSCRIPTION_KEY:?Set AZURE_MAPS_SUBSCRIPTION_KEY in .env}
+    - NODE_ENV=production
+    - PORT=3004
+    - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/auth_db
+    - AZURE_MAPS_SUBSCRIPTION_KEY=${AZURE_MAPS_SUBSCRIPTION_KEY:?Set AZURE_MAPS_SUBSCRIPTION_KEY
+      in .env}
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3004/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:3004/health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     networks:
-      - boutique-network
+    - boutique-network
     restart: unless-stopped
-
-  # Product Service
   product-service:
     build:
       context: ./backend/services/product-service
       dockerfile: Dockerfile
     container_name: boutique-products
     ports:
-      - "3003:3003"
+    - 3003:3003
     environment:
-      - NODE_ENV=production
-      - PORT=3003
-      - LOG_LEVEL=info
-      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/products_db
-      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:?Set CLOUDINARY_CLOUD_NAME in .env}
-      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:?Set CLOUDINARY_API_KEY in .env}
-      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:?Set CLOUDINARY_API_SECRET in .env}
-      - SKIN_TONE_SERVICE_URL=http://skin-tone-service:5001
-
+    - NODE_ENV=production
+    - PORT=3003
+    - LOG_LEVEL=info
+    - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/products_db
+    - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:?Set CLOUDINARY_CLOUD_NAME in
+      .env}
+    - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:?Set CLOUDINARY_API_KEY in .env}
+    - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:?Set CLOUDINARY_API_SECRET in
+      .env}
+    - SKIN_TONE_SERVICE_URL=http://skin-tone-service:5001
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3003/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:3003/health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     networks:
-      - boutique-network
+    - boutique-network
     restart: unless-stopped
     deploy:
       resources:
@@ -268,61 +315,69 @@ services:
           cpus: '0.25'
           memory: 256M
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Wishlist Service
+        max-size: 10m
+        max-file: '3'
   wishlist-service:
     build:
       context: ./backend/services/wishlist-service
       dockerfile: Dockerfile
     container_name: boutique-wishlist
     ports:
-      - "3007:3007"
+    - 3007:3007
     environment:
-      - NODE_ENV=production
-      - PORT=3007
-      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/auth_db
+    - NODE_ENV=production
+    - PORT=3007
+    - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/wishlist_db
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3007/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:3007/health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 20s
     networks:
-      - boutique-network
+    - boutique-network
     restart: unless-stopped
-
-  # Orders Service (Order Management)
   orders:
     build:
       context: ./backend/services/orders
       dockerfile: Dockerfile
     container_name: boutique-order-management
     ports:
-      - "3005:3005"
+    - 3005:3005
     environment:
-      - NODE_ENV=production
-      - PORT=3005
-      - LOG_LEVEL=info
-      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/orders_db
-      - PRODUCTS_SERVICE_URL=http://product-service:3003
+    - NODE_ENV=production
+    - PORT=3005
+    - LOG_LEVEL=info
+    - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/orders_db
+    - PRODUCTS_SERVICE_URL=http://product-service:3003
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3005/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:3005/health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     networks:
-      - boutique-network
+    - boutique-network
     restart: unless-stopped
     deploy:
       resources:
@@ -333,66 +388,74 @@ services:
           cpus: '0.25'
           memory: 256M
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Razorpay payment service
+        max-size: 10m
+        max-file: '3'
   payment:
     build:
       context: ./backend/services/payment
       dockerfile: Dockerfile
     container_name: boutique-payment
     ports:
-      - "3006:3006"
+    - 3006:3006
     environment:
-      - NODE_ENV=production
-      - PORT=3006
-      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:?Set RAZORPAY_KEY_ID in .env}
-      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:?Set RAZORPAY_KEY_SECRET in .env}
-      - ORDERS_SERVICE_URL=http://orders:3005
+    - NODE_ENV=production
+    - PORT=3006
+    - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:?Set RAZORPAY_KEY_ID in .env}
+    - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:?Set RAZORPAY_KEY_SECRET in .env}
+    - ORDERS_SERVICE_URL=http://orders:3005
     depends_on:
       postgres:
         condition: service_healthy
       orders:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3006/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:3006/health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     networks:
-      - boutique-network
+    - boutique-network
     restart: unless-stopped
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Frontend
+        max-size: 10m
+        max-file: '3'
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: boutique-frontend
     ports:
-      - "3000:80"
+    - 3000:80
     environment:
-      - REACT_APP_API_URL=http://gateway:3001/api
+    - REACT_APP_API_URL=http://gateway:3001/api
     depends_on:
       gateway:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1/health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 20s
     networks:
-      - boutique-network
+    - boutique-network
     restart: unless-stopped
     deploy:
       resources:
@@ -403,24 +466,26 @@ services:
           cpus: '0.1'
           memory: 128M
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Skin Tone Analysis Service (Python Flask)
+        max-size: 10m
+        max-file: '3'
   skin-tone-service:
     build:
       context: ./backend/services/skin-tone-service
       dockerfile: Dockerfile
     container_name: boutique-skin-tone
     ports:
-      - "5001:5001"
+    - 5001:5001
     networks:
-      - boutique-network
+    - boutique-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:5001/health"]
+      test:
+      - CMD
+      - curl
+      - -f
+      - http://127.0.0.1:5001/health
       interval: 30s
       timeout: 10s
       retries: 3
@@ -434,11 +499,27 @@ services:
           cpus: '0.25'
           memory: 256M
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
-
+        max-size: 10m
+        max-file: '3'
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: boutique-node-exporter
+    restart: unless-stopped
+    networks:
+    - boutique-network
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: boutique-postgres-exporter
+    environment:
+    - DATA_SOURCE_NAME=postgresql://postgres:postgres123@postgres:5432/postgres?sslmode=disable
+    restart: unless-stopped
+    networks:
+    - boutique-network
+    depends_on:
+      postgres:
+        condition: service_healthy
 volumes:
   postgres_data:
     driver: local
@@ -446,7 +527,6 @@ volumes:
     driver: local
   grafana_data:
     driver: local
-
 networks:
   boutique-network:
     driver: bridge

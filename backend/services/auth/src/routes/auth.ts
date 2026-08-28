@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { query } from '../database/connection';
-import { User } from '../types';
 import { boutiqueTotalUsers } from '../metrics';
 
 const router = express.Router();

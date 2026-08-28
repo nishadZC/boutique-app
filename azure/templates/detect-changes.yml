@@ -1,0 +1,44 @@
+jobs:
+- job: DetectChanges
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - checkout: self
+    fetchDepth: 2
+  - script: |
+      echo "Detecting changes..."
+      CHANGED_FILES=$(git diff --name-only HEAD HEAD~1 || echo "")
+      
+      echo "Changed files:"
+      echo "$CHANGED_FILES"
+      
+      SERVICES_JSON=$(cat azure/services.json)
+      
+      # If no files changed (e.g. initial commit or manual run), build all
+      if [ -z "$CHANGED_FILES" ]; then
+        echo "No files changed or git diff failed. Falling back to building ALL services."
+        MATRIX=$SERVICES_JSON
+      else
+        # Find which services match the changed files
+        MATCHING_KEYS=$(echo "$SERVICES_JSON" | jq -r --arg cf "$CHANGED_FILES" 'to_entries | map(select(.value.triggerPath as $p | ($cf | contains($p)))) | map(.key) | .[]')
+        
+        if [ -z "$MATCHING_KEYS" ]; then
+          echo "No relevant service files changed. Building ALL services as fallback."
+          MATRIX=$SERVICES_JSON
+        else
+          # Generate the filtered matrix
+          # Pass MATCHING_KEYS as an environment variable to jq
+          MATRIX=$(echo "$SERVICES_JSON" | jq -c --arg keys "$MATCHING_KEYS" 'with_entries(select(.key | IN( ($keys | split("\n"))[] )))')
+        fi
+      fi
+      
+      # Determine changed services list for UpdateGitOps
+      CHANGED_LIST=$(echo "$MATRIX" | jq -r '.[].service' | tr '\n' ' ')
+      
+      echo "Matrix: $MATRIX"
+      echo "Changed Services: $CHANGED_LIST"
+      
+      echo "##vso[task.setvariable variable=matrix;isOutput=true]$MATRIX"
+      echo "##vso[task.setvariable variable=changedServices;isOutput=true]$CHANGED_LIST"
+    name: setMatrix
+    displayName: 'Determine Changed Services'

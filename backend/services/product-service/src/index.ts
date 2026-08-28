@@ -6,8 +6,7 @@ import multer from 'multer';
 import { uploadProductImage } from './services/imageService';
 import { productRoutes } from './routes/products';
 import { recommendationRoutes } from './routes/recommendations';
-import { connectDB } from './database/connection';
-import { query } from './database/connection';
+import { connectDB,query } from './database/connection';
 import { metricsMiddleware, setupMetrics } from './metrics';
 
 dotenv.config({ path: './.env' });

@@ -14,123 +14,29 @@ resources:
 stages:
 - stage: BuildAndPush
   jobs:
-  - job: Build
-    pool:
-      vmImage: 'ubuntu-latest'
-    strategy:
-      matrix:
-        auth:
-          service: 'auth'
-          buildPath: 'backend/services/auth'
-        gateway:
-          service: 'gateway'
-          buildPath: 'backend/services/gateway'
-        orders:
-          service: 'orders'
-          buildPath: 'backend/services/orders'
-        product_service:
-          service: 'product-service'
-          buildPath: 'backend/services/product-service'
-        payment:
-          service: 'payment'
-          buildPath: 'backend/services/payment'
-        skin_tone:
-          service: 'skin-tone-service'
-          buildPath: 'backend/services/skin-tone-service'
-        user_service:
-          service: 'user-service'
-          buildPath: 'backend/services/user-service'
-        wishlist:
-          service: 'wishlist-service'
-          buildPath: 'backend/services/wishlist-service'
-        frontend:
-          service: 'frontend'
-          buildPath: 'frontend'
-    
-    steps:
-    - checkout: self
-      fetchDepth: 0
-      
-    - task: SonarQubePrepare@7
-      inputs:
-        SonarQube: 'SonarQubeServiceConnection'
-        scannerMode: 'CLI'
-        configMode: 'manual'
-        cliProjectKey: 'boutique-$(service)'
-        cliProjectName: 'Boutique $(service)'
-        cliSources: '$(buildPath)'
+  - template: azure/templates/detect-changes.yml
+  
+  - template: azure/templates/build-push.yml
+    parameters:
+      dependsOn: DetectChanges
+      matrix: dependencies.DetectChanges.outputs['setMatrix.matrix']
 
-    - script: |
-        PARAMS=$(echo $SONARQUBE_SCANNER_PARAMS | jq 'del(.["sonar.branch.name"])' -c)
-        echo "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$PARAMS"
-      displayName: 'Remove branch name for SonarQube Community Edition'
-
-    - task: SonarQubeAnalyze@7
-      
-    - script: |
-        npm install --package-lock-only
-      displayName: 'Generate package-lock.json for npm ci'
-
-    - task: AzureCLI@2
-      displayName: Build and Push image to ACR
-      inputs:
-        azureSubscription: '$(azureServiceConnection)'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          set -e
-          az acr login --name boutiqueacrshared
-          docker build -f $(buildPath)/Dockerfile -t $(acrLoginServer)/$(service):$(imageTag) -t $(acrLoginServer)/$(service):latest $(buildPath)
-          docker push $(acrLoginServer)/$(service) --all-tags
-
-    - task: trivy@1
-      inputs:
-        image: '$(acrLoginServer)/$(service):$(imageTag)'
-        severity: 'CRITICAL,HIGH'
-        exitCode: '0'
-
-- stage: UpdateManifests
+- stage: UpdateDev
+  displayName: 'Deploy to Dev (GitOps)'
   dependsOn: BuildAndPush
   condition: succeeded()
   jobs:
-  - job: UpdateGitOps
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - checkout: gitops
-      persistCredentials: true
+  - template: azure/templates/update-gitops.yml
+    parameters:
+      changedServices: stageDependencies.BuildAndPush.DetectChanges.outputs['setMatrix.changedServices']
+      environment: 'dev'
 
-    - script: |
-        set -e
-        NEW_TAG=$(Build.SourceVersion)
-        REGISTRY=$(acrLoginServer)
-        
-        VALUES_FILE="helm/boutique-app/values.yaml"
-        if [ -f "$VALUES_FILE" ]; then
-          for SERVICE in auth gateway orders product-service payment skin-tone-service user-service wishlist-service; do
-            # Using sed to update the specific image line in the values.yaml file.
-            # Example target line: auth: boutiqueacrshared.azurecr.io/auth:latest
-            # We match the service key and replace the tag
-            case "$SERVICE" in
-              product-service) KEY="productService" ;;
-              skin-tone-service) KEY="skinToneService" ;;
-              user-service) KEY="user" ;;
-              wishlist-service) KEY="wishlist" ;;
-              *) KEY="$SERVICE" ;;
-            esac
-            sed -i "s|${KEY}: .*|${KEY}: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $VALUES_FILE
-          done
-          
-          # Update frontend tag
-          sed -i "s|frontend: .*|frontend: ${REGISTRY}/frontend:${NEW_TAG}|g" $VALUES_FILE
-        fi
-      displayName: 'Update image tags in values.yaml'
-
-    - script: |
-        set -e
-        git config user.name "azure-devops"
-        git config user.email "azure-devops@boutique.com"
-        git add helm/boutique-app/values.yaml
-        git diff --staged --quiet || git commit -m "ci: update Helm values image tags to $(Build.SourceVersion)"
-        git push origin HEAD:master
-      displayName: 'Commit and push changes to GitOps repo'
+- stage: UpdateProd
+  displayName: 'Deploy to Prod (GitOps)'
+  dependsOn: UpdateDev
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  jobs:
+  - template: azure/templates/update-gitops.yml
+    parameters:
+      changedServices: stageDependencies.BuildAndPush.DetectChanges.outputs['setMatrix.changedServices']
+      environment: 'prod'

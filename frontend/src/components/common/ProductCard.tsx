@@ -171,7 +171,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               justifyContent: 'center',
             }}
           >
-            <Typography variant="h6" color="white" fontWeight="bold">
+            <Typography variant="h6" color="white" sx={{ fontWeight: 'bold' }}>
               OUT OF STOCK
             </Typography>
           </Box>
@@ -273,7 +273,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <Typography
             variant="h6"
             color="primary"
-            fontWeight="bold"
+            sx={{ fontWeight: 'bold' }}
           >
             ₹{(() => {
               const price = typeof product.price === 'string' ? parseFloat(product.price) : product.price;

@@ -2,7 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import { query } from '../database/connection';
-import { Order, CreateOrderRequest, Address, ServiceResponse } from '../types';
+import { Order, CreateOrderRequest, ServiceResponse } from '../types';
 import { boutiqueTotalOrders, boutiqueTotalRevenue } from '../metrics';
 
 const router = express.Router();

@@ -1,0 +1,86 @@
+{
+  "title": "Services RED Metrics",
+  "tags": [
+    "microservices",
+    "red"
+  ],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Request Rate (R)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[5m])) by (job)",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "title": "Error Rate (E)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status_code=~\"5..\"}[5m])) by (job) / sum(rate(http_requests_total[5m])) by (job)",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "title": "Duration (D) - p99",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job))",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "type": "bargauge",
+      "title": "Live Route Traffic",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (route) (rate(http_requests_total[$__rate_interval]))",
+          "legendFormat": "{{route}}",
+          "format": "time_series",
+          "instant": true
+        }
+      ],
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "bottom"
+          }
+        }
+      }
+    }
+  ],
+  "schemaVersion": 30,
+  "version": 1
+}

@@ -15,7 +15,17 @@ export const getCurrentAddress = (): Promise<AddressFields> => new Promise((reso
     ({ coords }) => reverseGeocode(coords.latitude, coords.longitude).then(resolve).catch(reject),
     (error) => {
       if (!window.isSecureContext) {
-        reject(new Error('Location requires HTTPS on non-localhost domains. Please use HTTPS.'));
+        console.warn('Geolocation requires HTTPS. Falling back to IP-based location.');
+        fetch('https://get.geojs.io/v1/ip/geo.json')
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.latitude && data.longitude) {
+              reverseGeocode(parseFloat(data.latitude), parseFloat(data.longitude)).then(resolve).catch(reject);
+            } else {
+              reject(new Error('IP fallback location failed.'));
+            }
+          })
+          .catch(() => reject(new Error('Location requires HTTPS on non-localhost domains, and fallback failed.')));
       } else {
         reject(new Error('Location permission was denied by the user.'));
       }

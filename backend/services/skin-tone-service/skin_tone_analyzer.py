@@ -108,7 +108,9 @@ def analyze_skin_tone_from_bytes(image_bytes: bytes) -> dict:
             skin_pixels = pixels
             confidence = 0.4
         else:
-            confidence = min(0.95, len(skin_pixels) / len(pixels) + 0.5)
+            ratio = len(skin_pixels) / len(pixels)
+            # Dynamic confidence based on ratio, capped at 0.99 instead of flatlining at 0.95
+            confidence = min(0.99, ratio + 0.15)
 
         # ── K-Means Clustering ───────────────────────────────
         n_clusters = min(3, len(skin_pixels))

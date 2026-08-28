@@ -11,6 +11,8 @@ export interface Product {
   inventory_quantity?: number;
   rating?: number;
   reviewCount?: number;
+  color?: string;
+  sizes?: string[];
   isNew?: boolean;
   discountPercentage?: number;
   createdAt: string;

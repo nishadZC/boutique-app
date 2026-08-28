@@ -15,5 +15,6 @@ EOSQL
 create_database auth_db
 create_database products_db
 create_database orders_db
+create_database wishlist_db
 
 echo "All databases created successfully!"

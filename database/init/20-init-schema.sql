@@ -72,10 +72,10 @@ CREATE TABLE IF NOT EXISTS product_images (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-\c auth_db
+\c wishlist_db
 
 CREATE TABLE IF NOT EXISTS wishlist_items (
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL,
     product_id UUID NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, product_id)

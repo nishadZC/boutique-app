@@ -52,34 +52,14 @@ const Products: React.FC = () => {
   const { addItem } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
-  const categories = [
-    'clothing',
-    'accessories',
-    'shoes',
-    'bags',
-    'jewelry',
-  ];
-
-  const brands = [
-    'Gucci',
-    'Prada',
-    'Louis Vuitton',
-    'Chanel',
-    'Hermès',
-    'Dior',
-    'Versace',
-    'Burberry',
-  ];
-
+  const [brands, setBrands] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [colors, setColors] = useState<string[]>([]);
+  
   const sizes = [
     'XS', 'S', 'M', 'L', 'XL', 'XXL',
     '36', '37', '38', '39', '40', '41', '42', '43', '44', '45',
     'One Size',
-  ];
-
-  const colors = [
-    'Black', 'White', 'Beige', 'Brown', 'Gray', 'Navy',
-    'Red', 'Blue', 'Green', 'Pink', 'Gold', 'Silver',
   ];
 
   useEffect(() => {
@@ -88,6 +68,15 @@ const Products: React.FC = () => {
       try {
         const allProducts = await productService.getAll();
         console.log('[Products] Products loaded:', allProducts.length, allProducts);
+        
+        const uniqueBrands = Array.from(new Set(allProducts.map(p => p.brand).filter(Boolean))) as string[];
+        const uniqueCategories = Array.from(new Set(allProducts.map(p => p.category).filter(Boolean))) as string[];
+        const uniqueColors = Array.from(new Set(allProducts.map(p => p.color).filter(Boolean))) as string[];
+        
+        setBrands(uniqueBrands.sort());
+        setCategories(uniqueCategories.sort());
+        setColors(uniqueColors.sort());
+        
         setProducts(allProducts);
         setFilteredProducts(allProducts);
       } catch (error) {
@@ -124,6 +113,24 @@ const Products: React.FC = () => {
 
     if (activeFilters.inStock) {
       filtered = filtered.filter(product => product.inventory > 0);
+    }
+
+    if (activeFilters.size && activeFilters.size.length > 0) {
+      filtered = filtered.filter(product => 
+        product.sizes?.some((s: string) => activeFilters.size.includes(s))
+      );
+    }
+
+    if (activeFilters.color && activeFilters.color.length > 0) {
+      filtered = filtered.filter(product => 
+        product.color && activeFilters.color.some((c: string) => product.color!.toLowerCase() === c.toLowerCase())
+      );
+    }
+
+    if (activeFilters.rating) {
+      filtered = filtered.filter(product => 
+        (product.rating || 0) >= activeFilters.rating
+      );
     }
 
     if (searchQuery) {

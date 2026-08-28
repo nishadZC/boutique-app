@@ -1,0 +1,8 @@
+groups:
+- name: standard_recording_rules
+  rules:
+  - record: job:http_requests_total:rate5m
+    expr: sum(rate(http_requests_total[5m])) by (job)
+  
+  - record: job:http_request_duration_seconds:p99
+    expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job))

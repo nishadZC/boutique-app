@@ -1,0 +1,52 @@
+{
+  "title": "Infrastructure Metrics",
+  "tags": [
+    "infrastructure",
+    "node"
+  ],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "CPU Usage",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "{{instance}} CPU %"
+        }
+      ]
+    },
+    {
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100",
+          "legendFormat": "{{instance}} Mem %"
+        }
+      ]
+    },
+    {
+      "title": "Node.js Heap Memory",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "nodejs_heap_size_used_bytes",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "title": "Node.js Event Loop Lag",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "nodejs_eventloop_lag_seconds",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 30,
+  "version": 1
+}

@@ -1,0 +1,24 @@
+apiVersion: 1
+datasources:
+  - name: postgres-auth
+    type: postgres
+    uid: postgres-auth
+    url: postgres:5432
+    user: postgres
+    secureJsonData:
+      password: postgres123
+    jsonData:
+      database: auth_db
+      sslmode: 'disable'
+      postgresVersion: 1600
+  - name: postgres-orders
+    type: postgres
+    uid: postgres-orders
+    url: postgres:5432
+    user: postgres
+    secureJsonData:
+      password: postgres123
+    jsonData:
+      database: orders_db
+      sslmode: 'disable'
+      postgresVersion: 1600
