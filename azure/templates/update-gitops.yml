@@ -6,16 +6,20 @@ parameters:
     default: 'dev'
 
 jobs:
-- job: UpdateGitOps
+- deployment: UpdateGitOps
   displayName: 'Deploy to ${{ parameters.environment }}'
   pool:
     vmImage: 'ubuntu-latest'
+  environment: 'azure-${{ parameters.environment }}-environment'
   variables:
     changedServices: ${{ parameters.changedServices }}
     environment: ${{ parameters.environment }}
-  steps:
-  - checkout: gitops
-    persistCredentials: true
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - checkout: gitops
+          persistCredentials: true
 
   - script: |
       set -e
