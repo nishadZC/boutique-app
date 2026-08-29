@@ -21,37 +21,37 @@ jobs:
         - checkout: gitops
           persistCredentials: true
 
-  - script: |
-      set -e
-      NEW_TAG=$(Build.SourceVersion)
-      REGISTRY=$(acrLoginServer)
-      CHANGED_SERVICES="$(changedServices)"
-      ENV="$(environment)"
-      
-      echo "Updating tags for services: $CHANGED_SERVICES in $ENV environment"
-      
-      VALUES_FILE="helm/boutique-app/values-${ENV}.yaml"
-      if [ -f "$VALUES_FILE" ]; then
-        for SERVICE in $CHANGED_SERVICES; do
-          case "$SERVICE" in
-            product-service) KEY="productService" ;;
-            skin-tone-service) KEY="skinToneService" ;;
-            user-service) KEY="user" ;;
-            wishlist-service) KEY="wishlist" ;;
-            frontend) KEY="frontend" ;;
-            *) KEY="$SERVICE" ;;
-          esac
-          sed -i "s|${KEY}: .*|${KEY}: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $VALUES_FILE
-        done
-      fi
-    displayName: 'Update image tags in values.yaml'
+        - script: |
+            set -e
+            NEW_TAG=$(Build.SourceVersion)
+            REGISTRY=$(acrLoginServer)
+            CHANGED_SERVICES="$(changedServices)"
+            ENV="$(environment)"
+            
+            echo "Updating tags for services: $CHANGED_SERVICES in $ENV environment"
+            
+            VALUES_FILE="helm/boutique-app/values-${ENV}.yaml"
+            if [ -f "$VALUES_FILE" ]; then
+              for SERVICE in $CHANGED_SERVICES; do
+                case "$SERVICE" in
+                  product-service) KEY="productService" ;;
+                  skin-tone-service) KEY="skinToneService" ;;
+                  user-service) KEY="user" ;;
+                  wishlist-service) KEY="wishlist" ;;
+                  frontend) KEY="frontend" ;;
+                  *) KEY="$SERVICE" ;;
+                esac
+                sed -i "s|${KEY}: .*|${KEY}: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $VALUES_FILE
+              done
+            fi
+          displayName: 'Update image tags in values.yaml'
 
-  - script: |
-      set -e
-      ENV="$(environment)"
-      git config user.name "azure-devops"
-      git config user.email "azure-devops@boutique.com"
-      git add helm/boutique-app/values-${ENV}.yaml
-      git diff --staged --quiet || git commit -m "ci: update Helm values image tags for $ENV to $(Build.SourceVersion)"
-      git push origin HEAD:master
-    displayName: 'Commit and push changes to GitOps repo'
+        - script: |
+            set -e
+            ENV="$(environment)"
+            git config user.name "azure-devops"
+            git config user.email "azure-devops@boutique.com"
+            git add helm/boutique-app/values-${ENV}.yaml
+            git diff --staged --quiet || git commit -m "ci: update Helm values image tags for $ENV to $(Build.SourceVersion)"
+            git push origin HEAD:master
+          displayName: 'Commit and push changes to GitOps repo'
