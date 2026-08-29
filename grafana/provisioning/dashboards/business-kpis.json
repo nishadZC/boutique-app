@@ -16,7 +16,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "value"
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -34,8 +34,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 12,
+        "w": 4,
+        "x": 16,
         "y": 0
       },
       "id": 2,
@@ -77,7 +77,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "value"
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -95,8 +95,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 18,
+        "w": 4,
+        "x": 20,
         "y": 0
       },
       "id": 3,
@@ -317,7 +317,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "value"
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -376,7 +376,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "value"
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -420,7 +420,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT count(id) as pending_orders FROM orders WHERE status = 'pending' AND payment_status != 'failed';",
+          "rawSql": "SELECT count(id) as pending_orders FROM orders WHERE payment_status = 'pending';",
           "refId": "A"
         }
       ],
@@ -435,7 +435,66 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "value"
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 99,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "postgres-orders"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(id) as success_orders FROM orders WHERE payment_status = 'paid';",
+          "refId": "A"
+        }
+      ],
+      "title": "Success Orders",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "postgres-orders"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -453,7 +512,7 @@
       "gridPos": {
         "h": 8,
         "w": 4,
-        "x": 8,
+        "x": 12,
         "y": 0
       },
       "id": 12,
@@ -479,7 +538,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT count(id) as failed_orders FROM orders WHERE status = 'failed' OR payment_status = 'failed';",
+          "rawSql": "SELECT count(id) as failed_orders FROM orders WHERE payment_status = 'failed';",
           "refId": "A"
         }
       ],
