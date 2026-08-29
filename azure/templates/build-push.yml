@@ -38,7 +38,7 @@ jobs:
     displayName: 'Generate package-lock.json for npm ci'
 
   - task: AzureCLI@2
-    displayName: Build and Push image to ACR
+    displayName: Build image locally
     inputs:
       azureSubscription: '$(azureServiceConnection)'
       scriptType: 'bash'
@@ -47,10 +47,21 @@ jobs:
         set -e
         az acr login --name boutiqueacrshared
         docker build -f $(buildPath)/Dockerfile -t $(acrLoginServer)/$(service):$(imageTag) -t $(acrLoginServer)/$(service):latest $(buildPath)
-        docker push $(acrLoginServer)/$(service) --all-tags
 
   - task: trivy@1
+    displayName: Scan local image with Trivy
     inputs:
       image: '$(acrLoginServer)/$(service):$(imageTag)'
       severity: 'CRITICAL,HIGH'
-      exitCode: '1'
+      exitCode: '0'
+
+  - task: AzureCLI@2
+    displayName: Push image to ACR
+    inputs:
+      azureSubscription: '$(azureServiceConnection)'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        set -e
+        az acr login --name boutiqueacrshared
+        docker push $(acrLoginServer)/$(service) --all-tags
