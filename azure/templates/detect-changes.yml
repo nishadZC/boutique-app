@@ -17,7 +17,7 @@ jobs:
       # If no files changed (e.g. initial commit or manual run), build all
       if [ -z "$CHANGED_FILES" ]; then
         echo "No files changed or git diff failed. Falling back to building ALL services."
-        MATRIX=$SERVICES_JSON
+        MATRIX=$(echo "$SERVICES_JSON" | jq -c '.')
       else
         # Find which services match the changed files
         MATCHING_KEYS=$(echo "$SERVICES_JSON" | jq -r --arg cf "$CHANGED_FILES" 'to_entries | map(select(.value.triggerPath as $p | ($cf | contains($p)))) | map(.key) | .[]')
