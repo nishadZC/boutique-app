@@ -28,7 +28,6 @@ stages:
   jobs:
   - template: azure/templates/update-gitops.yml
     parameters:
-      changedServices: stageDependencies.BuildAndPush.DetectChanges.outputs['setMatrix.changedServices']
       environment: 'dev'
 
 - stage: UpdateProd
@@ -38,5 +37,4 @@ stages:
   jobs:
   - template: azure/templates/update-gitops.yml
     parameters:
-      changedServices: stageDependencies.BuildAndPush.DetectChanges.outputs['setMatrix.changedServices']
       environment: 'prod'

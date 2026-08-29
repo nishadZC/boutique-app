@@ -1,6 +1,4 @@
 parameters:
-  - name: changedServices
-    type: string
   - name: environment
     type: string
     default: 'dev'
@@ -12,7 +10,7 @@ jobs:
     vmImage: 'ubuntu-latest'
   environment: 'azure-${{ parameters.environment }}-environment'
   variables:
-    changedServices: ${{ parameters.changedServices }}
+    changedServices: $[ stageDependencies.BuildAndPush.DetectChanges.outputs['setMatrix.changedServices'] ]
     environment: ${{ parameters.environment }}
   strategy:
     runOnce:
