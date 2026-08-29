@@ -77,9 +77,9 @@ async def detect_skin_tone(image: UploadFile = File(...)):
     if len(contents) == 0:
         raise HTTPException(status_code=400, detail="Empty image file received.")
 
-    # Max 10MB
-    if len(contents) > 10 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Image too large. Maximum size is 10MB.")
+    # Max 20MB
+    if len(contents) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image too large. Maximum size is 20MB.")
 
     # Analyze skin tone
     result = analyze_skin_tone_from_bytes(contents)

@@ -67,10 +67,10 @@ const SkinToneAdvisor: React.FC<Props> = ({ open, onClose }) => {
       return;
     }
 
-    const maxSize = 10 * 1024 * 1024;
+    const maxSize = 20 * 1024 * 1024;
 
     if (file.size > maxSize) {
-      setError('Image size must be less than 10MB.');
+      setError('Image size must be less than 20MB.');
       return;
     }
 
@@ -201,7 +201,7 @@ const SkinToneAdvisor: React.FC<Props> = ({ open, onClose }) => {
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          style={{ display: 'none' }}
+          style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }}
           onChange={handleFileChange}
         />
 
