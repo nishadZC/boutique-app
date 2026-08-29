@@ -8,7 +8,7 @@ jobs:
   displayName: 'Deploy to ${{ parameters.environment }}'
   pool:
     vmImage: 'ubuntu-latest'
-  environment: 'azure-${{ parameters.environment }}-environment'
+  environment: 'app-${{ parameters.environment }}-environment'
   variables:
     changedServices: $[ stageDependencies.BuildAndPush.DetectChanges.outputs['setMatrix.changedServices'] ]
     environment: ${{ parameters.environment }}
