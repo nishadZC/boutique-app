@@ -24,7 +24,7 @@ jobs:
         
         if [ -z "$MATCHING_KEYS" ]; then
           echo "No relevant service files changed. Building ALL services as fallback."
-          MATRIX=$SERVICES_JSON
+          MATRIX=$(echo "$SERVICES_JSON" | jq -c '.')
         else
           # Generate the filtered matrix
           # Pass MATCHING_KEYS as an environment variable to jq
