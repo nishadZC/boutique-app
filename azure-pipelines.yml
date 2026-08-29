@@ -1,5 +1,11 @@
 trigger: none
 
+parameters:
+  - name: deployProd
+    displayName: "Deploy to Prod"
+    type: boolean
+    default: false
+
 variables:
   imageTag: '$(Build.SourceVersion)'
   acrLoginServer: 'boutiqueacrshared.azurecr.io'
@@ -33,7 +39,7 @@ stages:
 - stage: UpdateProd
   displayName: 'Deploy to Prod (GitOps)'
   dependsOn: UpdateDev
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  condition: and(succeeded(), eq(parameters.deployProd, true), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   jobs:
   - template: azure/templates/update-gitops.yml
     parameters:
