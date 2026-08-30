@@ -154,7 +154,6 @@ const OutfitCard: React.FC<OutfitCardProps> = ({ outfit, index }) => {
             size="small"
             variant={customizing ? 'contained' : 'outlined'}
             onClick={() => setCustomizing(!customizing)}
-            disabled={!sizes[outfit.topwear.id]}
             sx={{ mb: 2 }}
           >
             Customize shirt
@@ -180,9 +179,15 @@ const OutfitCard: React.FC<OutfitCardProps> = ({ outfit, index }) => {
             fullWidth
             variant="contained"
             onClick={addCompleteOutfit}
-            disabled={outfitItems.some(({ item }) => !sizes[item.id]) || (customizing && Object.values(measurements).some(value => !value))}
+            disabled={
+              outfitItems.some(({ item }) => {
+                if (item.id === outfit.topwear.id && customizing) return false;
+                return !sizes[item.id];
+              }) || 
+              (customizing && Object.values(measurements).some(value => !value))
+            }
             startIcon={<BagIcon />}
-            sx={{ background: '#d4af37', color: '#000', fontWeight: 'bold', '&:hover': { background: '#b8941f' }, '&.Mui-disabled': { background: '#333', color: '#666' } }}
+            sx={{ background: '#d4af37', color: '#000', fontWeight: 'bold', '&:hover': { background: '#b8941f' }, '&.Mui-disabled': { background: '#333', color: '#999' } }}
           >
             Add complete outfit to cart
           </Button>

@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Dialog, DialogContent, DialogTitle, Box, Button, Typography,
+  Container, Paper, Box, Button, Typography,
   IconButton, CircularProgress, Chip, Grid, Divider, Alert, Tooltip,
 } from '@mui/material';
 import {
   Close as CloseIcon, Upload as UploadIcon,
   ArrowForward as ArrowIcon, Refresh as RefreshIcon, ShoppingBag as BagIcon,
-  CheckroomOutlined as OutfitIcon,
+  CheckroomOutlined as OutfitIcon, ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { recommendationService, RecommendationResult } from 'services/skinToneService';
@@ -15,11 +15,10 @@ import MiniProductCard from 'components/MiniProductCard';
 import OutfitCard from 'components/OutfitCard';
 
 // ── Types ─────────────────────────────────────────────────────
-interface Props { open: boolean; onClose: () => void; }
 type StepId = 'choose' | 'preview' | 'analyzing' | 'results';
 // ── Main Component ────────────────────────────────────────────
 
-const SkinToneAdvisor: React.FC<Props> = ({ open, onClose }) => {
+const SkinToneAdvisor: React.FC = () => {
   const [step, setStep] = useState<StepId>('choose');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -45,7 +44,7 @@ const SkinToneAdvisor: React.FC<Props> = ({ open, onClose }) => {
 
   const handleClose = () => {
     resetState();
-    onClose();
+    navigate('/products');
   };
 
   const handleChoosePhoto = () => {
@@ -100,10 +99,13 @@ const SkinToneAdvisor: React.FC<Props> = ({ open, onClose }) => {
       setResult(data);
       setStep('results');
     } catch (err: any) {
-      setError(
-        err?.message ||
-          'Analysis failed. Please try again with a clearer face photo.'
-      );
+      let errorMessage = err?.message || 'Analysis failed. Please try again with a clearer face photo.';
+      
+      if (errorMessage.toLowerCase().includes('face')) {
+        errorMessage = 'Face not detected. Please try a clearer photo.';
+      }
+
+      setError(errorMessage);
 
       setStep('preview');
     }
@@ -134,22 +136,19 @@ const SkinToneAdvisor: React.FC<Props> = ({ open, onClose }) => {
   }, [previewUrl]);
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
+    <Container component="main" maxWidth="md" sx={{ py: 6 }}>
+      <Paper
+        elevation={3}
+        sx={{
           borderRadius: 3,
           background: '#0d0d0d',
           color: '#fff',
           minHeight: '75vh',
-        },
-      }}
-    >
-      {/* ── Header ── */}
-      <DialogTitle
+          overflow: 'hidden',
+        }}
+      >
+        {/* ── Header ── */}
+      <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
@@ -157,7 +156,7 @@ const SkinToneAdvisor: React.FC<Props> = ({ open, onClose }) => {
           background:
             'linear-gradient(135deg, #111 0%, #1e1e1e 100%)',
           borderBottom: '1px solid #222',
-          pb: 1.5,
+          p: 3,
         }}
       >
         <Box>
@@ -169,16 +168,18 @@ const SkinToneAdvisor: React.FC<Props> = ({ open, onClose }) => {
               color: '#d4af37',
             }}
           >
-            🎨 Find Your Style
+            Find Your Style
           </Typography>
 
-          <Typography
-            variant="body2"
-            sx={{ color: '#777', mt: 0.8 }}
-          >
-            Select your photo → Preview → Skin tone detected → Outfit
-            recommendations generated
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', color: '#777', mt: 0.8 }}>
+            <Typography variant="body2">Select your photo</Typography>
+            <ChevronRightIcon sx={{ fontSize: 16, mx: 0.5 }} />
+            <Typography variant="body2">Preview</Typography>
+            <ChevronRightIcon sx={{ fontSize: 16, mx: 0.5 }} />
+            <Typography variant="body2">Skin tone detected</Typography>
+            <ChevronRightIcon sx={{ fontSize: 16, mx: 0.5 }} />
+            <Typography variant="body2">Outfit recommendations generated</Typography>
+          </Box>
         </Box>
 
         <IconButton
@@ -190,9 +191,9 @@ const SkinToneAdvisor: React.FC<Props> = ({ open, onClose }) => {
         >
           <CloseIcon />
         </IconButton>
-      </DialogTitle>
+      </Box>
 
-      <DialogContent sx={{ pt: 4 }}>
+      <Box sx={{ pt: 4, px: 3, pb: 4 }}>
 
         {/* Hidden File Input */}
         <input
@@ -798,8 +799,9 @@ const SkinToneAdvisor: React.FC<Props> = ({ open, onClose }) => {
             </Box>
           </Box>
         )}
-      </DialogContent>
-    </Dialog>
+      </Box>
+    </Paper>
+  </Container>
   );
 };
 

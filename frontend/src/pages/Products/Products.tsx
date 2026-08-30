@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -31,7 +32,6 @@ import ProductCard from '../../components/common/ProductCard';
 import SearchBar from '../../components/common/SearchBar';
 import FilterPanel from '../../components/common/FilterPanel';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-import SkinToneAdvisor from '../../components/SkinToneAdvisor/SkinToneAdvisor';
 
 const Products: React.FC = () => {
   const theme = useTheme();
@@ -44,13 +44,20 @@ const Products: React.FC = () => {
   const [sortBy, setSortBy] = useState('featured');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const [advisorOpen, setAdvisorOpen] = useState(false);
+  const navigate = useNavigate();
   const [activeFilters, setActiveFilters] = useState<any>({});
   const [resetKey, setResetKey] = useState(0);
   const [page, setPage] = useState(1);
   const itemsPerPage = 9;
   const { addItem } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setSortBy('featured');
+    setActiveFilters({});
+    setResetKey(prev => prev + 1);
+  };
 
   const [brands, setBrands] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -228,20 +235,11 @@ const Products: React.FC = () => {
           </IconButton>
         </Box>
 
-        {!isMobile && (
-          <Button
-            variant="outlined"
-            startIcon={<FilterIcon />}
-            onClick={() => setFilterDrawerOpen(true)}
-          >
-            Filters
-          </Button>
-        )}
 
         <Button
-          variant="contained"
+          size="large"
           startIcon={<SparkleIcon />}
-          onClick={() => setAdvisorOpen(true)}
+          onClick={() => navigate('/style-advisor')}
           sx={{
             background: 'linear-gradient(135deg, #d4af37 0%, #f4e5a0 50%, #d4af37 100%)',
             color: '#000',
@@ -301,12 +299,7 @@ const Products: React.FC = () => {
           <Typography variant="h6" color="text.secondary" gutterBottom>
             No products found matching your criteria.
           </Typography>
-          <Button variant="outlined" onClick={() => {
-            setSearchQuery('');
-            setSortBy('featured');
-            setActiveFilters({});
-            setResetKey(prev => prev + 1);
-          }}>
+          <Button variant="outlined" onClick={handleClearFilters}>
             Clear Filters
           </Button>
         </Box>
@@ -347,24 +340,28 @@ const Products: React.FC = () => {
         onClose={() => setFilterDrawerOpen(false)}
         sx={{ '& .MuiDrawer-paper': { width: 300 } }}
       >
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' }}>
           <Typography variant="h6">Filters</Typography>
-          <IconButton onClick={() => setFilterDrawerOpen(false)}>
-            <CloseIcon />
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Button size="small" onClick={handleClearFilters} sx={{ mr: 1, color: 'text.secondary' }}>
+              Clear
+            </Button>
+            <IconButton onClick={() => setFilterDrawerOpen(false)} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
         </Box>
-        <FilterPanel
-          key={resetKey}
-          onFilterChange={(filters) => {
-            handleFilterChange(filters);
-            setFilterDrawerOpen(false);
-          }}
-          categories={categories}
-          brands={brands}
-          sizes={sizes}
-          colors={colors}
-          maxPrice={maxPrice}
-        />
+        <Box sx={{ p: 2 }}>
+          <FilterPanel
+            key={resetKey}
+            onFilterChange={handleFilterChange}
+            categories={categories}
+            brands={brands}
+            sizes={sizes}
+            colors={colors}
+            maxPrice={maxPrice}
+          />
+        </Box>
       </Drawer>
 
       {/* Mobile Filter Fab */}
@@ -377,9 +374,6 @@ const Products: React.FC = () => {
           <FilterIcon />
         </Fab>
       )}
-      
-      {/* Skin Tone Advisor Modal */}
-      <SkinToneAdvisor open={advisorOpen} onClose={() => setAdvisorOpen(false)} />
     </Container>
   );
 };

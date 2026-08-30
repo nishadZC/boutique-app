@@ -16,6 +16,7 @@ import Register from './pages/Register/Register';
 import Profile from './pages/Profile/Profile';
 import Orders from './pages/Orders/Orders';
 import Wishlist from './pages/Wishlist/Wishlist';
+import SkinToneAdvisor from './pages/SkinToneAdvisor/SkinToneAdvisor';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
 const theme = createTheme({
@@ -277,6 +278,7 @@ function App() {
                 <Route path="products/:id" element={<ProductDetail />} />
                 <Route path="cart" element={<Cart />} />
                 <Route path="wishlist" element={<Wishlist />} />
+                <Route path="style-advisor" element={<SkinToneAdvisor />} />
                 <Route path="login" element={<Login />} />
                 <Route path="register" element={<Register />} />
                 <Route
