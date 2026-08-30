@@ -14,7 +14,7 @@ const getImageUrl = (product: any): string => {
 
 export const productService = {
   getAll: async (): Promise<Product[]> => {
-    console.log('[ProductService] Fetching products from:', process.env.REACT_APP_API_URL || '/api');
+    console.log('[ProductService] Fetching products from:', import.meta.env.VITE_API_URL || '/api');
     try {
       const response = await apiClient.get('/products?limit=100');
       const apiResponse = response.data;

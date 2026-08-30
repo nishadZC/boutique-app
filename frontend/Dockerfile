@@ -23,7 +23,7 @@ RUN apk update && apk upgrade --no-cache && \
     adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx || true
 
 # Copy built app from builder
-COPY --from=builder --chown=nginx:nginx /app/build /usr/share/nginx/html
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
