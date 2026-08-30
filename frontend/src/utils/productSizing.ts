@@ -24,9 +24,26 @@ export const getSizeOptions = (product: { name: string; category?: string }): st
     name.includes('loafer') ||
     name.includes('heel') ||
     name.includes('boot') ||
+    name.includes('sneaker') ||
+    name.includes('slipper') ||
+    name.includes('moccasin') ||
+    name.includes('flip') ||
+    name.includes('flat') ||
+    name.includes('footwear') ||
+    name.includes('oxford') ||
+    name.includes('brogue') ||
+    name.includes('derby') ||
+    name.includes('monk') ||
+    name.includes('pump') ||
+    name.includes('wedge') ||
+    name.includes('espadrille') ||
+    name.includes('stiletto') ||
+    name.includes('ballet') ||
     category.includes('shoe') ||
     category.includes('sandal') ||
-    category.includes('boot');
+    category.includes('boot') ||
+    category.includes('footwear') ||
+    category.includes('sneaker');
 
   if (isShirtLike) {
     return ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
