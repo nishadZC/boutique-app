@@ -31,6 +31,7 @@ import {
   Refresh as RefreshIcon,
   Star as StarIcon,
   FavoriteBorder as WishlistIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { productService } from '../../services/productService';
 import { Product } from '../../types';
@@ -109,7 +110,7 @@ const ProductDetail: React.FC = () => {
           showToast('Please fill out all custom measurements.', 'warning');
           return;
         }
-        finalSize = `Custom (Shoulder: ${customMeasurements.shoulder}, Chest: ${customMeasurements.chest}, Sleeve: ${customMeasurements.sleeve}, Neck: ${customMeasurements.neck})`;
+        finalSize = `Custom (Shoulder: ${customMeasurements.shoulder}cm, Chest: ${customMeasurements.chest}cm, Sleeve: ${customMeasurements.sleeve}cm, Neck: ${customMeasurements.neck}cm)`;
       } else if (!finalSize) {
         showToast('Please select a size before adding this item.', 'warning');
         return;
@@ -320,7 +321,13 @@ const ProductDetail: React.FC = () => {
                             })
                           }}
                         >
-                          Customize
+                          {isCustomizing ? (
+                            <>
+                              Cancel
+                            </>
+                          ) : (
+                            'Customize'
+                          )}
                         </Button>
                       )}
                     </Box>
@@ -328,14 +335,14 @@ const ProductDetail: React.FC = () => {
                     {isCustomizing && (
                       <Box sx={{ mb: 4, p: 2, border: '1px dashed #d4af37', borderRadius: 2, bgcolor: 'rgba(212,175,55,0.05)' }}>
                         <Typography variant="subtitle2" sx={{ color: '#d4af37', mb: 2 }}>
-                          Enter your exact measurements (inches)
+                          Enter your exact measurements (cm)
                         </Typography>
                         <Grid container spacing={2}>
                           <Grid size={{ xs: 6, sm: 3 }}>
                             <TextField 
                               size="small" 
-                              label="Shoulder" 
-                              placeholder="e.g. 18"
+                              label="Shoulder (cm)" 
+                              placeholder="e.g. 45"
                               value={customMeasurements.shoulder}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, shoulder: e.target.value})}
                               fullWidth
@@ -345,8 +352,8 @@ const ProductDetail: React.FC = () => {
                           <Grid size={{ xs: 6, sm: 3 }}>
                             <TextField 
                               size="small" 
-                              label="Chest" 
-                              placeholder="e.g. 40"
+                              label="Chest (cm)" 
+                              placeholder="e.g. 100"
                               value={customMeasurements.chest}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, chest: e.target.value})}
                               fullWidth
@@ -356,8 +363,8 @@ const ProductDetail: React.FC = () => {
                           <Grid size={{ xs: 6, sm: 3 }}>
                             <TextField 
                               size="small" 
-                              label="Sleeve" 
-                              placeholder="e.g. 25"
+                              label="Sleeve (cm)" 
+                              placeholder="e.g. 64"
                               value={customMeasurements.sleeve}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, sleeve: e.target.value})}
                               fullWidth
@@ -367,8 +374,8 @@ const ProductDetail: React.FC = () => {
                           <Grid size={{ xs: 6, sm: 3 }}>
                             <TextField 
                               size="small" 
-                              label="Neck" 
-                              placeholder="e.g. 16"
+                              label="Neck (cm)" 
+                              placeholder="e.g. 40"
                               value={customMeasurements.neck}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, neck: e.target.value})}
                               fullWidth

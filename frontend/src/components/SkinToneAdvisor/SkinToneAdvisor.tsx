@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog, DialogContent, DialogTitle, Box, Button, Typography,
-  IconButton, CircularProgress, Chip, Grid, Card, CardMedia,
-  CardContent, CardActions, Divider, Alert, Tooltip,
-  FormControl, InputLabel, Select, MenuItem, TextField,
+  IconButton, CircularProgress, Chip, Grid, Divider, Alert, Tooltip,
 } from '@mui/material';
 import {
   Close as CloseIcon, Upload as UploadIcon,
@@ -11,8 +9,8 @@ import {
   CheckroomOutlined as OutfitIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { recommendationService, RecommendationResult, ProductItem, OutfitCombination } from 'services/skinToneService';
-import { CSS_COLORS, LIGHT_COLORS, getHex } from 'constants/colors';
+import { recommendationService, RecommendationResult } from 'services/skinToneService';
+import { LIGHT_COLORS, getHex } from 'constants/colors';
 import MiniProductCard from 'components/MiniProductCard';
 import OutfitCard from 'components/OutfitCard';
 

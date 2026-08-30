@@ -10,12 +10,14 @@ import {
   Paper,
 } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { GoogleLogin } from '@react-oauth/google';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, loginWithGoogle, loading, error, clearError } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,7 +26,8 @@ const Login: React.FC = () => {
     
     try {
       await login(email, password);
-      navigate('/');
+      showToast('Please complete your profile', 'info');
+      navigate('/profile');
     } catch (error) {
       // Error is handled by the auth context
     }
@@ -36,7 +39,8 @@ const Login: React.FC = () => {
 
     try {
       await loginWithGoogle(response.credential);
-      navigate('/');
+      showToast('Please complete your profile', 'info');
+      navigate('/profile');
     } catch (error) {
       // Error is handled by the auth context
     }
