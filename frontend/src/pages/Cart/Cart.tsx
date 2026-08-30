@@ -85,6 +85,7 @@ const Cart: React.FC = () => {
       }]);
     }
     if (user.address && !formatAddress(addressFields)) setAddressFields(addressFromString(user.address));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const selectSavedAddress = (saved: SavedAddress) => {
