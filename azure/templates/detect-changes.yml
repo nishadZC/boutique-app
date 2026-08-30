@@ -1,3 +1,8 @@
+parameters:
+  - name: buildAll
+    type: boolean
+    default: false
+
 jobs:
 - job: DetectChanges
   pool:
@@ -14,9 +19,9 @@ jobs:
       
       SERVICES_JSON=$(cat azure/services.json)
       
-      # If no files changed (e.g. initial commit or manual run), build all
-      if [ -z "$CHANGED_FILES" ]; then
-        echo "No files changed or git diff failed. Falling back to building ALL services."
+      # If no files changed (e.g. initial commit or manual run), or buildAll is true, build all
+      if [ -z "$CHANGED_FILES" ] || [ "${{ parameters.buildAll }}" == "True" ]; then
+        echo "No files changed, git diff failed, or force build requested. Building ALL services."
         MATRIX=$(echo "$SERVICES_JSON" | jq -c '.')
       else
         # Find which services match the changed files

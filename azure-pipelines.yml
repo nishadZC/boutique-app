@@ -5,6 +5,10 @@ parameters:
     displayName: "Deploy to Prod"
     type: boolean
     default: false
+  - name: buildAll
+    displayName: "Force Build ALL Services"
+    type: boolean
+    default: false
 
 variables:
   imageTag: '$(Build.SourceVersion)'
@@ -21,6 +25,8 @@ stages:
 - stage: BuildAndPush
   jobs:
   - template: azure/templates/detect-changes.yml
+    parameters:
+      buildAll: ${{ parameters.buildAll }}
   
   - template: azure/templates/build-push.yml
     parameters:
