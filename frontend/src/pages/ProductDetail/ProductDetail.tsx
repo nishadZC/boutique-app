@@ -31,7 +31,6 @@ import {
   Refresh as RefreshIcon,
   Star as StarIcon,
   FavoriteBorder as WishlistIcon,
-  Close as CloseIcon,
 } from '@mui/icons-material';
 import { productService } from '../../services/productService';
 import { Product } from '../../types';
