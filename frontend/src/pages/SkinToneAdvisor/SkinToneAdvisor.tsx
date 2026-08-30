@@ -11,8 +11,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { recommendationService, RecommendationResult } from 'services/skinToneService';
 import { LIGHT_COLORS, getHex } from 'constants/colors';
-import MiniProductCard from 'components/MiniProductCard';
-import OutfitCard from 'components/OutfitCard';
+import MiniProductCard from './components/MiniProductCard';
+import OutfitCard from './components/OutfitCard';
 
 // ── Types ─────────────────────────────────────────────────────
 type StepId = 'choose' | 'preview' | 'analyzing' | 'results';

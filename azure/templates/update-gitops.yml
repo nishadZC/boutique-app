@@ -2,6 +2,9 @@ parameters:
   - name: environment
     type: string
     default: 'dev'
+  - name: acrLoginServer
+    type: string
+    default: 'boutiqueacrshared.azurecr.io'
 
 jobs:
 - deployment: UpdateGitOps
@@ -22,7 +25,7 @@ jobs:
         - script: |
             set -e
             NEW_TAG=$(Build.SourceVersion)
-            REGISTRY=$(acrLoginServer)
+            REGISTRY="${{ parameters.acrLoginServer }}"
             CHANGED_SERVICES="$(changedServices)"
             ENV="$(environment)"
             

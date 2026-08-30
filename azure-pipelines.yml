@@ -35,12 +35,34 @@ stages:
   - template: azure/templates/update-gitops.yml
     parameters:
       environment: 'dev'
+      acrLoginServer: '$(acrLoginServer)'
+
+- stage: UpdateQA
+  displayName: 'Deploy to QA (GitOps)'
+  dependsOn: UpdateDev
+  condition: succeeded()
+  jobs:
+  - template: azure/templates/update-gitops.yml
+    parameters:
+      environment: 'qa'
+      acrLoginServer: '$(acrLoginServer)'
+
+- stage: UpdateStaging
+  displayName: 'Deploy to Staging (GitOps)'
+  dependsOn: UpdateQA
+  condition: succeeded()
+  jobs:
+  - template: azure/templates/update-gitops.yml
+    parameters:
+      environment: 'staging'
+      acrLoginServer: '$(acrLoginServer)'
 
 - stage: UpdateProd
   displayName: 'Deploy to Prod (GitOps)'
-  dependsOn: UpdateDev
+  dependsOn: UpdateStaging
   condition: and(succeeded(), ${{ parameters.deployProd }}, eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   jobs:
   - template: azure/templates/update-gitops.yml
     parameters:
       environment: 'prod'
+      acrLoginServer: 'boutiqueacrprod.azurecr.io'
