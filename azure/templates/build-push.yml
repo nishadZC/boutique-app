@@ -9,7 +9,7 @@ jobs:
 - job: Build
   dependsOn: ${{ parameters.dependsOn }}
   pool:
-    vmImage: 'ubuntu-latest'
+    name: Default
   strategy:
     matrix: $[ ${{ parameters.matrix }} ]
   

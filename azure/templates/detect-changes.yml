@@ -6,7 +6,7 @@ parameters:
 jobs:
 - job: DetectChanges
   pool:
-    vmImage: 'ubuntu-latest'
+    name: Default
   steps:
   - checkout: self
     fetchDepth: 2
