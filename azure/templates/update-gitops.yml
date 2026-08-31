@@ -24,36 +24,65 @@ jobs:
 
         - script: |
             set -e
-            NEW_TAG=$(Build.SourceVersion)
+            NEW_TAG="$(Build.SourceVersion)"
             REGISTRY="${{ parameters.acrLoginServer }}"
             CHANGED_SERVICES="$(changedServices)"
-            ENV="$(environment)"
-            
-            echo "Updating tags for services: $CHANGED_SERVICES in $ENV environment"
-            
+            ENV="${{ parameters.environment }}"
             VALUES_FILE="helm/boutique-app/values-${ENV}.yaml"
-            if [ -f "$VALUES_FILE" ]; then
-              for SERVICE in $CHANGED_SERVICES; do
-                case "$SERVICE" in
-                  product-service) KEY="productService" ;;
-                  skin-tone-service) KEY="skinToneService" ;;
-                  user-service) KEY="user" ;;
-                  wishlist-service) KEY="wishlist" ;;
-                  frontend) KEY="frontend" ;;
-                  *) KEY="$SERVICE" ;;
-                esac
-                sed -i "s|${KEY}: .*|${KEY}: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $VALUES_FILE
-              done
-            fi
-          displayName: 'Update image tags in values.yaml'
 
-        - script: |
-            set -e
-            ENV="$(environment)"
             git config user.name "azure-devops"
             git config user.email "azure-devops@boutique.com"
-            git add helm/boutique-app/values-${ENV}.yaml
-            git diff --staged --quiet || git commit -m "ci: update Helm values image tags for $ENV to $(Build.SourceVersion)"
-            git pull --rebase origin master
-            git push origin HEAD:master
-          displayName: 'Commit and push changes to GitOps repo'
+
+            echo "Updating tags for services: $CHANGED_SERVICES in $ENV environment"
+
+            # Retry loop — handles concurrent jobs updating the same values file
+            MAX_RETRIES=5
+            for i in $(seq 1 $MAX_RETRIES); do
+              echo "Attempt $i / $MAX_RETRIES"
+
+              # Always pull latest master FIRST before making any changes
+              # This avoids rebase conflicts caused by concurrent service jobs
+              git fetch origin master
+              git reset --hard origin/master
+
+              # Apply image tag changes on top of latest master
+              if [ -f "$VALUES_FILE" ]; then
+                for SERVICE in $CHANGED_SERVICES; do
+                  case "$SERVICE" in
+                    product-service)   KEY="productService" ;;
+                    skin-tone-service) KEY="skinToneService" ;;
+                    user-service)      KEY="user" ;;
+                    wishlist-service)  KEY="wishlist" ;;
+                    frontend)          KEY="frontend" ;;
+                    *)                 KEY="$SERVICE" ;;
+                  esac
+                  sed -i "s|${KEY}: .*|${KEY}: ${REGISTRY}/${SERVICE}:${NEW_TAG}|g" $VALUES_FILE
+                  echo "  Updated $KEY -> ${REGISTRY}/${SERVICE}:${NEW_TAG}"
+                done
+              else
+                echo "WARNING: $VALUES_FILE not found, skipping"
+                exit 0
+              fi
+
+              # Commit only if there are actual changes
+              git add "$VALUES_FILE"
+              if git diff --staged --quiet; then
+                echo "No changes to commit — image tags already up to date"
+                exit 0
+              fi
+
+              git commit -m "ci: update Helm values image tags for $ENV to ${NEW_TAG}"
+
+              # Try to push — if it fails (someone else pushed concurrently), retry
+              if git push origin HEAD:master; then
+                echo "Push successful on attempt $i"
+                exit 0
+              else
+                echo "Push failed (concurrent update detected) — retrying in ${i}s..."
+                sleep $i
+              fi
+            done
+
+            echo "##[error]Failed to push after $MAX_RETRIES attempts"
+            exit 1
+          displayName: 'Update image tags and push to GitOps repo (with retry)'
