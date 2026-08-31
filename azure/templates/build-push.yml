@@ -33,6 +33,11 @@ jobs:
 
   - task: SonarQubeAnalyze@7
     
+  - task: NodeTool@0
+    displayName: 'Use Node.js 20 LTS'
+    inputs:
+      versionSpec: '20.x'
+
   - script: |
       npm install --package-lock-only
     displayName: 'Generate package-lock.json for npm ci'
