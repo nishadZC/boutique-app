@@ -10,6 +10,15 @@ groups:
       summary: "Instance {{ $labels.instance }} down"
       description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
 
+  - alert: BoutiqueServiceScaledToZero
+    expr: kube_deployment_status_replicas_available{namespace="boutique-app"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Service {{ $labels.deployment }} has no available replicas"
+      description: "The {{ $labels.deployment }} deployment in boutique-app has zero available replicas and should trigger PagerDuty."
+
   - alert: HighErrorRate
     expr: rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
     for: 2m

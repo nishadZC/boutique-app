@@ -202,7 +202,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{job=~\"$service\"}[$__rate_interval])))",
+          "expr": "job:http_request_duration_seconds:p99{job=~\"$service\"}",
           "legendFormat": "p99",
           "refId": "B"
         }
@@ -422,7 +422,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (job) (rate(http_requests_total[$__rate_interval]))",
+          "expr": "sum by (job) (job:http_requests_total:rate5m)",
           "legendFormat": "{{job}}",
           "refId": "A"
         }
