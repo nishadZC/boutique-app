@@ -90,12 +90,11 @@ stages:
         extraProperties: |
           sonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**
           sonar.typescript.tsconfigPath=$(buildPath)/tsconfig.json
-          sonar.branch.name=master
 
     - script: |
-        PARAMS=$(echo $SONARQUBE_SCANNER_PARAMS | jq '.["sonar.branch.name"] = "master"' -c)
+        PARAMS=$(echo $SONARQUBE_SCANNER_PARAMS | jq 'del(.["sonar.branch.name"])' -c)
         echo "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$PARAMS"
-      displayName: 'Set branch name to master for SonarQube'
+      displayName: 'Remove branch name for SonarQube Community Edition'
 
     - task: SonarQubeAnalyze@7
       displayName: 'SonarQube Analysis'
