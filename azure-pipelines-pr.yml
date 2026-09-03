@@ -70,6 +70,14 @@ stages:
       inputs:
         versionSpec: '20.x'
 
+    - script: |
+        if [ -f "$(buildPath)/package.json" ]; then
+          echo "Installing dependencies for $(service)..."
+          cd $(buildPath)
+          npm ci || npm install
+        fi
+      displayName: 'Install dependencies for SonarQube scan'
+
     - task: SonarQubePrepare@7
       displayName: 'SonarQube Prepare'
       inputs:
@@ -79,9 +87,12 @@ stages:
         cliProjectKey: 'boutique-$(service)'
         cliProjectName: 'Boutique $(service)'
         cliSources: '$(buildPath)'
+        extraProperties: |
+          sonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**
+          sonar.typescript.tsconfigPath=$(buildPath)/tsconfig.json
 
     - script: |
-        PARAMS=$(echo $SONARQUBE_SCANNER_PARAMS | jq 'del(.[\"sonar.branch.name\"])' -c)
+        PARAMS=$(echo $SONARQUBE_SCANNER_PARAMS | jq 'del(.["sonar.branch.name"])' -c)
         echo "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$PARAMS"
       displayName: 'Remove branch name for SonarQube Community Edition'
 
