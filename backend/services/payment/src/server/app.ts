@@ -6,7 +6,11 @@ import { paymentRoutes } from '../routes/paymentRoutes';
 
 export const createApp = (): express.Express => {
   const app = express();
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    })
+  );
   app.use(cors());
   app.use(express.json());
   setupMetrics(app, 'payment-service');

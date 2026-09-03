@@ -11,7 +11,11 @@ dotenv.config({ path: './.env' });
 const app = express();
 const PORT = process.env.PORT || 3005;
 
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+  })
+);
 app.use(cors());
 app.use(express.json());
 

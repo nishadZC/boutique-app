@@ -11,7 +11,11 @@ setDatabasePool(pool);
 const app = express();
 const port = Number(process.env.PORT) || 3004;
 
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+  })
+);
 app.use(cors());
 app.use(express.json());
 setupMetrics(app, 'user-service');
