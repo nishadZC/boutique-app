@@ -1,9 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import http from 'http';
+import https from 'https';
 import dns from 'dns';
 import * as dotenv from 'dotenv';
 
+http.globalAgent.options.family = 4;
+https.globalAgent.options.family = 4;
 dns.setDefaultResultOrder('ipv4first');
 import { authRoutes } from './routes/auth';
 import { connectDB } from './database/connection';
