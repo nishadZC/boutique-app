@@ -4,12 +4,16 @@ import helmet from 'helmet';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import http from 'http';
 import https from 'https';
+import net from 'net';
 import dns from 'dns';
 import dotenv from 'dotenv';
 
+if (net.setDefaultAutoSelectFamily) {
+  net.setDefaultAutoSelectFamily(false);
+}
+dns.setDefaultResultOrder('ipv4first');
 http.globalAgent = new http.Agent({ family: 4 });
 https.globalAgent = new https.Agent({ family: 4 });
-dns.setDefaultResultOrder('ipv4first');
 import { metricsMiddleware, setupMetrics } from './metrics';
 
 dotenv.config();

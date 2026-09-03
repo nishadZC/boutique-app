@@ -3,12 +3,16 @@ import cors from 'cors';
 import helmet from 'helmet';
 import http from 'http';
 import https from 'https';
+import net from 'net';
 import dns from 'dns';
 import * as dotenv from 'dotenv';
 
+if (net.setDefaultAutoSelectFamily) {
+  net.setDefaultAutoSelectFamily(false);
+}
+dns.setDefaultResultOrder('ipv4first');
 http.globalAgent = new http.Agent({ family: 4 });
 https.globalAgent = new https.Agent({ family: 4 });
-dns.setDefaultResultOrder('ipv4first');
 import { authRoutes } from './routes/auth';
 import { connectDB } from './database/connection';
 import { metricsMiddleware, setupMetrics } from './metrics';
