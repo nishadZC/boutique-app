@@ -7,8 +7,8 @@ import https from 'https';
 import dns from 'dns';
 import dotenv from 'dotenv';
 
-http.globalAgent.options.family = 4;
-https.globalAgent.options.family = 4;
+http.globalAgent = new http.Agent({ family: 4 });
+https.globalAgent = new https.Agent({ family: 4 });
 dns.setDefaultResultOrder('ipv4first');
 import { metricsMiddleware, setupMetrics } from './metrics';
 
