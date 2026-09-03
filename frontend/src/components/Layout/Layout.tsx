@@ -36,26 +36,33 @@ const Layout: React.FC = () => {
   const { itemCount } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleNavigate = (path: string) => {
+  const handleCloseMobile = () => {
     setMobileOpen(false);
-    navigate(path);
   };
 
   const drawer = (
     <Box>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div" onClick={() => handleNavigate('/')} sx={{ cursor: 'pointer', fontWeight: 700 }}>
+        <Typography
+          variant="h6"
+          noWrap
+          component={RouterLink}
+          to="/"
+          onClick={handleCloseMobile}
+          sx={{ cursor: 'pointer', fontWeight: 700, color: 'inherit', textDecoration: 'none' }}
+        >
           Lux Atelier
         </Typography>
       </Toolbar>
       <List>
         <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavigate('/')}>
+          <ListItemButton component={RouterLink} to="/" onClick={handleCloseMobile} selected={location.pathname === '/'}>
             <ListItemIcon>
               <Home />
             </ListItemIcon>
@@ -64,7 +71,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavigate('/products')}>
+          <ListItemButton component={RouterLink} to="/products" onClick={handleCloseMobile} selected={location.pathname.startsWith('/products')}>
             <ListItemIcon>
               <ShoppingBag />
             </ListItemIcon>
@@ -73,7 +80,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavigate('/style-advisor')}>
+          <ListItemButton component={RouterLink} to="/style-advisor" onClick={handleCloseMobile} selected={location.pathname === '/style-advisor'}>
             <ListItemIcon>
               <AutoAwesome />
             </ListItemIcon>
@@ -82,7 +89,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavigate('/cart')}>
+          <ListItemButton component={RouterLink} to="/cart" onClick={handleCloseMobile} selected={location.pathname === '/cart'}>
             <ListItemIcon>
               <Badge badgeContent={itemCount} color="secondary">
                 <ShoppingCart />
@@ -93,7 +100,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavigate(isAuthenticated ? '/wishlist' : '/login')}>
+          <ListItemButton component={RouterLink} to={isAuthenticated ? '/wishlist' : '/login'} onClick={handleCloseMobile} selected={location.pathname === '/wishlist'}>
             <ListItemIcon>
               <Favorite />
             </ListItemIcon>
@@ -102,7 +109,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavigate(isAuthenticated ? '/orders' : '/login')}>
+          <ListItemButton component={RouterLink} to={isAuthenticated ? '/orders' : '/login'} onClick={handleCloseMobile} selected={location.pathname === '/orders'}>
             <ListItemIcon>
               <ReceiptLong />
             </ListItemIcon>
@@ -111,7 +118,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavigate(isAuthenticated ? '/profile' : '/login')}>
+          <ListItemButton component={RouterLink} to={isAuthenticated ? '/profile' : '/login'} onClick={handleCloseMobile} selected={location.pathname === '/profile' || location.pathname === '/login'}>
             <ListItemIcon>
               <Person />
             </ListItemIcon>
@@ -144,7 +151,7 @@ const Layout: React.FC = () => {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Lux Atelier
           </Typography>
-          <IconButton color="inherit" onClick={() => navigate('/cart')}>
+          <IconButton color="inherit" component={RouterLink} to="/cart">
             <Badge badgeContent={itemCount} color="error">
               <ShoppingCart />
             </Badge>
@@ -156,7 +163,7 @@ const Layout: React.FC = () => {
               </IconButton>
             </Box>
           ) : (
-            <IconButton color="inherit" onClick={() => navigate('/login')}>
+            <IconButton color="inherit" component={RouterLink} to="/login">
               <AccountCircle />
             </IconButton>
           )}
@@ -201,7 +208,7 @@ const Layout: React.FC = () => {
         }}
       >
         <Toolbar />
-        <Outlet />
+        <Outlet key={location.pathname} />
       </Box>
     </Box>
   );
