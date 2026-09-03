@@ -139,33 +139,18 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { showToast } = useToast();
 
   React.useEffect(() => {
-    localStorage.setItem('boutique_cart', JSON.stringify(state));
-  }, [state]);
-
-  React.useEffect(() => {
     if (isAuthenticated) {
-      const emptyCartState = { items: [], total: 0, itemCount: 0 };
-      const savedCart = localStorage.getItem('boutique_cart');
-
-      if (savedCart) {
-        const parsedCart = JSON.parse(savedCart);
-        if (parsedCart && (parsedCart.items?.length || parsedCart.itemCount > 0 || parsedCart.total > 0)) {
-          dispatch({ type: 'CLEAR_CART' });
-          localStorage.setItem('boutique_cart', JSON.stringify(emptyCartState));
-        }
-      }
+      localStorage.setItem('boutique_cart', JSON.stringify(state));
+    } else {
+      dispatch({ type: 'CLEAR_CART' });
+      localStorage.removeItem('boutique_cart');
     }
-  }, [isAuthenticated]);
+  }, [state, isAuthenticated]);
 
   const addItem = (product: Product, selectedSize?: string, showFeedback = true): boolean => {
     if (!isAuthenticated) {
       showToast('Please sign in to add products to your cart.', 'warning');
       navigate('/login');
-      return false;
-    }
-    if (user && (!user.firstName || !user.lastName || !user.phone || !user.address)) {
-      showToast('Please complete your profile before adding products to your cart.', 'warning');
-      navigate('/profile');
       return false;
     }
     dispatch({ type: 'ADD_ITEM', payload: { product, selectedSize } });
