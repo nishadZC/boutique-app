@@ -209,9 +209,12 @@ router.post('/google', async (req, res) => {
       refreshToken: user.id.toString(),
       message: 'Google login successful',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Google login error:', error);
-    return res.status(401).json({ error: 'Google sign-in failed' });
+    return res.status(401).json({
+      error: 'Google sign-in failed',
+      details: error?.message || String(error)
+    });
   }
 });
 
