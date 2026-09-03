@@ -1,7 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import dns from 'dns';
 import * as dotenv from 'dotenv';
+
+dns.setDefaultResultOrder('ipv4first');
 import { authRoutes } from './routes/auth';
 import { connectDB } from './database/connection';
 import { metricsMiddleware, setupMetrics } from './metrics';

@@ -2,7 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import dns from 'dns';
 import dotenv from 'dotenv';
+
+dns.setDefaultResultOrder('ipv4first');
 import { metricsMiddleware, setupMetrics } from './metrics';
 
 dotenv.config();
