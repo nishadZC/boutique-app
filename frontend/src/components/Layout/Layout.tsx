@@ -10,6 +10,7 @@ import {
   Drawer,
   List,
   ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
@@ -21,6 +22,9 @@ import {
   Favorite,
   Menu as MenuIcon,
   ExitToApp as LogoutIcon,
+  AutoAwesome,
+  ReceiptLong,
+  Person,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
@@ -37,48 +41,83 @@ const Layout: React.FC = () => {
     setMobileOpen(!mobileOpen);
   };
 
+  const handleNavigate = (path: string) => {
+    setMobileOpen(false);
+    navigate(path);
+  };
+
   const drawer = (
     <Box>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div">
+        <Typography variant="h6" noWrap component="div" onClick={() => handleNavigate('/')} sx={{ cursor: 'pointer', fontWeight: 700 }}>
           Lux Atelier
         </Typography>
       </Toolbar>
       <List>
-        <ListItem component={RouterLink} to="/">
-          <ListItemIcon>
-            <Home />
-          </ListItemIcon>
-          <ListItemText primary="Home" />
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => handleNavigate('/')}>
+            <ListItemIcon>
+              <Home />
+            </ListItemIcon>
+            <ListItemText primary="Home" />
+          </ListItemButton>
         </ListItem>
-        <ListItem component={RouterLink} to="/products">
-          <ListItemIcon>
-            <ShoppingBag />
-          </ListItemIcon>
-          <ListItemText primary="Products" />
+
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => handleNavigate('/products')}>
+            <ListItemIcon>
+              <ShoppingBag />
+            </ListItemIcon>
+            <ListItemText primary="Products" />
+          </ListItemButton>
         </ListItem>
-        {isAuthenticated && (
-          <>
-            <ListItem component={RouterLink} to="/orders">
-              <ListItemIcon>
-                <ShoppingBag />
-              </ListItemIcon>
-              <ListItemText primary="Orders" />
-            </ListItem>
-            <ListItem component={RouterLink} to="/wishlist">
-              <ListItemIcon>
-                <Favorite />
-              </ListItemIcon>
-              <ListItemText primary="Wishlist" />
-            </ListItem>
-            <ListItem component={RouterLink} to="/profile">
-              <ListItemIcon>
-                <AccountCircle />
-              </ListItemIcon>
-              <ListItemText primary="Profile" />
-            </ListItem>
-          </>
-        )}
+
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => handleNavigate('/style-advisor')}>
+            <ListItemIcon>
+              <AutoAwesome />
+            </ListItemIcon>
+            <ListItemText primary="Style Advisor" />
+          </ListItemButton>
+        </ListItem>
+
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => handleNavigate('/cart')}>
+            <ListItemIcon>
+              <Badge badgeContent={itemCount} color="secondary">
+                <ShoppingCart />
+              </Badge>
+            </ListItemIcon>
+            <ListItemText primary="Cart" />
+          </ListItemButton>
+        </ListItem>
+
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => handleNavigate(isAuthenticated ? '/wishlist' : '/login')}>
+            <ListItemIcon>
+              <Favorite />
+            </ListItemIcon>
+            <ListItemText primary="Wishlist" />
+          </ListItemButton>
+        </ListItem>
+
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => handleNavigate(isAuthenticated ? '/orders' : '/login')}>
+            <ListItemIcon>
+              <ReceiptLong />
+            </ListItemIcon>
+            <ListItemText primary="Orders" />
+          </ListItemButton>
+        </ListItem>
+
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => handleNavigate(isAuthenticated ? '/profile' : '/login')}>
+            <ListItemIcon>
+              <Person />
+            </ListItemIcon>
+            <ListItemText primary={isAuthenticated ? 'Profile' : 'Sign In'} />
+          </ListItemButton>
+        </ListItem>
       </List>
     </Box>
   );

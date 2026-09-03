@@ -43,16 +43,31 @@ const Cart: React.FC = () => {
   const savedAddressKey = user ? `savedAddresses:${user.id}` : '';
   const fallbackImage = 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg';
 
+  const normalizeAddress = (addr: string) => addr.toLowerCase().replace(/\s+/g, ' ').trim();
+
   const saveCurrentAddress = () => {
     if (!user || !address.trim() || !phone.trim()) return;
-    const nextAddress: SavedAddress = {
-      id: `${Date.now()}`,
-      label: savedAddresses.length === 0 ? 'Primary address' : `Address ${savedAddresses.length + 1}`,
-      fields: addressFields,
-      phone,
-    };
-    const withoutDuplicate = savedAddresses.filter(saved => formatAddress(saved.fields) !== address || saved.phone !== phone);
-    const nextAddresses = [...withoutDuplicate, nextAddress];
+    const normCurrent = normalizeAddress(address);
+
+    const existingIndex = savedAddresses.findIndex(
+      saved => normalizeAddress(formatAddress(saved.fields)) === normCurrent
+    );
+
+    let nextAddresses: SavedAddress[];
+    if (existingIndex >= 0) {
+      nextAddresses = savedAddresses.map((saved, idx) =>
+        idx === existingIndex ? { ...saved, fields: addressFields, phone } : saved
+      );
+    } else {
+      const nextAddress: SavedAddress = {
+        id: `${Date.now()}`,
+        label: savedAddresses.length === 0 ? 'Profile address' : `Address ${savedAddresses.length + 1}`,
+        fields: addressFields,
+        phone,
+      };
+      nextAddresses = [...savedAddresses, nextAddress];
+    }
+
     localStorage.setItem(savedAddressKey, JSON.stringify(nextAddresses));
     setSavedAddresses(nextAddresses);
   };
@@ -74,8 +89,18 @@ const Cart: React.FC = () => {
     } catch {
       localStorage.removeItem(`savedAddresses:${user.id}`);
     }
+
     if (parsed.length > 0) {
-      setSavedAddresses(parsed);
+      const seen = new Set<string>();
+      const deduplicated: SavedAddress[] = [];
+      for (const item of parsed) {
+        const normKey = normalizeAddress(formatAddress(item.fields));
+        if (!seen.has(normKey)) {
+          seen.add(normKey);
+          deduplicated.push(item);
+        }
+      }
+      setSavedAddresses(deduplicated);
     } else if (user.address) {
       setSavedAddresses([{
         id: 'profile-address',
@@ -84,7 +109,7 @@ const Cart: React.FC = () => {
         phone: user.phone || '',
       }]);
     }
-    if (user.address && !formatAddress(addressFields)) setAddressFields(addressFromString(user.address));
+    if (user.address) setAddressFields(addressFromString(user.address));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
