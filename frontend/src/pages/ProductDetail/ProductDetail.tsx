@@ -391,6 +391,7 @@ const ProductDetail: React.FC = memo(() => {
               <Tab label="Details" />
               <Tab label="Reviews" />
               <Tab label="Shipping" />
+              {isShirt && <Tab label="Size Guide" />}
             </Tabs>
             
             <Box className={styles.tabPanelContent}>
@@ -445,6 +446,35 @@ const ProductDetail: React.FC = memo(() => {
                   • 30-day return policy
                 </Typography>
               </TabPanel>
+
+              {isShirt && (
+                <TabPanel value={tabValue} index={4}>
+                  <Typography variant="h6" gutterBottom>Shirt Size & Measurement Guide</Typography>
+                  <Typography variant="body2" color="text.secondary" paragraph>
+                    Use our detailed charts below to find your perfect fit. For the best accuracy, measure a shirt you already own that fits well.
+                  </Typography>
+                  <Grid container spacing={4}>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Box sx={{ border: '1px solid #eaeaea', borderRadius: 2, overflow: 'hidden' }}>
+                        <img 
+                          src="/images/size_chart.jpg" 
+                          alt="Size Chart" 
+                          style={{ width: '100%', display: 'block' }} 
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Box sx={{ border: '1px solid #eaeaea', borderRadius: 2, overflow: 'hidden' }}>
+                        <img 
+                          src="/images/measurement_guide.jpg" 
+                          alt="Measurement Guide" 
+                          style={{ width: '100%', display: 'block' }} 
+                        />
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </TabPanel>
+              )}
             </Box>
           </Paper>
         </Box>

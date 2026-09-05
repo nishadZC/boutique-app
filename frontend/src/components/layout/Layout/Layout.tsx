@@ -12,6 +12,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useCart } from '../../../contexts/CartContext';
 import { ROUTES } from '../../../constants/routes';
 import { DRAWER_WIDTH } from '../../../constants/config';
+import Footer from '../Footer/Footer';
+import ScrollToTop from '../../common/ScrollToTop/ScrollToTop';
 import styles from './Layout.module.css';
 
 const NAV_ITEMS = [
@@ -41,12 +43,8 @@ const Layout = memo(function Layout() {
 
   const drawerContent = (
     <Box>
-      <Toolbar sx={{ justifyContent: 'center', py: 2 }}>
-        <Typography variant="h6" component={RouterLink} to={ROUTES.HOME} onClick={closeDrawer} className={styles.brand}>
-          Lux Atelier
-        </Typography>
-      </Toolbar>
-      <List className={styles.navList}>
+      <Toolbar sx={{ minHeight: { sm: '72px' } }} />
+      <List className={styles.navList} sx={{ pt: 1 }}>
         {NAV_ITEMS.map(({ label, path, icon, exact }) => (
           <ListItem key={label} disablePadding>
             <ListItemButton
@@ -68,13 +66,26 @@ const Layout = memo(function Layout() {
 
   return (
     <Box className={styles.root}>
-      <AppBar position="fixed" className={styles.appBar} sx={{ width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` }, ml: { sm: `${DRAWER_WIDTH}px` } }}>
-        <Toolbar>
+      <ScrollToTop />
+      <AppBar 
+        position="fixed" 
+        elevation={0}
+        className={styles.appBar} 
+        sx={{ 
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          borderBottom: '1px solid rgba(0,0,0,0.06)'
+        }}
+      >
+        <Toolbar sx={{ px: { xs: 2, sm: 4 }, minHeight: { sm: '72px' } }}>
           <IconButton color="inherit" edge="start" onClick={toggleDrawer} sx={{ mr: 2, display: { sm: 'none' } }} aria-label="menu">
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>Lux Atelier</Typography>
-          <IconButton color="inherit" component={RouterLink} to={ROUTES.CART} aria-label="cart">
+          <Typography variant="h6" noWrap sx={{ flexGrow: 1, fontWeight: 700, fontSize: '1.25rem' }}>
+            <RouterLink to={ROUTES.HOME} style={{ textDecoration: 'none', color: 'inherit' }}>
+              Lux Atelier
+            </RouterLink>
+          </Typography>
+          <IconButton color="inherit" component={RouterLink} to={ROUTES.CART} aria-label="cart" sx={{ mr: 1 }}>
             <Badge badgeContent={itemCount} color="error"><ShoppingCart /></Badge>
           </IconButton>
           {isAuthenticated
@@ -94,9 +105,12 @@ const Layout = memo(function Layout() {
         </Drawer>
       </Box>
 
-      <Box component="main" className={styles.main} sx={{ width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` } }}>
-        <Toolbar />
-        <Outlet />
+      <Box component="main" className={styles.main} sx={{ flexGrow: 1, width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` } }}>
+        <Toolbar sx={{ minHeight: { sm: '72px' } }} />
+        <Box className={styles.content}>
+          <Outlet />
+        </Box>
+        <Footer />
       </Box>
     </Box>
   );

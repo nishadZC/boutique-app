@@ -6,7 +6,7 @@
 }
 .heroTitle   { color: white !important; margin-bottom: 24px; }
 .heroAccent  { color: #d4af37; display: block; }
-.heroSubtitle { margin-bottom: 32px; opacity: 0.9; color: white; font-weight: 300; }
+.heroSubtitle { margin-bottom: 56px; opacity: 0.9; color: white; font-weight: 300; line-height: 1.6; }
 .heroCta     { display: flex; gap: 16px; flex-wrap: wrap; }
 .ctaGold     { background: #d4af37 !important; color: #1a1a1a !important; padding: 12px 32px; }
 .ctaGold:hover { background: #b8941f !important; }

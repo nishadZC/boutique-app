@@ -1,0 +1,116 @@
+.footer {
+  background-color: #1a1a1a;
+  color: #fcfcfc;
+  padding-top: 64px;
+  margin-top: auto;
+}
+
+.footerTop {
+  padding-bottom: 48px;
+}
+
+.brandName {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: #d4af37;
+}
+
+.aboutText {
+  color: #a0a0a0;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.socialIcons {
+  display: flex;
+  gap: 8px;
+  margin-left: -12px;
+}
+
+.socialIcons button {
+  color: #a0a0a0;
+  transition: color 0.2s ease;
+}
+
+.socialIcons button:hover {
+  color: #d4af37;
+}
+
+.sectionTitle {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  margin-bottom: 24px;
+  color: #fcfcfc;
+}
+
+.linkGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footerLink {
+  color: #a0a0a0 !important;
+  text-decoration: none !important;
+  font-size: 0.9rem;
+  transition: color 0.2s ease !important;
+}
+
+.footerLink:hover {
+  color: #d4af37 !important;
+}
+
+.newsletterText {
+  color: #a0a0a0;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.newsletterForm {
+  display: flex;
+  gap: 8px;
+}
+
+.emailInput {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.emailInput :global(input) {
+  color: #fff;
+}
+
+.emailInput :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.emailInput:hover :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.emailInput :global(.Mui-focused .MuiOutlinedInput-notchedOutline) {
+  border-color: #d4af37 !important;
+}
+
+.subscribeButton {
+  background-color: #d4af37 !important;
+  color: #1a1a1a !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  padding: 0 24px !important;
+}
+
+.subscribeButton:hover {
+  background-color: #b8941f !important;
+}
+
+.footerBottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 24px 0;
+  text-align: center;
+}
+
+.copyright {
+  color: #a0a0a0;
+}
