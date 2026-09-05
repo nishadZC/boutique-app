@@ -19,7 +19,7 @@
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
 }
-.heroVisualText { font-family: '"Playfair Display", serif'; color: #1a1a1a; text-align: center; padding: 32px; }
+.heroVisualText { font-family: "Playfair Display", serif; color: #1a1a1a; text-align: center; padding: 32px; }
 .featureCard   {
   padding: 24px;
   text-align: center;
@@ -27,4 +27,4 @@
   display: flex; flex-direction: column; align-items: center;
 }
 .featuredSection { background: #f8f8f8; padding: 64px 0; }
-.sectionTitle    { font-family: '"Playfair Display", serif'; }
+.sectionTitle    { font-family: "Playfair Display", serif; }
