@@ -1,0 +1,30 @@
+.hero {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+  color: white;
+  padding: 80px 0;
+  margin-bottom: 0;
+}
+.heroTitle   { color: white !important; margin-bottom: 24px; }
+.heroAccent  { color: #d4af37; display: block; }
+.heroSubtitle { margin-bottom: 32px; opacity: 0.9; color: white; font-weight: 300; }
+.heroCta     { display: flex; gap: 16px; flex-wrap: wrap; }
+.ctaGold     { background: #d4af37 !important; color: #1a1a1a !important; padding: 12px 32px; }
+.ctaGold:hover { background: #b8941f !important; }
+.ctaOutline  { border-color: white !important; color: white !important; padding: 12px 32px; }
+.ctaOutline:hover { background: rgba(255,255,255,0.1) !important; border-color: white !important; }
+.heroVisual  {
+  height: clamp(240px, 30vw, 400px);
+  background: linear-gradient(45deg, #d4af37 0%, #f4e5c2 100%);
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.heroVisualText { font-family: '"Playfair Display", serif'; color: #1a1a1a; text-align: center; padding: 32px; }
+.featureCard   {
+  padding: 24px;
+  text-align: center;
+  height: 100%;
+  display: flex; flex-direction: column; align-items: center;
+}
+.featuredSection { background: #f8f8f8; padding: 64px 0; }
+.sectionTitle    { font-family: '"Playfair Display", serif'; }

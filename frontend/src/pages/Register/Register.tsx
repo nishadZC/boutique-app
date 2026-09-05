@@ -1,432 +1,167 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { memo, useState, useCallback } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
-  Container,
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  Paper,
-  Grid,
-  Stepper,
-  Step,
-  StepLabel,
-  Checkbox,
-  FormControlLabel,
-  InputAdornment,
-  IconButton,
+  Box, Typography, TextField, Button, Alert, Stepper, Step, StepLabel,
+  InputAdornment, IconButton, CircularProgress, LinearProgress,
 } from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  Person as PersonIcon,
-  Email as EmailIcon,
-  Lock as LockIcon,
-} from '@mui/icons-material';
-import { authService } from '../../services/authService';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { useAuth } from '../../contexts/AuthContext';
+import AuthLayout from '../../components/auth/AuthLayout/AuthLayout';
+import { ROUTES } from '../../constants/routes';
+import styles from './Register.module.css';
 
-const Register: React.FC = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    agreeToTerms: false,
-    subscribeNewsletter: false,
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
+const STEPS = ['Personal Info', 'Account Setup', 'Confirmation'];
+
+function getPasswordStrength(password: string): number {
+  let score = 0;
+  if (password.length >= 8)  score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+  return score;
+}
+
+const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+const strengthColors = ['inherit', 'error', 'warning', 'info', 'success'] as const;
+
+const Register = memo(function Register() {
+  const { loading, error, clearError } = useAuth();
   const navigate = useNavigate();
+  const [activeStep, setActiveStep] = useState(0);
+  const [firstName, setFirstName] = useState('');
+  const [lastName,  setLastName]  = useState('');
+  const [email,     setEmail]     = useState('');
+  const [password,  setPassword]  = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [localError, setLocalError] = useState('');
+  const [agreed, setAgreed] = useState(false);
 
-  const steps = ['Personal Information', 'Account Details', 'Preferences'];
+  const strength = getPasswordStrength(password);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  React.useEffect(() => {
+    if (localError) setLocalError('');
+    if (error) clearError();
+  }, [firstName, lastName, email, password, confirmPassword, agreed]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    // Validation
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError('Please fill in all required fields');
-      return;
+  const validateStep = useCallback(() => {
+    if (activeStep === 0) {
+      if (!firstName.trim() || !lastName.trim()) { setLocalError('Please enter your first and last name.'); return false; }
     }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
+    if (activeStep === 1) {
+      if (!email.trim()) { setLocalError('Please enter a valid email address.'); return false; }
+      if (password.length < 8) { setLocalError('Password must be at least 8 characters.'); return false; }
+      if (password !== confirmPassword) { setLocalError('Passwords do not match.'); return false; }
     }
+    if (activeStep === 2 && !agreed) { setLocalError('Please accept the terms to continue.'); return false; }
+    setLocalError('');
+    return true;
+  }, [activeStep, firstName, lastName, email, password, confirmPassword, agreed]);
 
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return;
-    }
-
-    if (!formData.agreeToTerms) {
-      setError('You must agree to the terms and conditions');
-      return;
-    }
-
-    setLoading(true);
-
+  const handleNext = useCallback(async () => {
+    clearError();
+    if (!validateStep()) return;
+    if (activeStep < STEPS.length - 1) { setActiveStep(s => s + 1); return; }
+    // Final submit
     try {
-      await authService.register({
-        email: formData.email,
-        password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-      });
+      const { authService } = await import('../../services/authService');
+      const response = await authService.register({ firstName, lastName, email, password });
+      localStorage.setItem('accessToken', response.token);
+      localStorage.setItem('refreshToken', response.refreshToken);
+      navigate(ROUTES.HOME);
+    } catch (err: any) {
+      setLocalError(err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Registration failed');
+    }
+  }, [activeStep, clearError, validateStep, firstName, lastName, email, password, navigate]);
 
-      navigate('/login');
-    } catch (error: any) {
-      setError(error.response?.data?.error || error.response?.data?.message || 'Registration failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleNext = () => {
-    if (activeStep === 0 && (!formData.firstName || !formData.lastName)) {
-      setError('Please enter your first and last name');
-      return;
-    }
-    if (activeStep === 1 && (!formData.email || !formData.password || !formData.confirmPassword)) {
-      setError('Please fill in all account details');
-      return;
-    }
-    if (activeStep === 1 && formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    if (activeStep === 1 && formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return;
-    }
-    setError('');
-    setActiveStep((prevStep) => prevStep + 1);
-  };
-
-  const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
-    setError('');
-  };
-
-  const renderStepContent = (step: number) => {
-    switch (step) {
-      case 0:
-        return (
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12 }}>
-              <Typography variant="h5" gutterBottom>
-                Personal Information
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Tell us a bit about yourself
-              </Typography>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                required
-                fullWidth
-                id="firstName"
-                label="First Name"
-                name="firstName"
-                autoComplete="given-name"
-                value={formData.firstName}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <PersonIcon color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                required
-                fullWidth
-                id="lastName"
-                label="Last Name"
-                name="lastName"
-                autoComplete="family-name"
-                value={formData.lastName}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <PersonIcon color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-          </Grid>
-        );
-      case 1:
-        return (
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12 }}>
-              <Typography variant="h5" gutterBottom>
-                Account Details
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Create your login credentials
-              </Typography>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                required
-                fullWidth
-                id="email"
-                label="Email Address"
-                name="email"
-                autoComplete="email"
-                value={formData.email}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <EmailIcon color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                required
-                fullWidth
-                name="password"
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                autoComplete="new-password"
-                value={formData.password}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockIcon color="action" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                required
-                fullWidth
-                name="confirmPassword"
-                label="Confirm Password"
-                type={showConfirmPassword ? 'text' : 'password'}
-                id="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockIcon color="action" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle confirm password visibility"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        edge="end"
-                      >
-                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-          </Grid>
-        );
-      case 2:
-        return (
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12 }}>
-              <Typography variant="h5" gutterBottom>
-                Preferences
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Customize your experience
-              </Typography>
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.agreeToTerms}
-                    onChange={(e) => setFormData({ ...formData, agreeToTerms: e.target.checked })}
-                    name="agreeToTerms"
-                    color="primary"
-                  />
-                }
-                label={
-                  <Typography variant="body2">
-                    I agree to the{' '}
-                    <Link to="/terms" color="primary">
-                      Terms and Conditions
-                    </Link>{' '}
-                    and{' '}
-                    <Link to="/privacy" color="primary">
-                      Privacy Policy
-                    </Link>
-                  </Typography>
-                }
-              />
-            </Grid>
-            <Grid size={{ xs: 12 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.subscribeNewsletter}
-                    onChange={(e) => setFormData({ ...formData, subscribeNewsletter: e.target.checked })}
-                    name="subscribeNewsletter"
-                    color="primary"
-                  />
-                }
-                label="Subscribe to our newsletter for exclusive offers and new arrivals"
-              />
-            </Grid>
-          </Grid>
-        );
-      default:
-        return null;
-    }
-  };
+  const displayError = localError || error;
 
   return (
-    <Container component="main" maxWidth="sm">
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          minHeight: '100vh',
-          justifyContent: 'center',
-          py: 4,
-        }}
-      >
-        <Paper
-          elevation={6}
-          sx={{
-            p: { xs: 3, sm: 4 },
-            width: '100%',
-            borderRadius: 3,
-          }}
+    <AuthLayout
+      eyebrow="Join Us"
+      title="Create your account"
+      description="Begin your luxury fashion journey. Exclusive collections, personalised style."
+    >
+      <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>Create Account</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+        Already have an account?{' '}
+        <RouterLink
+          to={ROUTES.LOGIN}
+          className={styles.link}
         >
-          <Box sx={{ mb: 4, textAlign: 'center' }}>
-            <Typography
-              component="h1"
-              variant="h3"
-              gutterBottom
-              sx={{ fontFamily: '"Playfair Display", serif', fontWeight: 700 }}
-            >
-              Create Account
-            </Typography>
-            <Typography variant="h6" color="text.secondary">
-              Join our exclusive community of luxury shoppers
-            </Typography>
-          </Box>
+          Sign in
+        </RouterLink>
+      </Typography>
 
-          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-          
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-            {renderStepContent(activeStep)}
-            
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-              <Button
-                disabled={activeStep === 0}
-                onClick={handleBack}
-                sx={{ visibility: activeStep === 0 ? 'hidden' : 'visible' }}
-              >
-                Back
-              </Button>
-              
-              {activeStep === steps.length - 1 ? (
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="secondary"
-                  disabled={loading || !formData.agreeToTerms}
-                  sx={{
-                    background: '#d4af37',
-                    color: '#1a1a1a',
-                    px: 4,
-                    py: 1.5,
-                    '&:hover': {
-                      background: '#b8941f',
-                    },
-                  }}
-                >
-                  {loading ? 'Creating Account...' : 'Create Account'}
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  onClick={handleNext}
-                  sx={{
-                    px: 4,
-                    py: 1.5,
-                  }}
-                >
-                  Next
-                </Button>
-              )}
+      <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+        {STEPS.map(label => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}
+      </Stepper>
+
+      {displayError && <Alert severity="error" sx={{ mb: 3 }} onClose={() => { clearError(); setLocalError(''); }}>{displayError}</Alert>}
+
+      {activeStep === 0 && (
+        <Box>
+          <TextField label="First Name" fullWidth required value={firstName} onChange={e => setFirstName(e.target.value)} sx={{ mb: 2 }} autoComplete="given-name" />
+          <TextField label="Last Name"  fullWidth required value={lastName}  onChange={e => setLastName(e.target.value)}  sx={{ mb: 3 }} autoComplete="family-name" />
+        </Box>
+      )}
+
+      {activeStep === 1 && (
+        <Box>
+          <TextField label="Email" type="email" fullWidth required value={email} onChange={e => setEmail(e.target.value)} sx={{ mb: 2 }} autoComplete="email" />
+          <TextField
+            label="Password" type={showPassword ? 'text' : 'password'} fullWidth required
+            value={password} onChange={e => setPassword(e.target.value)} sx={{ mb: 1 }}
+            InputProps={{
+              endAdornment: <InputAdornment position="end"><IconButton onClick={() => setShowPassword(s => !s)} edge="end">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment>
+            }}
+          />
+          {password && (
+            <Box sx={{ mb: 2 }}>
+              <LinearProgress variant="determinate" value={(strength / 4) * 100} color={strengthColors[strength]} sx={{ mb: 0.5 }} />
+              <Typography variant="caption" color={`${strengthColors[strength]}.main`}>{strengthLabels[strength]}</Typography>
             </Box>
+          )}
+          <TextField label="Confirm Password" type={showPassword ? 'text' : 'password'} fullWidth required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} sx={{ mb: 3 }} />
+        </Box>
+      )}
+
+      {activeStep === 2 && (
+        <Box>
+          <Typography variant="h6" gutterBottom>Review Your Details</Typography>
+          <Typography variant="body2"><strong>Name:</strong> {firstName} {lastName}</Typography>
+          <Typography variant="body2" sx={{ mb: 2 }}><strong>Email:</strong> {email}</Typography>
+        </Box>
+      )}
+
+      <Box sx={{ mt: 'auto' }}>
+        {activeStep === 2 && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <input type="checkbox" id="terms" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
+            <label htmlFor="terms"><Typography variant="body2">I agree to the Terms of Service and Privacy Policy</Typography></label>
           </Box>
-          
-          <Box sx={{ textAlign: 'center', mt: 4 }}>
-            <Typography variant="body2" color="text.secondary">
-              Already have an account?{' '}
-              <Link to="/login" color="primary">
-                Sign In
-              </Link>
-            </Typography>
-          </Box>
-        </Paper>
+        )}
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          {activeStep > 0 && (
+            <Button 
+              variant="outlined" 
+              onClick={() => {
+                clearError();
+                setLocalError('');
+                setActiveStep(s => s - 1);
+              }} 
+              sx={{ flex: 1 }}
+            >
+              Back
+            </Button>
+          )}
+          <Button variant="contained" onClick={handleNext} disabled={loading} sx={{ flex: 1 }}>
+            {loading ? <CircularProgress size={24} color="inherit" /> : activeStep === STEPS.length - 1 ? 'Create Account' : 'Next'}
+          </Button>
+        </Box>
       </Box>
-    </Container>
+    </AuthLayout>
   );
-};
+});
 
 export default Register;

@@ -15,6 +15,7 @@ type AuthAction =
   | { type: 'LOGIN_SUCCESS'; payload: User }
   | { type: 'LOGIN_FAILURE'; payload: string }
   | { type: 'LOGOUT' }
+  | { type: 'AUTH_INIT_COMPLETE' }
   | { type: 'CLEAR_ERROR' };
 
 const initialState: AuthState = {
@@ -34,6 +35,8 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return { ...state, user: null, isAuthenticated: false, loading: false, error: action.payload };
     case 'LOGOUT':
       return { ...state, user: null, isAuthenticated: false, loading: false };
+    case 'AUTH_INIT_COMPLETE':
+      return { ...state, loading: false };
     case 'CLEAR_ERROR':
       return { ...state, error: null };
     default:
@@ -56,18 +59,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        try {
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
           const user = await authService.getCurrentUser();
           dispatch({ type: 'LOGIN_SUCCESS', payload: user });
-        } catch (error) {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          dispatch({ type: 'LOGIN_FAILURE', payload: 'Session expired' });
+        } else {
+          dispatch({ type: 'LOGOUT' });
         }
-      } else {
-        dispatch({ type: 'LOGOUT' });
+      } catch (error) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        dispatch({ type: 'LOGIN_FAILURE', payload: 'Session expired' });
+      } finally {
+        dispatch({ type: 'AUTH_INIT_COMPLETE' });
       }
     };
 

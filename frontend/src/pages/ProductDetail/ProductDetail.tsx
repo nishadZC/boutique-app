@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { memo } from 'react';
 import {
   Container,
   Typography,
@@ -32,13 +31,10 @@ import {
   Star as StarIcon,
   FavoriteBorder as WishlistIcon,
 } from '@mui/icons-material';
-import { productService } from '../../services/productService';
-import { Product } from '../../types';
-import { useCart } from '../../contexts/CartContext';
-import { useWishlist } from '../../contexts/WishlistContext';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { getSizeOptions } from '../../utils/productSizing';
-import { useToast } from '../../contexts/ToastContext';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import { useProductDetail } from '../../hooks/useProductDetail';
+import styles from './ProductDetail.module.css';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -56,89 +52,37 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`product-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+      {value === index && <Box className={styles.container}>{children}</Box>}
     </div>
   );
 }
 
-const ProductDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [tabValue, setTabValue] = useState(0);
-  const { addItem } = useCart();
-  const { toggleWishlist, isInWishlist } = useWishlist();
-  const [selectedSize, setSelectedSize] = useState('');
-  const [isCustomizing, setIsCustomizing] = useState(false);
-  const [customMeasurements, setCustomMeasurements] = useState({
-    shoulder: '',
-    chest: '',
-    sleeve: '',
-    neck: ''
-  });
-  const { showToast } = useToast();
-
-  const relatedProducts: Product[] = []; // This would come from an API call
-
-  useEffect(() => {
-    const loadProduct = async () => {
-      if (!id) return;
-      
-      try {
-        const productData = await productService.getById(id);
-        setProduct(productData);
-      } catch (error) {
-        console.error('Error loading product:', error);
-        navigate('/products');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProduct();
-  }, [id, navigate]);
-
-  const handleAddToCart = () => {
-    if (product) {
-      let finalSize = selectedSize;
-      
-      if (isCustomizing) {
-        if (!customMeasurements.shoulder || !customMeasurements.chest || !customMeasurements.sleeve || !customMeasurements.neck) {
-          showToast('Please fill out all custom measurements.', 'warning');
-          return;
-        }
-        finalSize = `Custom (Shoulder: ${customMeasurements.shoulder}cm, Chest: ${customMeasurements.chest}cm, Sleeve: ${customMeasurements.sleeve}cm, Neck: ${customMeasurements.neck}cm)`;
-      } else if (!finalSize) {
-        showToast('Please select a size before adding this item.', 'warning');
-        return;
-      }
-      
-      if (addItem(product, finalSize)) {
-        for (let i = 1; i < quantity; i++) addItem(product, finalSize, false);
-        setQuantity(1);
-        setIsCustomizing(false);
-        setSelectedSize('');
-      }
-    }
-  };
-
-  const handleQuantityChange = (delta: number) => {
-    const newQuantity = quantity + delta;
-    if (product && newQuantity >= 1 && newQuantity <= product.inventory) {
-      setQuantity(newQuantity);
-    }
-  };
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
+const ProductDetail: React.FC = memo(() => {
+  const {
+    product,
+    loading,
+    quantity,
+    tabValue,
+    selectedSize,
+    isCustomizing,
+    customMeasurements,
+    relatedProducts,
+    isShirt,
+    navigate,
+    handleAddToCart,
+    handleQuantityChange,
+    handleTabChange,
+    setSelectedSize,
+    setIsCustomizing,
+    setCustomMeasurements,
+    toggleWishlist,
+    isInWishlist
+  } = useProductDetail();
 
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
+        <Box className={styles.loadingBox}>
           <LoadingSkeleton variant="detail" />
         </Box>
       </Container>
@@ -148,7 +92,7 @@ const ProductDetail: React.FC = () => {
   if (!product) {
     return (
       <Container maxWidth="md">
-        <Box sx={{ py: 8, textAlign: 'center' }}>
+        <Box className={styles.notFoundBox}>
           <Typography variant="h4" gutterBottom>
             Product not found
           </Typography>
@@ -160,13 +104,11 @@ const ProductDetail: React.FC = () => {
     );
   }
 
-  const isShirt = product.category.toLowerCase().includes('shirt') || product.name.toLowerCase().includes('shirt');
-
   return (
     <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
+      <Box className={styles.container}>
         {/* Breadcrumbs */}
-        <Breadcrumbs sx={{ mb: 3 }}>
+        <Breadcrumbs className={styles.breadcrumbs}>
           <Link component="button" variant="body1" onClick={() => navigate('/')}>
             Home
           </Link>
@@ -180,14 +122,10 @@ const ProductDetail: React.FC = () => {
 
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <Paper elevation={2} sx={{ p: 2 }}>
+            <Paper elevation={2} className={styles.imagePaper}>
               <CardMedia
                 component="img"
-                sx={{
-                  height: 600,
-                  objectFit: 'cover',
-                  borderRadius: 2,
-                }}
+                className={styles.productImage}
                 image={product.imageUrl}
                 alt={product.name}
               />
@@ -195,15 +133,15 @@ const ProductDetail: React.FC = () => {
           </Grid>
           
           <Grid size={{ xs: 12, md: 6 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Box className={styles.infoContainer}>
               {/* Product Info */}
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Box className={styles.infoSection}>
+                <Box className={styles.chipContainer}>
                   <Chip
                     label={product.category}
                     size="small"
                     variant="outlined"
-                    sx={{ textTransform: 'capitalize' }}
+                    className={styles.categoryChip}
                   />
                   {product.isNew && (
                     <Chip label="NEW" color="secondary" size="small" />
@@ -213,19 +151,17 @@ const ProductDetail: React.FC = () => {
                   )}
                 </Box>
                 
-                <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
+                <Typography variant="h3" component="h1" gutterBottom className={styles.title}>
                   {product.name}
                 </Typography>
                 
                 {product.rating && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <Box className={styles.ratingContainer}>
                     {[...Array(5)].map((_, index) => (
                       <StarIcon
                         key={index}
-                        sx={{
-                          fontSize: '1.2rem',
-                          color: index < product.rating! ? '#ffc107' : '#e0e0e0',
-                        }}
+                        className={styles.starIcon}
+                        style={{ color: index < product.rating! ? '#ffc107' : '#e0e0e0' }}
                       />
                     ))}
                     <Typography variant="body2" color="text.secondary">
@@ -234,15 +170,15 @@ const ProductDetail: React.FC = () => {
                   </Box>
                 )}
                 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                  <Typography variant="h4" color="primary" sx={{ fontWeight: 700 }}>
+                <Box className={styles.priceContainer}>
+                  <Typography variant="h4" color="primary" className={styles.price}>
                     ₹{(() => {
                       const price = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
                       return isNaN(price) || !isFinite(price) ? '0.00' : price.toFixed(2);
                     })()}
                   </Typography>
                   {product.originalPrice && product.originalPrice > product.price && (
-                    <Typography variant="h6" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
+                    <Typography variant="h6" color="text.secondary" className={styles.originalPrice}>
                       ₹{(() => {
                         const price = typeof product.originalPrice === 'string' ? parseFloat(product.originalPrice) : product.originalPrice;
                         return isNaN(price) || !isFinite(price) ? '0.00' : price.toFixed(2);
@@ -258,42 +194,42 @@ const ProductDetail: React.FC = () => {
                   )}
                 </Box>
                 
-                <Typography variant="body1" color="text.secondary" paragraph sx={{ lineHeight: 1.6 }}>
+                <Typography variant="body1" color="text.secondary" paragraph className={styles.description}>
                   {product.description}
                 </Typography>
                 
-                  <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <LocalShippingIcon color="action" />
-                      <Typography variant="body2">Free shipping over ₹500</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <RefreshIcon color="action" />
-                      <Typography variant="body2">30-day returns</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <SecurityIcon color="action" />
-                      <Typography variant="body2">Secure payment</Typography>
-                    </Box>
+                <Box className={styles.featuresBox}>
+                  <Box className={styles.featureItem}>
+                    <LocalShippingIcon color="action" />
+                    <Typography variant="body2">Free shipping over ₹500</Typography>
                   </Box>
+                  <Box className={styles.featureItem}>
+                    <RefreshIcon color="action" />
+                    <Typography variant="body2">30-day returns</Typography>
+                  </Box>
+                  <Box className={styles.featureItem}>
+                    <SecurityIcon color="action" />
+                    <Typography variant="body2">Secure payment</Typography>
+                  </Box>
+                </Box>
               </Box>
               
               {/* Purchase Controls */}
-              <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+              <Paper elevation={1} className={styles.purchasePaper}>
                 {product.inventory === 0 ? (
                   <Typography variant="h6" color="error" gutterBottom>
                     Out of Stock
                   </Typography>
                 ) : (
                   <>
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 3 }}>
+                    <Box className={styles.sizeContainer}>
                       <FormControl fullWidth size="small">
                         <InputLabel id="product-size-label">Size</InputLabel>
                         <Select
                           labelId="product-size-label"
                           value={selectedSize}
                           label="Size"
-                          onChange={(event) => setSelectedSize(event.target.value)}
+                          onChange={(event) => setSelectedSize(event.target.value as string)}
                           disabled={isCustomizing}
                         >
                           {getSizeOptions(product).map((size) => (
@@ -306,34 +242,16 @@ const ProductDetail: React.FC = () => {
                         <Button
                           variant={isCustomizing ? "contained" : "outlined"}
                           onClick={() => setIsCustomizing(!isCustomizing)}
-                          sx={{ 
-                            minWidth: '120px', 
-                            height: '40px',
-                            ...(isCustomizing ? {
-                              bgcolor: '#d4af37',
-                              color: '#fff',
-                              '&:hover': { bgcolor: '#b8941f' }
-                            } : {
-                              borderColor: '#d4af37',
-                              color: '#d4af37',
-                              '&:hover': { borderColor: '#b8941f', bgcolor: 'rgba(212,175,55,0.08)' }
-                            })
-                          }}
+                          className={isCustomizing ? styles.customizeButtonActive : styles.customizeButtonInactive}
                         >
-                          {isCustomizing ? (
-                            <>
-                              Cancel
-                            </>
-                          ) : (
-                            'Customize'
-                          )}
+                          {isCustomizing ? 'Cancel' : 'Customize'}
                         </Button>
                       )}
                     </Box>
 
                     {isCustomizing && (
-                      <Box sx={{ mb: 4, p: 2, border: '1px dashed #d4af37', borderRadius: 2, bgcolor: 'rgba(212,175,55,0.05)' }}>
-                        <Typography variant="subtitle2" sx={{ color: '#d4af37', mb: 2 }}>
+                      <Box className={styles.customMeasurementsBox}>
+                        <Typography variant="subtitle2" className={styles.customMeasurementsTitle}>
                           Enter your exact measurements (cm)
                         </Typography>
                         <Grid container spacing={2}>
@@ -345,7 +263,7 @@ const ProductDetail: React.FC = () => {
                               value={customMeasurements.shoulder}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, shoulder: e.target.value})}
                               fullWidth
-                              sx={{ input: { color: 'text.primary' } }}
+                              InputProps={{ className: styles.textFieldInput }}
                             />
                           </Grid>
                           <Grid size={{ xs: 6, sm: 3 }}>
@@ -356,7 +274,7 @@ const ProductDetail: React.FC = () => {
                               value={customMeasurements.chest}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, chest: e.target.value})}
                               fullWidth
-                              sx={{ input: { color: 'text.primary' } }}
+                              InputProps={{ className: styles.textFieldInput }}
                             />
                           </Grid>
                           <Grid size={{ xs: 6, sm: 3 }}>
@@ -367,7 +285,7 @@ const ProductDetail: React.FC = () => {
                               value={customMeasurements.sleeve}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, sleeve: e.target.value})}
                               fullWidth
-                              sx={{ input: { color: 'text.primary' } }}
+                              InputProps={{ className: styles.textFieldInput }}
                             />
                           </Grid>
                           <Grid size={{ xs: 6, sm: 3 }}>
@@ -378,79 +296,50 @@ const ProductDetail: React.FC = () => {
                               value={customMeasurements.neck}
                               onChange={(e) => setCustomMeasurements({...customMeasurements, neck: e.target.value})}
                               fullWidth
-                              sx={{ input: { color: 'text.primary' } }}
+                              InputProps={{ className: styles.textFieldInput }}
                             />
                           </Grid>
                         </Grid>
                       </Box>
                     )}
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                      <Typography variant="body1" sx={{ mr: 2, minWidth: 80 }}>
+                    <Box className={styles.quantityBox}>
+                      <Typography variant="body1" className={styles.quantityLabel}>
                         Quantity:
                       </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box className={styles.quantityControls}>
                         <IconButton
                           onClick={() => handleQuantityChange(-1)}
                           disabled={quantity <= 1}
-                          sx={{
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            '&:hover': {
-                              backgroundColor: 'action.hover',
-                            },
-                          }}
+                          className={styles.quantityButton}
                         >
                           <RemoveIcon />
                         </IconButton>
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            mx: 3,
-                            minWidth: '3rem',
-                            textAlign: 'center',
-                            fontWeight: 600,
-                            fontSize: '1.1rem',
-                          }}
-                        >
+                        <Typography variant="body1" className={styles.quantityValue}>
                           {quantity}
                         </Typography>
                         <IconButton
                           onClick={() => handleQuantityChange(1)}
                           disabled={quantity >= product.inventory}
-                          sx={{
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            '&:hover': {
-                              backgroundColor: 'action.hover',
-                            },
-                          }}
+                          className={styles.quantityButton}
                         >
                           <AddIcon />
                         </IconButton>
                       </Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                      <Typography variant="body2" color="text.secondary" className={styles.inventoryStatus}>
                         {product.inventory} available
                       </Typography>
                     </Box>
                   </>
                 )}
                 
-                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <Box className={styles.actionsContainer}>
                   <Button
                     variant="contained"
                     size="large"
                     onClick={handleAddToCart}
                     disabled={product.inventory === 0}
                     startIcon={<ShoppingBagIcon />}
-                    sx={{
-                      flexGrow: 1,
-                      py: 1.5,
-                      background: '#d4af37',
-                      color: '#1a1a1a',
-                      '&:hover': {
-                        background: '#b8941f',
-                      },
-                    }}
+                    className={styles.addToCartButton}
                   >
                     {product.inventory === 0 ? 'Out of Stock' : 'Add to Cart'}
                   </Button>
@@ -459,11 +348,7 @@ const ProductDetail: React.FC = () => {
                     onClick={() => toggleWishlist(product.id)}
                     color={isInWishlist(product.id) ? 'error' : 'default'}
                     aria-label={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      p: 1.5,
-                    }}
+                    className={styles.wishlistButton}
                   >
                     <WishlistIcon />
                   </IconButton>
@@ -474,14 +359,14 @@ const ProductDetail: React.FC = () => {
                   size="large"
                   onClick={() => navigate('/cart')}
                   fullWidth
-                  sx={{ py: 1.5 }}
+                  className={styles.viewCartButton}
                 >
                   View Cart
                 </Button>
               </Paper>
               
               {/* Additional Info */}
-              <Box sx={{ mt: 'auto' }}>
+              <Box className={styles.additionalInfo}>
                 <Typography variant="body2" color="text.secondary">
                   SKU: {product.id}
                 </Typography>
@@ -494,13 +379,13 @@ const ProductDetail: React.FC = () => {
         </Grid>
 
         {/* Product Details Tabs */}
-        <Box sx={{ mt: 6 }}>
-          <Paper elevation={2}>
+        <Box className={styles.tabsContainer}>
+          <Paper elevation={2} className={styles.tabsPaper}>
             <Tabs
               value={tabValue}
               onChange={handleTabChange}
               variant="fullWidth"
-              sx={{ borderBottom: 1, borderColor: 'divider' }}
+              className={styles.tabsList}
             >
               <Tab label="Description" />
               <Tab label="Details" />
@@ -508,12 +393,12 @@ const ProductDetail: React.FC = () => {
               <Tab label="Shipping" />
             </Tabs>
             
-            <Box sx={{ px: 4 }}>
+            <Box className={styles.tabPanelContent}>
               <TabPanel value={tabValue} index={0}>
-                <Typography variant="body1" paragraph sx={{ lineHeight: 1.8 }}>
+                <Typography variant="body1" paragraph className={styles.tabText}>
                   {product.description}
                 </Typography>
-                <Typography variant="body1" paragraph sx={{ lineHeight: 1.8 }}>
+                <Typography variant="body1" paragraph className={styles.tabText}>
                   Experience the perfect blend of luxury and functionality with this premium product. 
                   Crafted with attention to detail and using only the finest materials, this piece 
                   exemplifies excellence in design and quality.
@@ -566,14 +451,14 @@ const ProductDetail: React.FC = () => {
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (
-          <Box sx={{ mt: 6 }}>
+          <Box className={styles.relatedProductsContainer}>
             <Typography variant="h4" gutterBottom>
               Related Products
             </Typography>
             <Grid container spacing={3}>
               {relatedProducts.map((relatedProduct) => (
                 <Grid size={{ xs: 12, sm: 6, md: 3 }} key={relatedProduct.id}>
-                  <Card>
+                  <Card className={styles.relatedProductCard}>
                     <CardMedia
                       component="img"
                       height="200"
@@ -596,9 +481,8 @@ const ProductDetail: React.FC = () => {
           </Box>
         )}
       </Box>
-      
     </Container>
   );
-};
+});
 
 export default ProductDetail;

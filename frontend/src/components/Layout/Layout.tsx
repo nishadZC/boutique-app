@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Outlet, Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -62,7 +62,7 @@ const Layout: React.FC = () => {
       </Toolbar>
       <List>
         <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/" onClick={handleCloseMobile} selected={location.pathname === '/'}>
+          <ListItemButton component={RouterLink} to="/" onClick={handleCloseMobile} selected={location.pathname === '/'} sx={{ gap: 1 }}>
             <ListItemIcon>
               <Home />
             </ListItemIcon>
@@ -71,7 +71,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/products" onClick={handleCloseMobile} selected={location.pathname.startsWith('/products')}>
+          <ListItemButton component={RouterLink} to="/products" onClick={handleCloseMobile} selected={location.pathname.startsWith('/products')} sx={{ gap: 1 }}>
             <ListItemIcon>
               <ShoppingBag />
             </ListItemIcon>
@@ -80,7 +80,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/style-advisor" onClick={handleCloseMobile} selected={location.pathname === '/style-advisor'}>
+          <ListItemButton component={RouterLink} to="/style-advisor" onClick={handleCloseMobile} selected={location.pathname === '/style-advisor'} sx={{ gap: 1 }}>
             <ListItemIcon>
               <AutoAwesome />
             </ListItemIcon>
@@ -89,7 +89,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to="/cart" onClick={handleCloseMobile} selected={location.pathname === '/cart'}>
+          <ListItemButton component={RouterLink} to="/cart" onClick={handleCloseMobile} selected={location.pathname === '/cart'} sx={{ gap: 1 }}>
             <ListItemIcon>
               <Badge badgeContent={itemCount} color="secondary">
                 <ShoppingCart />
@@ -100,7 +100,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to={isAuthenticated ? '/wishlist' : '/login'} onClick={handleCloseMobile} selected={location.pathname === '/wishlist'}>
+          <ListItemButton component={RouterLink} to={isAuthenticated ? '/wishlist' : '/login'} onClick={handleCloseMobile} selected={location.pathname === '/wishlist'} sx={{ gap: 1 }}>
             <ListItemIcon>
               <Favorite />
             </ListItemIcon>
@@ -109,7 +109,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to={isAuthenticated ? '/orders' : '/login'} onClick={handleCloseMobile} selected={location.pathname === '/orders'}>
+          <ListItemButton component={RouterLink} to={isAuthenticated ? '/orders' : '/login'} onClick={handleCloseMobile} selected={location.pathname === '/orders'} sx={{ gap: 1 }}>
             <ListItemIcon>
               <ReceiptLong />
             </ListItemIcon>
@@ -118,7 +118,7 @@ const Layout: React.FC = () => {
         </ListItem>
 
         <ListItem disablePadding>
-          <ListItemButton component={RouterLink} to={isAuthenticated ? '/profile' : '/login'} onClick={handleCloseMobile} selected={location.pathname === '/profile' || location.pathname === '/login'}>
+          <ListItemButton component={RouterLink} to={isAuthenticated ? '/profile' : '/login'} onClick={handleCloseMobile} selected={location.pathname === '/profile' || location.pathname === '/login'} sx={{ gap: 1 }}>
             <ListItemIcon>
               <Person />
             </ListItemIcon>

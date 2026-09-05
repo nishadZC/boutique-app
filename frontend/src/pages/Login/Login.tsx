@@ -1,128 +1,84 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { memo, useState, useCallback } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
-  Container,
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  Paper,
+  Box, Typography, TextField, Button, Alert, Divider, CircularProgress,
 } from '@mui/material';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
 import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../../contexts/AuthContext';
+import AuthLayout from '../../components/auth/AuthLayout/AuthLayout';
+import { ROUTES } from '../../constants/routes';
+import styles from './Login.module.css';
 
-const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const Login = memo(function Login() {
   const { login, loginWithGoogle, loading, error, clearError } = useAuth();
-  const { showToast } = useToast();
   const navigate = useNavigate();
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [localError, setLocalError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  React.useEffect(() => {
+    if (localError) setLocalError('');
+    if (error) clearError();
+  }, [email, password]);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
-    
+    setLocalError('');
     try {
       await login(email, password);
-      showToast('Please complete your profile', 'info');
-      navigate('/profile');
-    } catch (error) {
-      // Error is handled by the auth context
+      navigate(ROUTES.HOME);
+    } catch (err: any) {
+      setLocalError(err.message || 'Login failed');
     }
-  };
+  }, [email, password, login, clearError, navigate]);
 
-  const handleGoogleSuccess = async (response: { credential?: string }) => {
-    clearError();
-    if (!response.credential) return;
-
+  const handleGoogleSuccess = useCallback(async (credentialResponse: any) => {
+    if (!credentialResponse.credential) return;
     try {
-      await loginWithGoogle(response.credential);
-      showToast('Please complete your profile', 'info');
-      navigate('/profile');
-    } catch (error) {
-      // Error is handled by the auth context
+      await loginWithGoogle(credentialResponse.credential);
+      navigate(ROUTES.HOME);
+    } catch {
+      setLocalError('Google sign-in failed');
     }
-  };
+  }, [loginWithGoogle, navigate]);
+
+  const displayError = localError || error;
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          minHeight: '100vh',
-          justifyContent: 'center',
-        }}
-      >
-        <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-          <Typography component="h1" variant="h4" align="center" gutterBottom>
-            Sign In
-          </Typography>
-          
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
-            >
-              {loading ? 'Signing In...' : 'Sign In'}
-            </Button>
+    <AuthLayout
+      eyebrow="Welcome Back"
+      title="Sign in to your account"
+      description="Your wardrobe, personalised. Sign in to continue your luxury fashion journey."
+    >
+      <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>Sign In</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+        New here?{' '}
+        <RouterLink
+          to={ROUTES.REGISTER}
+          className={styles.link}
+        >
+          Create an account
+        </RouterLink>
+      </Typography>
 
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => clearError()}
-                useOneTap={false}
-              />
-            </Box>
-            
-            <Box sx={{ textAlign: 'center' }}>
-              <Link to="/register" style={{ textDecoration: 'none' }}>
-                <Typography variant="body2" color="primary">
-                  Don't have an account? Sign Up
-                </Typography>
-              </Link>
-            </Box>
-          </Box>
-        </Paper>
+      {displayError && <Alert severity="error" sx={{ mb: 3 }} onClose={() => { clearError(); setLocalError(''); }}>{displayError}</Alert>}
+
+      <Box component="form" onSubmit={handleSubmit} noValidate>
+        <TextField label="Email" type="email" fullWidth required value={email} onChange={e => setEmail(e.target.value)} sx={{ mb: 2 }} autoComplete="email" />
+        <TextField label="Password" type="password" fullWidth required value={password} onChange={e => setPassword(e.target.value)} sx={{ mb: 3 }} autoComplete="current-password" />
+        <Button type="submit" variant="contained" fullWidth size="large" disabled={loading} sx={{ mb: 2 }}>
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
+        </Button>
       </Box>
-    </Container>
+
+      <Divider sx={{ my: 3 }}><Typography variant="caption" color="text.secondary">OR</Typography></Divider>
+
+      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+        <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setLocalError('Google sign-in failed')} shape="rectangular" theme="outline" size="large" />
+      </Box>
+    </AuthLayout>
   );
-};
+});
 
 export default Login;

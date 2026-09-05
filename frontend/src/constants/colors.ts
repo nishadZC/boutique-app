@@ -1,3 +1,23 @@
+// Brand palette tokens — use these instead of magic hex strings
+export const BRAND = {
+  GOLD: '#d4af37',
+  GOLD_DARK: '#b8941f',
+  GOLD_LIGHT: '#f4e5c2',
+  GOLD_MUTED: '#f4e5a0',
+  DARK: '#1a1a1a',
+  DARK_DEEP: '#000000',
+  DARK_SOFT: '#424242',
+  WHITE: '#ffffff',
+  SURFACE: '#fafafa',
+  SURFACE_MUTED: '#f8f8f8',
+  SURFACE_WARM: '#f8f5ef',
+  TEXT_SECONDARY: '#666666',
+  TEXT_TERTIARY: '#999999',
+  BORDER: '#f0f0f0',
+  AUTH_BG: '#171512',
+} as const;
+
+// Product color swatches (CSS color values keyed by display name)
 export const CSS_COLORS: Record<string, string> = {
   'White': '#FFFFFF',
   'Light Blue': '#ADD8E6',
@@ -25,15 +45,8 @@ export const CSS_COLORS: Record<string, string> = {
   'Turquoise Blue': '#00CED1',
 };
 
-export const getHex = (name: string) => CSS_COLORS[name] || '#888';
+export const getHex = (name: string): string => CSS_COLORS[name] || '#888';
 
 export const LIGHT_COLORS = new Set([
-  'White',
-  'Cream',
-  'Beige',
-  'Peach',
-  'Lavender',
-  'Light Blue',
-  'Pink',
-  'Mustard',
+  'White', 'Cream', 'Beige', 'Peach', 'Lavender', 'Light Blue', 'Pink', 'Mustard',
 ]);

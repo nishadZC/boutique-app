@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { memo } from 'react';
 import {
   Container,
   Typography,
@@ -34,92 +33,37 @@ import {
   Star as StarIcon,
   ShoppingBag as ShoppingBagIcon,
 } from '@mui/icons-material';
-import { orderService } from '../../services/orderService';
-import { Order } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import { useOrders } from '../../hooks/useOrders';
+import styles from './Orders.module.css';
 
-const Orders: React.FC = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'delivered':
+      return <DeliveredIcon color="success" />;
+    case 'shipped':
+      return <ShippingIcon color="info" />;
+    case 'cancelled':
+      return <CancelledIcon color="error" />;
+    default:
+      return <PendingIcon color="warning" />;
+  }
+};
 
-  useEffect(() => {
-    const loadOrders = async () => {
-      try {
-        const userOrders = await orderService.getUserOrders();
-        setOrders(userOrders);
-      } catch (error) {
-        console.error('Error loading orders:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user) {
-      loadOrders();
-    }
-  }, [user]);
-
-  const handleDownloadInvoice = (order: Order) => {
-    const invoiceContent = `
-INVOICE
-Order ID: ${order.id}
-Date: ${new Date(order.createdAt).toLocaleString()}
-Status: ${order.paymentStatus || order.status}
-Fulfillment Status: ${order.status}
-
-Items:
-${order.items.map(item => `- ${item.product.name}${item.size ? ` (Size: ${item.size})` : ''} (Qty: ${item.quantity}) - ₹${typeof item.price === 'string' ? parseFloat(item.price).toFixed(2) : item.price.toFixed(2)}`).join('\n')}
-
-Total Amount: ₹${typeof order.totalAmount === 'string' ? parseFloat(order.totalAmount).toFixed(2) : order.totalAmount.toFixed(2)}
-Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shippingAddress === 'string' ? order.shippingAddress : 'N/A')}
-    `.trim();
-
-    const blob = new Blob([invoiceContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `invoice-${order.id.slice(-8)}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'delivered':
-        return <DeliveredIcon color="success" />;
-      case 'shipped':
-        return <ShippingIcon color="info" />;
-      case 'cancelled':
-        return <CancelledIcon color="error" />;
-      default:
-        return <PendingIcon color="warning" />;
-    }
-  };
-
-  const getStatusColor = (status: string): 'success' | 'error' | 'warning' | 'info' | 'default' => {
-    switch (status) {
-      case 'delivered':
-        return 'success';
-      case 'shipped':
-        return 'info';
-      case 'cancelled':
-        return 'error';
-      case 'processing':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
+const Orders: React.FC = memo(() => {
+  const {
+    user,
+    orders,
+    loading,
+    navigate,
+    handleDownloadInvoice,
+    getStatusColor,
+  } = useOrders();
 
   if (!user) {
     return (
       <Container maxWidth="md">
-        <Box sx={{ py: 8, textAlign: 'center' }}>
+        <Box className={styles.authContainer}>
           <Typography variant="h4" gutterBottom>
             Please log in to view your orders
           </Typography>
@@ -134,7 +78,7 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
+        <Box className={styles.loadingContainer}>
           <LoadingSkeleton variant="list" count={5} />
         </Box>
       </Container>
@@ -143,9 +87,9 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
 
   return (
     <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
+      <Box className={styles.container}>
         {/* Breadcrumbs */}
-        <Breadcrumbs sx={{ mb: 3 }}>
+        <Breadcrumbs className={styles.breadcrumbs}>
           <Link component="button" variant="body1" onClick={() => navigate('/')}>
             Home
           </Link>
@@ -165,21 +109,21 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
         </Typography>
 
         {orders.length === 0 ? (
-          <Paper elevation={3} sx={{ p: 6, textAlign: 'center' }}>
-            <Avatar sx={{ width: 80, height: 80, mx: 'auto', mb: 3, backgroundColor: '#f5f5f5' }}>
-              <ShoppingBagIcon sx={{ fontSize: 40, color: '#999' }} />
+          <Paper elevation={0} className={styles.emptyStatePaper}>
+            <Avatar className={styles.emptyStateAvatar}>
+              <ShoppingBagIcon className={styles.emptyStateIcon} />
             </Avatar>
             <Typography variant="h5" gutterBottom>
               You haven't placed any orders yet
             </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph sx={{ mb: 4 }}>
+            <Typography variant="body1" color="text.secondary" paragraph className={styles.emptyStateText}>
               Start shopping to see your order history here
             </Typography>
             <Button
               variant="contained"
               size="large"
               href="/products"
-              sx={{ px: 4 }}
+              className={styles.emptyStateButton}
             >
               Start Shopping
             </Button>
@@ -188,10 +132,10 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
           <Grid container spacing={3}>
             {orders.map((order) => (
               <Grid size={{ xs: 12, }} key={order.id}>
-                <Card elevation={2}>
-                  <CardContent sx={{ p: 3 }}>
+                <Card elevation={0} className={styles.orderCard}>
+                  <CardContent className={styles.cardContent}>
                     {/* Order Header */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+                    <Box className={styles.orderHeader}>
                       <Box>
                         <Typography variant="h6" gutterBottom>
                           Order #{order.id.slice(-8)}
@@ -205,7 +149,7 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
                         </Typography>
                       </Box>
                       
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box className={styles.orderHeaderActions}>
                         <Chip
                           icon={order.paymentStatus === 'paid' ? undefined : getStatusIcon(order.status)}
                           label={order.paymentStatus && order.paymentStatus !== 'pending'
@@ -224,9 +168,9 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
                     </Box>
 
                     {/* Order Items Accordion */}
-                    <Accordion sx={{ mb: 2 }}>
+                    <Accordion className={styles.accordion}>
                       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mr: 2 }}>
+                        <Box className={styles.accordionSummaryBox}>
                           <Typography variant="subtitle1">
                             {order.items.length} {order.items.length === 1 ? 'Item' : 'Items'}
                           </Typography>
@@ -239,17 +183,11 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
                         <List>
                           {order.items.map((item, index) => (
                             <Box key={item.id}>
-                              <ListItem sx={{ px: 0, py: 2 }}>
-                                <ListItemIcon sx={{ mr: 3, minWidth: 'auto' }}>
+                              <ListItem className={styles.listItem}>
+                                <ListItemIcon className={styles.listItemIcon}>
                                   <CardMedia
                                     component="img"
-                                    sx={{
-                                      width: 80,
-                                      height: 80,
-                                      borderRadius: 2,
-                                      objectFit: 'cover',
-                                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                                    }}
+                                    className={styles.itemImage}
                                     image={item.product.imageUrl}
                                     alt={item.product.name}
                                   />
@@ -260,7 +198,7 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
                                   primaryTypographyProps={{ variant: 'subtitle2' }}
                                   secondaryTypographyProps={{ variant: 'body2' }}
                                 />
-                                <Typography variant="subtitle1" sx={{ minWidth: 80, textAlign: 'right' }}>
+                                <Typography variant="subtitle1" className={styles.itemPrice}>
                                   ₹{((typeof item.price === 'string' ? parseFloat(item.price) : item.price) * item.quantity).toFixed(2)}
                                 </Typography>
                               </ListItem>
@@ -272,8 +210,8 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
                     </Accordion>
 
                     {/* Order Actions */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Box className={styles.orderActionsBox}>
+                      <Box className={styles.orderActionsButtons}>
                         <Button
                           size="small"
                           startIcon={<DownloadIcon />}
@@ -317,6 +255,6 @@ Shipping Address: ${(order.shippingAddress as any)?.address || (typeof order.shi
       </Box>
     </Container>
   );
-};
+});
 
 export default Orders;

@@ -142,7 +142,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (isAuthenticated) {
       localStorage.setItem('boutique_cart', JSON.stringify(state));
     } else {
-      dispatch({ type: 'CLEAR_CART' });
+      if (state.items.length > 0 || state.total > 0 || state.itemCount > 0) {
+        dispatch({ type: 'CLEAR_CART' });
+      }
       localStorage.removeItem('boutique_cart');
     }
   }, [state, isAuthenticated]);

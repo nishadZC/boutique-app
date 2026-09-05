@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   Container,
   Typography,
@@ -27,66 +27,33 @@ import {
   Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
-import { useNavigate } from 'react-router-dom';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import { AddressForm } from '../../components/AddressForm/AddressForm';
-import { addressFromString, emptyAddress, formatAddress, AddressFields } from '../../types/address';
+import { useProfile } from '../../hooks/useProfile';
+import styles from './Profile.module.css';
 
-const Profile: React.FC = () => {
-  const { user, logout, updateProfile } = useAuth();
-  const { showToast } = useToast();
-  const navigate = useNavigate();
-  const [editOpen, setEditOpen] = React.useState(false);
-  const [editData, setEditData] = React.useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    address: ''
-  });
-  const [editAddress, setEditAddress] = React.useState<AddressFields>(emptyAddress);
-  const [updating, setUpdating] = React.useState(false);
-
-  React.useEffect(() => {
-    if (user) {
-      setEditData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        phone: user.phone || '',
-        address: user.address || ''
-      });
-      setEditAddress(addressFromString(user.address));
-    }
-  }, [user]);
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
-  const handleSaveProfile = async () => {
-    try {
-      setUpdating(true);
-      await updateProfile({ ...editData, address: formatAddress(editAddress) });
-      setEditOpen(false);
-      showToast('Profile updated successfully.', 'success');
-    } catch (err) {
-      console.error(err);
-      showToast('Failed to update profile. Please try again.', 'error');
-    } finally {
-      setUpdating(false);
-    }
-  };
+const Profile: React.FC = memo(() => {
+  const {
+    user,
+    editOpen,
+    setEditOpen,
+    editData,
+    setEditData,
+    editAddress,
+    setEditAddress,
+    updating,
+    handleLogout,
+    handleSaveProfile,
+  } = useProfile();
 
   if (!user) {
     return (
       <Container maxWidth="md">
-        <Box sx={{ py: 8, textAlign: 'center' }}>
+        <Box className={styles.unauthenticatedContainer}>
           <Typography variant="h4" gutterBottom>
             Please log in to view your profile
           </Typography>
@@ -111,27 +78,16 @@ const Profile: React.FC = () => {
 
   return (
     <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom>
+      <Box className={styles.container}>
+        <Typography variant="h3" component="h1" gutterBottom className={styles.pageTitle}>
           My Profile
         </Typography>
         
         <Grid container spacing={4}>
           {/* Profile Header */}
           <Grid size={{ xs: 12, md: 4 }}>
-            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
-              <Avatar
-                sx={{
-                  width: 120,
-                  height: 120,
-                  mx: 'auto',
-                  mb: 2,
-                  backgroundColor: '#d4af37',
-                  color: '#1a1a1a',
-                  fontSize: '3rem',
-                  fontWeight: 600,
-                }}
-              >
+            <Paper elevation={3} className={styles.headerPaper}>
+              <Avatar className={styles.avatar}>
                 {user.firstName.charAt(0)}{user.lastName.charAt(0)}
               </Avatar>
               <Typography variant="h5" gutterBottom>
@@ -141,7 +97,7 @@ const Profile: React.FC = () => {
                 label={user.role}
                 color="primary"
                 size="small"
-                sx={{ mb: 2, textTransform: 'capitalize' }}
+                className={styles.roleChip}
               />
               <Typography variant="body2" color="text.secondary" paragraph>
                 {user.email}
@@ -150,7 +106,7 @@ const Profile: React.FC = () => {
                 variant="outlined"
                 startIcon={<EditIcon />}
                 fullWidth
-                sx={{ mb: 2 }}
+                className={styles.editButton}
                 onClick={() => setEditOpen(true)}
               >
                 Edit Profile
@@ -160,6 +116,7 @@ const Profile: React.FC = () => {
                 color="error"
                 startIcon={<LogoutIcon />}
                 fullWidth
+                className={styles.logoutButton}
                 onClick={handleLogout}
               >
                 Logout
@@ -176,7 +133,7 @@ const Profile: React.FC = () => {
                   {stats.map((stat, index) => (
                     <Grid size={{ xs: 12, sm: 4 }} key={index}>
                       <Card variant="outlined">
-                        <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                        <CardContent className={styles.statCardContent}>
                           <Typography variant="h4" color="primary" gutterBottom>
                             {stat.value}
                           </Typography>
@@ -192,7 +149,7 @@ const Profile: React.FC = () => {
               
               {/* Personal Information */}
               <Grid size={{ xs: 12, md: 6 }}>
-                <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
+                <Paper elevation={2} className={styles.contentPaper}>
                   <Typography variant="h6" gutterBottom>
                     Personal Information
                   </Typography>
@@ -239,7 +196,7 @@ const Profile: React.FC = () => {
               
               {/* Quick Actions */}
               <Grid size={{ xs: 12, md: 6 }}>
-                <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
+                <Paper elevation={2} className={styles.contentPaper}>
                   <Typography variant="h6" gutterBottom>
                     Quick Actions
                   </Typography>
@@ -249,7 +206,7 @@ const Profile: React.FC = () => {
                         key={index}
                         component="a"
                         href={item.path}
-                        sx={{ borderRadius: 2, mb: 1 }}
+                        className={styles.quickActionItem}
                       >
                         <ListItemIcon>{item.icon}</ListItemIcon>
                         <ListItemText primary={item.label} />
@@ -261,11 +218,11 @@ const Profile: React.FC = () => {
               
               {/* Recent Activity */}
               <Grid size={{ xs: 12 }}>
-                <Paper elevation={2} sx={{ p: 3 }}>
+                <Paper elevation={2} className={styles.contentPaper}>
                   <Typography variant="h6" gutterBottom>
                     Recent Activity
                   </Typography>
-                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Box className={styles.recentActivityBox}>
                     <Typography variant="body2" color="text.secondary">
                       Your recent activity will appear here
                     </Typography>
@@ -281,7 +238,7 @@ const Profile: React.FC = () => {
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Edit Profile</DialogTitle>
         <DialogContent>
-          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box className={styles.dialogContentBox}>
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
@@ -305,11 +262,12 @@ const Profile: React.FC = () => {
               fullWidth
               value={editData.phone}
               onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+              sx={{ mb: 3 }}
             />
             <AddressForm value={editAddress} onChange={setEditAddress} />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 0 }}>
+        <DialogActions className={styles.dialogActions}>
           <Button onClick={() => setEditOpen(false)}>Cancel</Button>
           <Button 
             variant="contained" 
@@ -322,6 +280,6 @@ const Profile: React.FC = () => {
       </Dialog>
     </Container>
   );
-};
+});
 
 export default Profile;

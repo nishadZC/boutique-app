@@ -1,142 +1,61 @@
-import React, { useEffect, useState } from 'react';
+import React, { memo } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
-  Container,
-  Typography,
-  Grid,
-  Button,
-  Box,
-  Paper,
-  Fade,
-  Slide,
+  Container, Box, Typography, Button, Grid, Paper, Fade, Slide,
 } from '@mui/material';
 import {
-  ArrowForward as ArrowForwardIcon,
   ShoppingBag as ShoppingBagIcon,
-  Star as StarIcon,
+  ArrowForward as ArrowForwardIcon,
   LocalShipping as ShippingIcon,
   Security as SecurityIcon,
+  Star as StarIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import { productService } from '../../services/productService';
-import { Product } from '../../types';
-import { useCart } from '../../contexts/CartContext';
-import { useWishlist } from '../../contexts/WishlistContext';
-import ProductCard from '../../components/common/ProductCard';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import { ProductCard } from '../../components/common';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton/LoadingSkeleton';
+import { useHome } from '../../hooks/useHome';
+import { ROUTES } from '../../constants/routes';
+import { BRAND } from '../../constants/colors';
+import styles from './Home.module.css';
 
-const Home: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { addItem } = useCart();
-  const { toggleWishlist, isInWishlist } = useWishlist();
+const FEATURES = [
+  { icon: <ShippingIcon sx={{ fontSize: 48, color: BRAND.GOLD, mb: 2 }} />, title: 'Free Shipping',   desc: 'On orders over ₹500' },
+  { icon: <SecurityIcon sx={{ fontSize: 48, color: BRAND.GOLD, mb: 2 }} />, title: 'Secure Payment',  desc: '100% secure transactions' },
+  { icon: <StarIcon     sx={{ fontSize: 48, color: BRAND.GOLD, mb: 2 }} />, title: 'Premium Quality', desc: 'Carefully selected products' },
+  { icon: <RefreshIcon  sx={{ fontSize: 48, color: BRAND.GOLD, mb: 2 }} />, title: 'Easy Returns',    desc: '30-day return policy' },
+];
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      console.log('[Home] Loading products...');
-      try {
-        const featuredProducts = await productService.getAll();
-        console.log('[Home] Got products:', featuredProducts.length);
-        setProducts(featuredProducts.slice(0, 8));
-      } catch (error) {
-        console.error('[Home] Error loading products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+const FeatureCard = memo(({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) => (
+  <Paper elevation={2} className={styles.featureCard}>
+    {icon}
+    <Typography variant="h6" gutterBottom>{title}</Typography>
+    <Typography variant="body2" color="text.secondary">{desc}</Typography>
+  </Paper>
+));
 
-    loadProducts();
-  }, []);
-
-  if (loading) {
-    return (
-      <Container maxWidth="lg">
-        <Box sx={{ py: 8 }}>
-          <LoadingSkeleton count={8} />
-        </Box>
-      </Container>
-    );
-  }
+const Home = memo(function Home() {
+  const { products, loading, isInWishlist, handleAddToCart, handleToggleWishlist } = useHome();
 
   return (
     <>
-      {/* Hero Section */}
-      <Box
-        sx={{
-          background: 'linear-gradient(135deg, #1a1a1a 0%, #424242 100%)',
-          color: 'white',
-          py: { xs: 8, md: 12 },
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
+      {/* Hero */}
+      <Box className={styles.hero}>
         <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
             <Grid size={{ xs: 12, md: 6 }}>
-              <Fade in timeout={1000}>
+              <Fade in timeout={800}>
                 <Box>
-                  <Typography
-                    variant="h1"
-                    component="h1"
-                    sx={{
-                      fontWeight: 700,
-                      mb: 3,
-                      fontSize: { xs: '2.5rem', md: '3.5rem' },
-                      color: 'white',
-                    }}
-                  >
-                    Discover Timeless
-                    <Box component="span" sx={{ color: '#d4af37' }}>
-                      {' '}Elegance
-                    </Box>
+                  <Typography variant="h1" className={styles.heroTitle}>
+                    Redefine Your <Box component="span" className={styles.heroAccent}>Elegance</Box>
                   </Typography>
-                  <Typography
-                    variant="h5"
-                    component="p"
-                    sx={{
-                      mb: 4,
-                      lineHeight: 1.6,
-                      fontWeight: 300,
-                      opacity: 0.9,
-                      color: 'white',
-                    }}
-                  >
-                    Indulge in our curated collection of luxury products, 
-                    where sophistication meets exceptional quality.
+                  <Typography variant="h5" component="p" className={styles.heroSubtitle}>
+                    Indulge in our curated collection of luxury products, where sophistication meets exceptional quality.
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                    <Button
-                      variant="contained"
-                      size="large"
-                      endIcon={<ShoppingBagIcon />}
-                      href="/products"
-                      sx={{
-                        background: '#d4af37',
-                        color: '#1a1a1a',
-                        px: 4,
-                        py: 1.5,
-                        '&:hover': {
-                          background: '#b8941f',
-                        },
-                      }}
-                    >
+                  <Box className={styles.heroCta}>
+                    <Button variant="contained" size="large" endIcon={<ShoppingBagIcon />} component={RouterLink} to={ROUTES.PRODUCTS} className={styles.ctaGold}>
                       Shop Collection
                     </Button>
-                    <Button
-                      variant="outlined"
-                      size="large"
-                      endIcon={<ArrowForwardIcon />}
-                      href="#featured"
-                      sx={{
-                        borderColor: 'white',
-                        color: 'white',
-                        px: 4,
-                        py: 1.5,
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                          borderColor: 'white',
-                        },
-                      }}
-                    >
+                    <Button variant="outlined" size="large" endIcon={<ArrowForwardIcon />} href="#featured" className={styles.ctaOutline}>
                       Explore More
                     </Button>
                   </Box>
@@ -145,31 +64,8 @@ const Home: React.FC = () => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <Slide in timeout={1500} direction="right">
-                <Box
-                  sx={{
-                    height: { xs: 300, md: 400 },
-                    background: 'linear-gradient(45deg, #d4af37 0%, #f4e5c2 100%)',
-                    borderRadius: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Typography
-                    variant="h2"
-                    sx={{
-                      fontFamily: '"Playfair Display", serif',
-                      color: '#1a1a1a',
-                      textAlign: 'center',
-                      p: 4,
-                    }}
-                  >
-                    LUXURY
-                    <br />
-                    REDEFINED
-                  </Typography>
+                <Box className={styles.heroVisual}>
+                  <Typography variant="h2" className={styles.heroVisualText}>LUXURY<br />REDEFINED</Typography>
                 </Box>
               </Slide>
             </Grid>
@@ -177,139 +73,40 @@ const Home: React.FC = () => {
         </Container>
       </Box>
 
-      {/* Features Section */}
+      {/* Features */}
       <Container maxWidth="lg">
         <Box sx={{ py: 8 }}>
           <Grid container spacing={4}>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Paper
-                elevation={2}
-                sx={{
-                  p: 3,
-                  textAlign: 'center',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                }}
-              >
-                <ShippingIcon sx={{ fontSize: 48, color: '#d4af37', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Free Shipping
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  On orders over ₹500
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Paper
-                elevation={2}
-                sx={{
-                  p: 3,
-                  textAlign: 'center',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                }}
-              >
-                <SecurityIcon sx={{ fontSize: 48, color: '#d4af37', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Secure Payment
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  100% secure transactions
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Paper
-                elevation={2}
-                sx={{
-                  p: 3,
-                  textAlign: 'center',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                }}
-              >
-                <StarIcon sx={{ fontSize: 48, color: '#d4af37', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Premium Quality
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Carefully selected products
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Paper
-                elevation={2}
-                sx={{
-                  p: 3,
-                  textAlign: 'center',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                }}
-              >
-                <RefreshIcon sx={{ fontSize: 48, color: '#d4af37', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Easy Returns
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  30-day return policy
-                </Typography>
-              </Paper>
-            </Grid>
+            {FEATURES.map(f => (
+              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={f.title}>
+                <FeatureCard {...f} />
+              </Grid>
+            ))}
           </Grid>
         </Box>
       </Container>
 
-      {/* Featured Products Section */}
-      <Box sx={{ backgroundColor: '#f8f8f8', py: 8 }} id="featured">
+      {/* Featured Products */}
+      <Box className={styles.featuredSection} id="featured">
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Typography
-              variant="h4"
-              component="h2"
-              gutterBottom
-              sx={{ fontFamily: '"Playfair Display", serif' }}
-            >
-              Featured Products
-            </Typography>
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
-              Discover our handpicked selection of luxury items
-            </Typography>
+            <Typography variant="h4" component="h2" gutterBottom className={styles.sectionTitle}>Featured Products</Typography>
+            <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>Discover our handpicked selection of luxury items</Typography>
           </Box>
-          
-          <Grid container spacing={4}>
-            {products.map((product) => (
-              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={product.id}>
-                <ProductCard
-                  product={product}
-                  onAddToCart={addItem}
-                  onToggleWishlist={toggleWishlist}
-                  isInWishlist={isInWishlist(product.id)}
-                />
+          {loading
+            ? <LoadingSkeleton count={8} />
+            : (
+              <Grid container spacing={4}>
+                {products.map(product => (
+                  <Grid size={{ xs: 6, sm: 6, md: 3 }} key={product.id}>
+                    <ProductCard product={product} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} isInWishlist={isInWishlist(product.id)} />
+                  </Grid>
+                ))}
               </Grid>
-            ))}
-          </Grid>
-
+            )
+          }
           <Box sx={{ textAlign: 'center', mt: 6 }}>
-            <Button
-              variant="outlined"
-              size="large"
-              href="/products"
-              endIcon={<ArrowForwardIcon />}
-              sx={{
-                px: 4,
-                py: 1.5,
-              }}
-            >
+            <Button variant="outlined" size="large" component={RouterLink} to={ROUTES.PRODUCTS} endIcon={<ArrowForwardIcon />} sx={{ px: 4, py: 1.5 }}>
               View All Products
             </Button>
           </Box>
@@ -317,6 +114,6 @@ const Home: React.FC = () => {
       </Box>
     </>
   );
-};
+});
 
 export default Home;
