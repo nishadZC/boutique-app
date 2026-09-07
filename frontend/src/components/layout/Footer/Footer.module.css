@@ -100,7 +100,7 @@
 .subscribeButton {
   flex: 0 1 auto;
   min-height: 40px;
-  background-color: #d4af37 !important;
+  background: #d4af37 !important;
   color: #1a1a1a !important;
   font-weight: 600 !important;
   text-transform: uppercase;
@@ -108,7 +108,7 @@
 }
 
 .subscribeButton:hover {
-  background-color: #b8941f !important;
+  background: #b8941f !important;
 }
 
 .footerBottom {
