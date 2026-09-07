@@ -16,7 +16,7 @@ const MiniProductCard: React.FC<MiniCardProps> = ({ product, label }) => {
   return (
     <Card
       sx={{
-        borderRadius: 2, overflow: 'hidden', background: '#1e1e1e', border: '1px solid #2a2a2a',
+        borderRadius: 2, overflow: 'hidden', background: '#fff', border: '1px solid #f0f0f0',
         transition: 'all 0.25s', cursor: 'pointer',
         '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' },
       }}
@@ -35,16 +35,16 @@ const MiniProductCard: React.FC<MiniCardProps> = ({ product, label }) => {
           label={label}
           size="small"
           sx={{
-            position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.75)',
+            position: 'absolute', top: 8, left: 8, background: '#1a1a1a',
             color: '#d4af37', fontSize: '0.65rem', fontWeight: 700, height: 20
           }}
         />
       </Box>
       <CardContent sx={{ p: 1.5, pb: 0.5 }}>
-        <Typography variant="caption" sx={{ color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>
           {product.brand}
         </Typography>
-        <Typography variant="body2" fontWeight={600} noWrap sx={{ color: '#e0e0e0', fontSize: '0.78rem' }}>
+        <Typography variant="body2" fontWeight={600} noWrap sx={{ color: '#1a1a1a', fontSize: '0.78rem' }}>
           {product.name}
         </Typography>
         <Typography variant="body2" sx={{ color: '#d4af37', fontWeight: 700, fontSize: '0.82rem' }}>
@@ -59,7 +59,7 @@ const MiniProductCard: React.FC<MiniCardProps> = ({ product, label }) => {
           startIcon={<BagIcon sx={{ fontSize: 13 }} />}
           onClick={e => { e.stopPropagation(); navigate(`/products/${product.id}`); }}
           sx={{
-            fontSize: '0.68rem', py: 0.4, color: '#888', borderColor: '#333',
+            fontSize: '0.68rem', py: 0.4, color: '#424242', borderColor: '#cfcfcf',
             '&:hover': { borderColor: '#d4af37', color: '#d4af37' }
           }}
         >

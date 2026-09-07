@@ -181,9 +181,9 @@ const SkinToneAdvisor: React.FC = memo(() => {
                     {result.skinTone.name} Skin Tone
                   </Typography>
 
-                  <Typography variant="body2" sx={{ color: '#888', mt: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: '#666', mt: 0.5 }}>
                     Hex:{' '}
-                    <span style={{ color: '#ccc', fontWeight: 600 }}>
+                    <span style={{ color: '#424242', fontWeight: 600 }}>
                       {result.skinTone.hex}
                     </span>
                     &ensp;·&ensp;Confidence:{' '}

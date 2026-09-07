@@ -1,23 +1,20 @@
 .paper {
   border-radius: 24px !important;
-  background: #000 !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  color: #fff !important;
+  background: #fff !important;
+  border: 1px solid #f0f0f0 !important;
+  color: #1a1a1a !important;
   min-height: 75vh !important;
   overflow: hidden !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+  box-shadow: 0 8px 32px rgba(26, 26, 26, 0.1) !important;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.8) 0%, rgba(30, 30, 30, 0.8) 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
   padding: 24px;
-  backdrop-filter: blur(10px);
 }
 
 .title {
@@ -33,7 +30,7 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  color: #777;
+  color: #666;
   margin-top: 6px;
 }
 
@@ -43,12 +40,12 @@
 }
 
 .closeButton {
-  color: #555 !important;
+  color: #666 !important;
   transition: all 0.3s ease !important;
 }
 
 .closeButton:hover {
-  color: #fff !important;
+  color: #1a1a1a !important;
   transform: rotate(90deg);
 }
 
@@ -73,10 +70,9 @@
 
 .alertError {
   margin-bottom: 24px !important;
-  background: rgba(26, 8, 8, 0.8) !important;
-  color: #ffcdd2 !important;
-  border: 1px solid rgba(58, 16, 16, 0.8) !important;
-  backdrop-filter: blur(4px);
+  background: #fff5f5 !important;
+  color: #9b2c2c !important;
+  border: 1px solid #f3caca !important;
 }
 
 .uploadIcon {
@@ -93,13 +89,13 @@
 }
 
 .stepTitle {
-  color: #fff !important;
+  color: #1a1a1a !important;
   margin-bottom: 8px !important;
   font-weight: 700 !important;
 }
 
 .stepSubtitle {
-  color: #777 !important;
+  color: #666 !important;
   margin-bottom: 32px !important;
 }
 
@@ -148,15 +144,15 @@
 }
 
 .secondaryBtn {
-  color: #aaa !important;
-  border-color: #444 !important;
+  color: #424242 !important;
+  border-color: #cfcfcf !important;
   transition: all 0.3s ease !important;
 }
 
 .secondaryBtn:hover {
   border-color: #d4af37 !important;
   color: #d4af37 !important;
-  background: rgba(212, 175, 55, 0.05) !important;
+  background: #fffaf0 !important;
 }
 
 .spinner {
@@ -170,16 +166,15 @@
   gap: 24px;
   padding: 24px;
   border-radius: 16px;
-  background: rgba(17, 17, 17, 0.6);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #f8f5ef;
+  border: 1px solid #eadfca;
   margin-bottom: 32px;
   transition: transform 0.3s ease;
 }
 
 .skinToneCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 25px rgba(26,26,26,0.08);
 }
 
 .swatch {
@@ -191,7 +186,7 @@
 }
 
 .colorPaletteTitle {
-  color: #fff !important;
+  color: #1a1a1a !important;
   margin-bottom: 12px !important;
   font-weight: 700 !important;
 }
@@ -206,7 +201,7 @@
 .colorChip {
   font-weight: 600 !important;
   font-size: 0.73rem !important;
-  border: 2px solid rgba(255,255,255,0.1) !important;
+  border: 2px solid rgba(26,26,26,0.1) !important;
   transition: transform 0.2s ease !important;
 }
 
@@ -215,7 +210,7 @@
 }
 
 .divider {
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: #eeeeee !important;
   margin-bottom: 24px !important;
 }
 
@@ -238,25 +233,24 @@
 }
 
 .tabInactive {
-  color: #888 !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #424242 !important;
+  border-color: #cfcfcf !important;
 }
 
 .tabInactive:hover {
-  border-color: #555 !important;
-  color: #fff !important;
+  border-color: #b8941f !important;
+  color: #1a1a1a !important;
 }
 
 .outfitSubtitle {
-  color: #888 !important;
+  color: #666 !important;
   margin-bottom: 16px !important;
 }
 
 .alertWarning {
-  background: rgba(26, 26, 0, 0.8) !important;
-  color: #ffd54f !important;
-  border: 1px solid rgba(58, 58, 0, 0.8) !important;
-  backdrop-filter: blur(4px);
+  background: #fffaf0 !important;
+  color: #7a5a00 !important;
+  border: 1px solid #eadfca !important;
 }
 
 .categoryTitle {
@@ -265,7 +259,7 @@
 }
 
 .viewAllBtn {
-  color: #777 !important;
+  color: #666 !important;
   font-size: 0.72rem !important;
   transition: color 0.3s ease !important;
 }

@@ -67,7 +67,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({ outfit, index }) => {
 
   return (
     <Box sx={{
-      border: '1px solid #2a2a2a', borderRadius: 3, p: 2, background: '#1a1a1a',
+      border: '1px solid #f0f0f0', borderRadius: 3, p: 2, background: '#fff',
       transition: 'all 0.3s', '&:hover': { borderColor: '#d4af3760' },
     }}>
       <Typography variant="caption" sx={{ color: '#d4af37', fontWeight: 700, letterSpacing: 1 }}>
@@ -82,7 +82,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({ outfit, index }) => {
             >
               <Box sx={{
                 borderRadius: 2, overflow: 'hidden', mb: 0.5,
-                border: '1px solid #2a2a2a',
+                border: '1px solid #f0f0f0',
                 '&:hover': { borderColor: '#d4af37' },
               }}>
                 <img
@@ -92,7 +92,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({ outfit, index }) => {
                   style={{ width: '100%', height: 90, objectFit: 'cover', display: 'block' }}
                 />
               </Box>
-              <Typography variant="caption" sx={{ color: '#888', fontSize: '0.62rem' }}>{label}</Typography>
+              <Typography variant="caption" sx={{ color: '#666', fontSize: '0.62rem' }}>{label}</Typography>
               <Typography variant="caption" sx={{ color: '#d4af37', fontSize: '0.7rem', display: 'block', fontWeight: 600 }}>
                 ₹{item.price?.toLocaleString('en-IN')}
               </Typography>
@@ -101,7 +101,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({ outfit, index }) => {
         ))}
       </Grid>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.5 }}>
-        <Typography variant="body2" sx={{ color: '#ccc', fontWeight: 700 }}>
+        <Typography variant="body2" sx={{ color: '#424242', fontWeight: 700 }}>
           Total: <span style={{ color: '#d4af37' }}>₹{total.toLocaleString('en-IN')}</span>
         </Typography>
         <Button
