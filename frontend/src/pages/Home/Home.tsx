@@ -48,7 +48,7 @@ const Home = memo(function Home() {
                   <Typography variant="h1" className={styles.heroTitle}>
                     Redefine Your <Box component="span" className={styles.heroAccent}>Elegance</Box>
                   </Typography>
-                  <Typography variant="h5" component="p" className={styles.heroSubtitle}>
+                  <Typography variant="h5" component="p" className={styles.heroSubtitle} sx={{ pb: 3 }}>
                     Indulge in our curated collection of luxury products, where sophistication meets exceptional quality.
                   </Typography>
                   <Box className={styles.heroCta}>

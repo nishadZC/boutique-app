@@ -31,6 +31,15 @@ import { useCart } from '../../contexts/CartContext';
 
 const drawerWidth = 240;
 
+const brandMark = (
+  <Box
+    component="img"
+    src="/logo192.png"
+    alt="Lux Atelier logo"
+    sx={{ width: 40, height: 40, flexShrink: 0, borderRadius: 2, objectFit: 'cover' }}
+  />
+);
+
 const Layout: React.FC = () => {
   const { isAuthenticated, logout } = useAuth();
   const { itemCount } = useCart();
@@ -49,16 +58,17 @@ const Layout: React.FC = () => {
   const drawer = (
     <Box>
       <Toolbar>
-        <Typography
-          variant="h6"
-          noWrap
+        <Box
           component={RouterLink}
           to="/"
           onClick={handleCloseMobile}
-          sx={{ cursor: 'pointer', fontWeight: 700, color: 'inherit', textDecoration: 'none' }}
+          sx={{ display: 'flex', alignItems: 'center', gap: 1.25, color: 'inherit', textDecoration: 'none' }}
         >
-          Lux Atelier
-        </Typography>
+          {brandMark}
+          <Typography variant="h6" noWrap sx={{ fontWeight: 700, color: 'inherit' }}>
+            Lux Atelier
+          </Typography>
+        </Box>
       </Toolbar>
       <List>
         <ListItem disablePadding>
@@ -148,9 +158,16 @@ const Layout: React.FC = () => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Lux Atelier
-          </Typography>
+          <Box
+            component={RouterLink}
+            to="/"
+            sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.25 }, flexGrow: 1, minWidth: 0, color: 'inherit', textDecoration: 'none' }}
+          >
+            {brandMark}
+            <Typography variant="h6" noWrap sx={{ minWidth: 0, fontWeight: 700 }}>
+              Lux Atelier
+            </Typography>
+          </Box>
           <IconButton color="inherit" component={RouterLink} to="/cart">
             <Badge badgeContent={itemCount} color="error">
               <ShoppingCart />

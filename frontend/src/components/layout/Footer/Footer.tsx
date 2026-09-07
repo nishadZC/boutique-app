@@ -75,20 +75,11 @@ const Footer: React.FC = () => {
                 size="small"
                 placeholder="Enter your email"
                 className={styles.emailInput}
-                fullWidth
               />
               <Button 
                 variant="contained" 
                 disableElevation
-                sx={{ 
-                  flexShrink: 0,
-                  bgcolor: '#d4af37', 
-                  color: '#1a1a1a', 
-                  fontWeight: 600, 
-                  px: 3, 
-                  textTransform: 'uppercase',
-                  '&:hover': { bgcolor: '#b8941f' } 
-                }}
+                className={styles.subscribeButton}
               >
                 Subscribe
               </Button>
