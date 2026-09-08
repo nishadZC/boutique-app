@@ -40,12 +40,12 @@ jobs:
             for i in $(seq 1 $MAX_RETRIES); do
               echo "Attempt $i / $MAX_RETRIES"
 
-              # Always pull latest master FIRST before making any changes
+              # Always pull latest main FIRST before making any changes
               # This avoids rebase conflicts caused by concurrent service jobs
-              git fetch origin master
-              git reset --hard origin/master
+              git fetch origin main
+              git reset --hard origin/main
 
-              # Apply image tag changes on top of latest master
+              # Apply image tag changes on top of latest main
               if [ -f "$VALUES_FILE" ]; then
                 for SERVICE in $CHANGED_SERVICES; do
                   case "$SERVICE" in
@@ -74,7 +74,7 @@ jobs:
               git commit -m "ci: update Helm values image tags for $ENV to ${NEW_TAG}"
 
               # Try to push — if it fails (someone else pushed concurrently), retry
-              if git push origin HEAD:master; then
+              if git push origin HEAD:main; then
                 echo "Push successful on attempt $i"
                 exit 0
               else

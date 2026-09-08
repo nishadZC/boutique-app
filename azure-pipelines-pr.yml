@@ -3,7 +3,6 @@ trigger: none  # Don't run on direct pushes
 pr:
   branches:
     include:
-      - master
       - main
   paths:
     exclude:
