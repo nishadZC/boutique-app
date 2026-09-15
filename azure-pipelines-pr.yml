@@ -18,8 +18,8 @@ stages:
   displayName: 'PR Validation (Build + Scan)'
   jobs:
 
-  - job: DetectChanges
-    displayName: 'Detect Changed Services'
+  - job: GenerateMatrix
+    displayName: 'Generate Build Matrix'
     pool:
       name: Default
     steps:
@@ -27,25 +27,9 @@ stages:
       fetchDepth: 2
 
     - script: |
-        echo "Detecting changes for PR validation..."
-        CHANGED_FILES=$(git diff --name-only HEAD HEAD~1 || echo "")
-        echo "Changed files: $CHANGED_FILES"
-
+        echo "Building ALL services for PR validation (detect change logic removed)."
         SERVICES_JSON=$(cat azure/services.json)
-
-        if [ -z "$CHANGED_FILES" ]; then
-          MATRIX=$(echo "$SERVICES_JSON" | jq -c '.')
-        else
-          MATCHING_KEYS=$(echo "$SERVICES_JSON" | jq -r --arg cf "$CHANGED_FILES" \
-            'to_entries | map(select(.value.triggerPath as $p | ($cf | contains($p)))) | map(.key) | .[]')
-
-          if [ -z "$MATCHING_KEYS" ]; then
-            MATRIX=$(echo "$SERVICES_JSON" | jq -c '.')
-          else
-            MATRIX=$(echo "$SERVICES_JSON" | jq -c --arg keys "$MATCHING_KEYS" \
-              'with_entries(select(.key | IN( ($keys | split("\n"))[] )))')
-          fi
-        fi
+        MATRIX=$(echo "$SERVICES_JSON" | jq -c '.')
 
         echo "Matrix: $MATRIX"
         echo "##vso[task.setvariable variable=matrix;isOutput=true]$MATRIX"
@@ -54,11 +38,11 @@ stages:
 
   - job: BuildAndScan
     displayName: 'Build + Security Scan (no push)'
-    dependsOn: DetectChanges
+    dependsOn: GenerateMatrix
     pool:
       name: Default
     strategy:
-      matrix: $[ dependencies.DetectChanges.outputs['setMatrix.matrix'] ]
+      matrix: $[ dependencies.GenerateMatrix.outputs['setMatrix.matrix'] ]
 
     steps:
     - checkout: self
