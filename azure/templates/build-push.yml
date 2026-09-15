@@ -57,7 +57,7 @@ jobs:
       scriptLocation: 'inlineScript'
       inlineScript: |
         set -e
-        az acr login --name boutiqueacrshared
+        az acr login --name boutiqueacrshared9p2x4
         docker build -f $(buildPath)/Dockerfile -t $(acrLoginServer)/$(service):$(imageTag) -t $(acrLoginServer)/$(service):latest $(buildPath)
 
   - task: trivy@1
@@ -75,5 +75,5 @@ jobs:
       scriptLocation: 'inlineScript'
       inlineScript: |
         set -e
-        az acr login --name boutiqueacrshared
+        az acr login --name boutiqueacrshared9p2x4
         docker push $(acrLoginServer)/$(service) --all-tags

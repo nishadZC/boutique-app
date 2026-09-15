@@ -15,7 +15,7 @@ parameters:
 
 variables:
   imageTag: '$(Build.SourceVersion)'
-  acrLoginServer: 'boutiqueacrshared.azurecr.io'
+  acrLoginServer: 'boutiqueacrshared9p2x4.azurecr.io'
   azureServiceConnection: 'Azure Resource Group'
 
 resources:
@@ -74,4 +74,4 @@ stages:
   - template: azure/templates/update-gitops.yml
     parameters:
       environment: 'prod'
-      acrLoginServer: 'boutiqueacrprod.azurecr.io'
+      acrLoginServer: 'boutiqueacrprod9p2x4.azurecr.io'

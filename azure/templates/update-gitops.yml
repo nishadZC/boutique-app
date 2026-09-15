@@ -4,7 +4,7 @@ parameters:
     default: 'dev'
   - name: acrLoginServer
     type: string
-    default: 'boutiqueacrshared.azurecr.io'
+    default: 'boutiqueacrshared9p2x4.azurecr.io'
 
 jobs:
 - deployment: UpdateGitOps

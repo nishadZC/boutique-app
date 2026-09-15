@@ -10,7 +10,7 @@ pr:
       - 'docs/**'
 
 variables:
-  acrLoginServer: 'boutiqueacrshared.azurecr.io'
+  acrLoginServer: 'boutiqueacrshared9p2x4.azurecr.io'
   azureServiceConnection: 'Azure Resource Group'
 
 stages:
@@ -106,7 +106,7 @@ stages:
         scriptLocation: 'inlineScript'
         inlineScript: |
           set -e
-          az acr login --name boutiqueacrshared
+          az acr login --name boutiqueacrshared9p2x4
           # Build only — do NOT push on PRs
           docker build \
             -f $(buildPath)/Dockerfile \
