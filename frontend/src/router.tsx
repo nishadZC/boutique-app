@@ -1,5 +1,5 @@
 import { createBrowserRouter, createRoutesFromElements, Route, Navigate } from 'react-router-dom';
-import Layout from './components/Layout/Layout/Layout';
+import Layout from './components/layout/Layout/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute/ProtectedRoute';
 import { ROUTES } from './constants/routes';
 import { Providers } from './Providers';
