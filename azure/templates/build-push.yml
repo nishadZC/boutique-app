@@ -4,6 +4,9 @@ parameters:
     default: DetectChanges
   - name: matrix
     type: string
+  - name: pushImage
+    type: boolean
+    default: true
 
 jobs:
 - job: Build
@@ -28,11 +31,13 @@ jobs:
         cd $(buildPath)
         npm ci || npm install
       fi
-    displayName: 'Install dependencies for SonarQube scan'
+    displayName: 'Install dependencies for SonarCloud scan'
 
-  - task: SonarQubePrepare@7
+  - task: SonarCloudPrepare@2
+    displayName: 'SonarCloud Prepare'
     inputs:
-      SonarQube: 'SonarQubeServiceConnection'
+      SonarCloud: 'SonarQubeServiceConnection'
+      organization: 'luxatelier'
       scannerMode: 'CLI'
       configMode: 'manual'
       cliProjectKey: 'boutique-$(service)'
@@ -42,12 +47,13 @@ jobs:
         sonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**
         sonar.typescript.tsconfigPath=$(buildPath)/tsconfig.json
 
-  - script: |
-      PARAMS=$(echo $SONARQUBE_SCANNER_PARAMS | jq 'del(.["sonar.branch.name"])' -c)
-      echo "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$PARAMS"
-    displayName: 'Remove branch name for SonarQube Community Edition'
+  - task: SonarCloudAnalyze@2
+    displayName: 'SonarCloud Analysis'
 
-  - task: SonarQubeAnalyze@7
+  - task: SonarCloudPublish@2
+    displayName: 'Publish SonarCloud Quality Gate'
+    inputs:
+      pollingTimeoutSec: '300'
 
   - task: AzureCLI@2
     displayName: Build image locally
@@ -67,13 +73,14 @@ jobs:
       severity: 'CRITICAL,HIGH'
       exitCode: '0'
 
-  - task: AzureCLI@2
-    displayName: Push image to ACR
-    inputs:
-      azureSubscription: '$(azureServiceConnection)'
-      scriptType: 'bash'
-      scriptLocation: 'inlineScript'
-      inlineScript: |
-        set -e
-        az acr login --name boutiqueacrshared9p2x4
-        docker push $(acrLoginServer)/$(service) --all-tags
+  - ${{ if eq(parameters.pushImage, true) }}:
+    - task: AzureCLI@2
+      displayName: Push image to ACR
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -e
+          az acr login --name boutiqueacrshared9p2x4
+          docker push $(acrLoginServer)/$(service) --all-tags

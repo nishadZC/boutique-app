@@ -1,0 +1,16 @@
+jobs:
+- job: GenerateMatrix
+  displayName: 'Generate Build Matrix'
+  pool:
+    name: Default
+  steps:
+  - checkout: self
+  - script: |
+      echo "Building ALL services (detect change logic removed)."
+      SERVICES_JSON=$(cat azure/services.json)
+      MATRIX=$(echo "$SERVICES_JSON" | jq -c '.')
+      CHANGED_LIST=$(echo "$MATRIX" | jq -r '.[].service' | tr '\n' ' ')
+      echo "##vso[task.setvariable variable=matrix;isOutput=true]$MATRIX"
+      echo "##vso[task.setvariable variable=changedServices;isOutput=true]$CHANGED_LIST"
+    name: setMatrix
+    displayName: 'Output Matrix variables'
