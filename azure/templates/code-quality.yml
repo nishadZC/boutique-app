@@ -1,0 +1,45 @@
+jobs:
+- job: CodeQuality
+  pool:
+    name: Default
+  strategy:
+    matrix:
+      frontend:
+        service: 'frontend'
+        buildPath: 'frontend'
+      backend:
+        service: 'backend'
+        buildPath: 'backend'
+
+  steps:
+  - checkout: self
+    fetchDepth: 0
+
+  - task: NodeTool@0
+    displayName: 'Use Node.js 20 LTS'
+    inputs:
+      versionSpec: '20.x'
+
+  - script: |
+      if [ -f "$(buildPath)/package.json" ]; then
+        echo "Installing dependencies for $(service)..."
+        cd $(buildPath)
+        npm ci || npm install
+      fi
+    displayName: 'Install dependencies for SonarCloud scan'
+
+  - task: SonarCloudPrepare@4
+    displayName: 'SonarCloud Prepare'
+    inputs:
+      SonarQube: 'SonarQubeServiceConnection'
+      organization: 'luxatelier-1'
+      scannerMode: 'CLI'
+      configMode: 'manual'
+      cliProjectKey: 'luxatelier-1_boutique-$(service)'
+      cliProjectName: 'Boutique $(service)'
+      cliSources: '$(buildPath)'
+      extraProperties: |
+        sonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**
+
+  - task: SonarCloudAnalyze@4
+    displayName: 'SonarCloud Analysis'
