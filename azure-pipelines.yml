@@ -13,10 +13,6 @@ parameters:
     displayName: "Deploy to Prod"
     type: boolean
     default: false
-  - name: buildAll
-    displayName: "Force Build ALL Services"
-    type: boolean
-    default: false
 
 variables:
   imageTag: '$(Build.SourceVersion)'
@@ -30,38 +26,41 @@ resources:
     name: boutique-gitops
 
 stages:
-- stage: Validate
-  displayName: 'PR Validation (Build, Sonar, Trivy)'
-  condition: eq(variables['Build.Reason'], 'PullRequest')
+- stage: CodeQuality
+  displayName: 'Code Quality (SonarCloud)'
   jobs:
   - template: azure/templates/code-quality.yml
 
+- stage: Test
+  displayName: 'Test'
+  jobs:
   - template: azure/templates/generate-matrix.yml
 
-  - template: azure/templates/build-push.yml
+  - template: azure/templates/test.yml
     parameters:
       dependsOn: GenerateMatrix
       matrix: dependencies.GenerateMatrix.outputs['setMatrix.matrix']
-      pushImage: false
 
-- stage: BuildAndPush
+- stage: BuildAndScan
   displayName: 'Build, Scan & Push Images'
-  condition: ne(variables['Build.Reason'], 'PullRequest')
+  dependsOn: Test
+  condition: succeeded()
   jobs:
-  - template: azure/templates/code-quality.yml
-
   - template: azure/templates/generate-matrix.yml
 
   - template: azure/templates/build-push.yml
     parameters:
       dependsOn: GenerateMatrix
       matrix: dependencies.GenerateMatrix.outputs['setMatrix.matrix']
-      pushImage: true
+      ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+        pushImage: false
+      ${{ else }}:
+        pushImage: true
 
 - stage: UpdateDev
   displayName: 'Deploy to Dev (GitOps)'
-  dependsOn: BuildAndPush
-  condition: succeeded()
+  dependsOn: BuildAndScan
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
   jobs:
   - template: azure/templates/update-gitops.yml
     parameters:

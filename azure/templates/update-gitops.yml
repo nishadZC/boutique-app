@@ -13,7 +13,7 @@ jobs:
     name: Default
   environment: 'app-${{ parameters.environment }}-environment'
   variables:
-    changedServices: $[ stageDependencies.BuildAndPush.GenerateMatrix.outputs['setMatrix.changedServices'] ]
+    changedServices: $[ stageDependencies.BuildAndScan.GenerateMatrix.outputs['setMatrix.changedServices'] ]
     environment: ${{ parameters.environment }}
   strategy:
     runOnce:

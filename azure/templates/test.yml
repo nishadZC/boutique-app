@@ -1,0 +1,50 @@
+parameters:
+  - name: dependsOn
+    type: string
+    default: ''
+  - name: matrix
+    type: string
+
+jobs:
+- job: Test
+  ${{ if ne(parameters.dependsOn, '') }}:
+    dependsOn: ${{ parameters.dependsOn }}
+  pool:
+    name: Default
+  strategy:
+    matrix: $[ ${{ parameters.matrix }} ]
+
+  steps:
+  - checkout: self
+    fetchDepth: 0
+
+  - task: NodeTool@0
+    displayName: 'Use Node.js 20 LTS'
+    inputs:
+      versionSpec: '20.x'
+
+  - script: |
+      set -e
+
+      if [ ! -f "$(buildPath)/package.json" ]; then
+        echo "No package.json for $(service) - skipping tests."
+        exit 0
+      fi
+
+      cd "$(buildPath)"
+      TEST_SCRIPT=$(node -p "(require('./package.json').scripts || {}).test || ''")
+
+      if [ -z "$TEST_SCRIPT" ]; then
+        echo "No 'test' script defined for $(service) - skipping."
+        exit 0
+      fi
+
+      if echo "$TEST_SCRIPT" | grep -q "no test specified"; then
+        echo "'$(service)' only has npm's default placeholder test script - skipping until real tests are added."
+        exit 0
+      fi
+
+      echo "Running tests for $(service)..."
+      npm ci || npm install
+      npm test
+    displayName: 'Run tests for $(service)'
