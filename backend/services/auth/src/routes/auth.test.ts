@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../database/connection', () => ({
@@ -18,7 +19,9 @@ import bcrypt from 'bcryptjs';
 
 const app = createApp();
 const mockedQuery = vi.mocked(query);
-const mockedCompare = vi.mocked(bcrypt.compare);
+// bcryptjs' compare() has an overloaded (callback-based) signature that makes
+// vi.mocked() infer the wrong return type here, so mock it as a plain spy.
+const mockedCompare = bcrypt.compare as unknown as Mock;
 
 const sampleUser = {
   id: 1,
