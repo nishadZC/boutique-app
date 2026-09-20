@@ -40,7 +40,7 @@ jobs:
       organization: 'luxatelier-1'
       scannerMode: 'CLI'
       configMode: 'manual'
-      cliProjectKey: 'boutique-$(service)'
+      cliProjectKey: 'luxatelier-1_boutique-$(service)'
       cliProjectName: 'Boutique $(service)'
       cliSources: '$(buildPath)'
       extraProperties: |
