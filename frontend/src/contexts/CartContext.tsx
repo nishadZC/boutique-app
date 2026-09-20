@@ -135,10 +135,11 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialState);
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   const { showToast } = useToast();
 
   React.useEffect(() => {
+    if (authLoading) return;
     if (isAuthenticated) {
       localStorage.setItem('boutique_cart', JSON.stringify(state));
     } else {
@@ -147,7 +148,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       localStorage.removeItem('boutique_cart');
     }
-  }, [state, isAuthenticated]);
+  }, [state, isAuthenticated, authLoading]);
 
   const addItem = (product: Product, selectedSize?: string, showFeedback = true): boolean => {
     if (!isAuthenticated) {
