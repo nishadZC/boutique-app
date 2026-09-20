@@ -33,7 +33,7 @@ jobs:
       fi
     displayName: 'Install dependencies for SonarCloud scan'
 
-  - task: SonarQubePrepare@7
+  - task: SonarQubePrepare@8
     displayName: 'SonarQube Prepare (SonarCloud connection)'
     inputs:
       SonarQube: 'SonarQubeServiceConnection'
@@ -47,7 +47,7 @@ jobs:
         sonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**
         sonar.typescript.tsconfigPath=$(buildPath)/tsconfig.json
 
-  - task: SonarQubeAnalyze@7
+  - task: SonarQubeAnalyze@8
     displayName: 'SonarQube Analysis'
 
   - task: AzureCLI@2
