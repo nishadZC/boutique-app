@@ -33,22 +33,22 @@ jobs:
       fi
     displayName: 'Install dependencies for SonarCloud scan'
 
-  - task: SonarQubePrepare@8
-    displayName: 'SonarQube Prepare (SonarCloud connection)'
+  - task: SonarCloudPrepare@4
+    displayName: 'SonarCloud Prepare'
     inputs:
       SonarQube: 'SonarQubeServiceConnection'
+      organization: 'luxatelier-1'
       scannerMode: 'CLI'
       configMode: 'manual'
       cliProjectKey: 'boutique-$(service)'
       cliProjectName: 'Boutique $(service)'
       cliSources: '$(buildPath)'
       extraProperties: |
-        sonar.organization=luxatelier
         sonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**
         sonar.typescript.tsconfigPath=$(buildPath)/tsconfig.json
 
-  - task: SonarQubeAnalyze@8
-    displayName: 'SonarQube Analysis'
+  - task: SonarCloudAnalyze@4
+    displayName: 'SonarCloud Analysis'
 
   - task: AzureCLI@2
     displayName: Build image locally
