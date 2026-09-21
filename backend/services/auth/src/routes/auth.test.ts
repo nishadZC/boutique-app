@@ -13,6 +13,21 @@ vi.mock('bcryptjs', () => ({
   },
 }));
 
+vi.mock('jsonwebtoken', () => ({
+  default: {
+    sign: vi.fn((payload: { userId: string; type?: string }) =>
+      payload.type === 'refresh' ? `refresh-token-for-${payload.userId}` : `token-for-${payload.userId}`
+    ),
+    verify: vi.fn((token: string) => {
+      const refreshMatch = /^refresh-token-for-(.+)$/.exec(token);
+      if (refreshMatch) return { userId: refreshMatch[1], type: 'refresh' };
+      const match = /^token-for-(.+)$/.exec(token);
+      if (match) return { userId: match[1] };
+      throw new Error('invalid token');
+    }),
+  },
+}));
+
 import { createApp } from '../app';
 import { query } from '../database/connection';
 import bcrypt from 'bcryptjs';
@@ -56,7 +71,7 @@ describe('POST /register', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.user.email).toBe(sampleUser.email);
-    expect(res.body.token).toBe(String(sampleUser.id));
+    expect(res.body.token).toBe(`token-for-${sampleUser.id}`);
   });
 
   it('rejects registration when the email already exists', async () => {
@@ -134,10 +149,48 @@ describe('GET /me', () => {
   it('returns the user for a valid bearer token', async () => {
     mockedQuery.mockResolvedValueOnce({ rows: [sampleUser] });
 
-    const res = await request(app).get('/me').set('Authorization', `Bearer ${sampleUser.id}`);
+    const res = await request(app).get('/me').set('Authorization', `Bearer token-for-${sampleUser.id}`);
 
     expect(res.status).toBe(200);
     expect(res.body.email).toBe(sampleUser.email);
+  });
+});
+
+describe('POST /refresh', () => {
+  it('rejects a missing refresh token', async () => {
+    const res = await request(app).post('/refresh').send({});
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects an access token used as a refresh token', async () => {
+    const res = await request(app).post('/refresh').send({ refreshToken: `token-for-${sampleUser.id}` });
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects an unparseable refresh token', async () => {
+    const res = await request(app).post('/refresh').send({ refreshToken: 'garbage' });
+    expect(res.status).toBe(401);
+  });
+
+  it('issues a new access token for a valid refresh token', async () => {
+    mockedQuery.mockResolvedValueOnce({ rows: [sampleUser] });
+
+    const res = await request(app)
+      .post('/refresh')
+      .send({ refreshToken: `refresh-token-for-${sampleUser.id}` });
+
+    expect(res.status).toBe(200);
+    expect(res.body.token).toBe(`token-for-${sampleUser.id}`);
+  });
+
+  it('rejects a refresh token for a user that no longer exists', async () => {
+    mockedQuery.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app)
+      .post('/refresh')
+      .send({ refreshToken: `refresh-token-for-${sampleUser.id}` });
+
+    expect(res.status).toBe(401);
   });
 });
 

@@ -2,6 +2,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express, { Request } from 'express';
 import helmet from 'helmet';
+import jwt from 'jsonwebtoken';
 import { Pool } from 'pg';
 import { metricsMiddleware, setDatabasePool, setupMetrics } from './metrics';
 
@@ -10,6 +11,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 setDatabasePool(pool);
 const app = express();
 const port = Number(process.env.PORT) || 3007;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 app.use(
   helmet({
@@ -23,7 +25,13 @@ app.use(metricsMiddleware);
 
 const getUserId = (req: Request) => {
   const token = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
-  return token && /^[0-9a-f-]{36}$/i.test(token) ? token : null;
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string };
+    return decoded.userId ?? null;
+  } catch {
+    return null;
+  }
 };
 const isProductId = (value: string) => /^[0-9a-f-]{36}$/i.test(value);
 

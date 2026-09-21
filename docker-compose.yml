@@ -208,6 +208,7 @@ services:
     - LOG_LEVEL=info
     - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:?Set GOOGLE_CLIENT_ID in .env}
     - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/auth_db
+    - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
     depends_on:
       postgres:
         condition: service_healthy
@@ -252,6 +253,7 @@ services:
     - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/auth_db
     - AZURE_MAPS_SUBSCRIPTION_KEY=${AZURE_MAPS_SUBSCRIPTION_KEY:?Set AZURE_MAPS_SUBSCRIPTION_KEY
       in .env}
+    - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
     depends_on:
       postgres:
         condition: service_healthy
@@ -330,6 +332,7 @@ services:
     - NODE_ENV=production
     - PORT=3007
     - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/wishlist_db
+    - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
     depends_on:
       postgres:
         condition: service_healthy
@@ -361,6 +364,7 @@ services:
     - LOG_LEVEL=info
     - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/orders_db
     - PRODUCTS_SERVICE_URL=http://product-service:3003
+    - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
     depends_on:
       postgres:
         condition: service_healthy

@@ -9,32 +9,25 @@ const router = express.Router();
 const PRODUCTS_SERVICE_URL = process.env.PRODUCTS_SERVICE_URL || 'http://localhost:3003';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+function getUserIdFromRequest(req: express.Request): string | null {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string };
+    return decoded.userId ?? null;
+  } catch {
+    return null;
+  }
+}
+
 router.post('/', async (req, res) => {
   try {
-    let extractedUserId: string | null = null;
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
-        if (decoded.userId) extractedUserId = decoded.userId;
-      } catch (e) {
-        // If it's not a JWT, it might just be the raw UUID (as per demo auth)
-        if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(token)) {
-          extractedUserId = token;
-        } else {
-          console.error('Failed to parse token in orders post', e);
-        }
-      }
+    const userId = getUserIdFromRequest(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Not logged in' });
     }
-    
-    if (!req.body.userId && !extractedUserId) {
-      // Fallback to a valid dummy UUID if none provided, to avoid Postgres type errors
-      extractedUserId = '00000000-0000-0000-0000-000000000000';
-    }
-    
-    // Use decoded userId, or fallback to request body / demo
-    const { items, shippingAddress, userId = extractedUserId } = req.body as CreateOrderRequest & { userId?: string };
+
+    const { items, shippingAddress } = req.body as CreateOrderRequest;
 
     let totalAmount = 0;
     const orderItems: any[] = [];
@@ -105,28 +98,10 @@ router.post('/', async (req, res) => {
 
 router.get('/my-orders', async (req, res) => {
   try {
-    let extractedUserId: string | null = null;
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
-        if (decoded.userId) extractedUserId = decoded.userId;
-      } catch (e) {
-        // If it's not a JWT, it might just be the raw UUID (as per demo auth)
-        if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(token)) {
-          extractedUserId = token;
-        } else {
-          console.error('Failed to parse token in orders get', e);
-        }
-      }
+    const userId = getUserIdFromRequest(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Not logged in' });
     }
-    
-    if (!req.query.userId && !extractedUserId) {
-       extractedUserId = '00000000-0000-0000-0000-000000000000';
-    }
-    
-    const userId = req.query.userId as string || extractedUserId;
 
     const result = await query(`
       SELECT o.*,

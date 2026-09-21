@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import { query } from '../database/connection';
 import { boutiqueTotalUsers } from '../metrics';
@@ -9,7 +10,40 @@ const router = express.Router();
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(googleClientId);
 
-// Simple demo authentication without JWT
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '1h') as jwt.SignOptions['expiresIn'];
+const JWT_REFRESH_EXPIRES_IN = (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'];
+
+interface AuthUser {
+  id: string;
+  email: string;
+  role: string;
+}
+
+function signAccessToken(user: AuthUser) {
+  return jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
+  });
+}
+
+function signRefreshToken(user: AuthUser) {
+  return jwt.sign({ userId: user.id, type: 'refresh' }, JWT_SECRET, {
+    expiresIn: JWT_REFRESH_EXPIRES_IN,
+  });
+}
+
+function getUserIdFromRequest(req: express.Request): string | null {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string };
+    return decoded.userId ?? null;
+  } catch {
+    return null;
+  }
+}
+
 let currentUser: any = null;
 
 router.post('/register', async (req, res) => {
@@ -51,8 +85,8 @@ router.post('/register', async (req, res) => {
         createdAt: user.created_at,
         updatedAt: user.updated_at
       },
-      token: user.id.toString(),
-      refreshToken: user.id.toString(),
+      token: signAccessToken(user),
+      refreshToken: signRefreshToken(user),
       message: 'Registration successful'
     });
   } catch (error) {
@@ -105,8 +139,8 @@ router.post('/login', async (req, res) => {
           createdAt: user.created_at,
           updatedAt: user.updated_at
         },
-        token: user.id.toString(),
-        refreshToken: user.id.toString(),
+        token: signAccessToken(user),
+        refreshToken: signRefreshToken(user),
         message: 'Demo login successful'
       });
       return;
@@ -148,8 +182,8 @@ router.post('/login', async (req, res) => {
         createdAt: user.created_at,
         updatedAt: user.updated_at
       },
-      token: user.id.toString(),
-      refreshToken: user.id.toString(),
+      token: signAccessToken(user),
+      refreshToken: signRefreshToken(user),
       message: 'Login successful'
     });
   } catch (error) {
@@ -205,8 +239,8 @@ router.post('/google', async (req, res) => {
 
     return res.json({
       user: { ...currentUser, createdAt: user.created_at, updatedAt: user.updated_at },
-      token: user.id.toString(),
-      refreshToken: user.id.toString(),
+      token: signAccessToken(user),
+      refreshToken: signRefreshToken(user),
       message: 'Google login successful',
     });
   } catch (error: any) {
@@ -218,16 +252,41 @@ router.post('/google', async (req, res) => {
   }
 });
 
+router.post('/refresh', async (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return res.status(400).json({ error: 'Refresh token is required' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, JWT_SECRET) as { userId?: string; type?: string };
+    if (decoded.type !== 'refresh' || !decoded.userId) {
+      return res.status(401).json({ error: 'Invalid refresh token' });
+    }
+
+    const result = await query(
+      'SELECT id, email, role FROM users WHERE id = $1',
+      [decoded.userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    res.json({ token: signAccessToken(result.rows[0]) });
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid or expired refresh token' });
+  }
+});
+
 router.post('/logout', (req, res) => {
   currentUser = null;
   res.json({ message: 'Logged out successfully' });
 });
 
 router.get('/me', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const userId = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+  const userId = getUserIdFromRequest(req);
 
-  if (!userId || userId === 'undefined') {
+  if (!userId) {
     return res.status(401).json({ error: 'Not logged in' });
   }
 

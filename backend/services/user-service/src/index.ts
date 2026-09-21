@@ -2,6 +2,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import helmet from 'helmet';
+import jwt from 'jsonwebtoken';
 import { Pool } from 'pg';
 import { metricsMiddleware, setDatabasePool, setupMetrics } from './metrics';
 
@@ -10,6 +11,20 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 setDatabasePool(pool);
 const app = express();
 const port = Number(process.env.PORT) || 3004;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+function getUserIdFromRequest(req: express.Request): string | null {
+  const token = req.headers.authorization?.startsWith('Bearer ')
+    ? req.headers.authorization.substring(7)
+    : null;
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string };
+    return decoded.userId ?? null;
+  } catch {
+    return null;
+  }
+}
 
 app.use(
   helmet({
@@ -60,10 +75,8 @@ app.get('/location/reverse', async (req, res) => {
   }
 });
 app.put('/profile', async (req, res) => {
-  const userId = req.headers.authorization?.startsWith('Bearer ')
-    ? req.headers.authorization.substring(7)
-    : undefined;
-  if (!userId || userId === 'undefined') {
+  const userId = getUserIdFromRequest(req);
+  if (!userId) {
     res.status(401).json({ error: 'Not logged in' });
     return;
   }
