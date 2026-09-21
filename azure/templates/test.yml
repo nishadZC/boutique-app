@@ -31,8 +31,7 @@ jobs:
         exit 0
       fi
 
-      cd "$(buildPath)"
-      TEST_SCRIPT=$(node -p "(require('./package.json').scripts || {}).test || ''")
+      TEST_SCRIPT=$(node -p "(require('./$(buildPath)/package.json').scripts || {}).test || ''")
 
       if [ -z "$TEST_SCRIPT" ]; then
         echo "No 'test' script defined for $(service) - skipping."
@@ -45,6 +44,9 @@ jobs:
       fi
 
       echo "Running tests for $(service)..."
-      npm ci || npm install
-      npm test
+      # Always run from the repo root (this is an npm workspaces monorepo with
+      # one shared lockfile) - `cd`-ing into a workspace and running `npm ci`
+      # there behaves inconsistently across npm versions.
+      npm ci -w "$(buildPath)" || npm install -w "$(buildPath)"
+      npm test -w "$(buildPath)"
     displayName: 'Run tests for $(service)'

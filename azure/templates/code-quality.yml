@@ -13,10 +13,9 @@ jobs:
       versionSpec: '20.x'
 
   - script: |
-      echo "Installing frontend dependencies..."
-      cd frontend && (npm ci || npm install) && cd ..
-      echo "Installing backend dependencies..."
-      cd backend && (npm ci || npm install)
+      set -e
+      echo "Installing dependencies for all workspaces..."
+      npm ci || npm install
     displayName: 'Install dependencies for SonarCloud scan'
 
   - task: SonarCloudPrepare@4
