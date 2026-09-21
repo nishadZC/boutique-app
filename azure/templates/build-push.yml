@@ -39,19 +39,16 @@ jobs:
 
   - ${{ if eq(parameters.pushImage, true) }}:
     - task: AzureCLI@2
-      displayName: Push image to dev/qa/staging ACRs
+      displayName: Push image to dev ACR
       inputs:
         azureSubscription: '$(azureServiceConnection)'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
           set -e
-          # Each non-prod environment has its own ACR (no shared registry),
-          # so the same build gets pushed to all three.
-          for ACR in $(devAcr) $(qaAcr) $(stagingAcr); do
-            REGISTRY="${ACR}.azurecr.io"
-            az acr login --name $ACR
-            docker tag $(service):$(imageTag) $REGISTRY/$(service):$(imageTag)
-            docker tag $(service):$(imageTag) $REGISTRY/$(service):latest
-            docker push $REGISTRY/$(service) --all-tags
-          done
+          # QA/staging ACRs are not provisioned yet; dev-only for now.
+          REGISTRY="$(devAcr).azurecr.io"
+          az acr login --name $(devAcr)
+          docker tag $(service):$(imageTag) $REGISTRY/$(service):$(imageTag)
+          docker tag $(service):$(imageTag) $REGISTRY/$(service):latest
+          docker push $REGISTRY/$(service) --all-tags
