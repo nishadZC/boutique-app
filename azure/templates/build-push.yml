@@ -28,24 +28,30 @@ jobs:
       scriptLocation: 'inlineScript'
       inlineScript: |
         set -e
-        az acr login --name boutiqueacrshared9p2x4
-        docker build -f $(buildPath)/Dockerfile -t $(acrLoginServer)/$(service):$(imageTag) -t $(acrLoginServer)/$(service):latest $(buildPath)
+        docker build -f $(buildPath)/Dockerfile -t $(service):$(imageTag) -t $(service):latest $(buildPath)
 
   - task: trivy@1
     displayName: Scan local image with Trivy
     inputs:
-      image: '$(acrLoginServer)/$(service):$(imageTag)'
+      image: '$(service):$(imageTag)'
       severity: 'CRITICAL,HIGH'
       exitCode: '0'
 
   - ${{ if eq(parameters.pushImage, true) }}:
     - task: AzureCLI@2
-      displayName: Push image to ACR
+      displayName: Push image to dev/qa/staging ACRs
       inputs:
         azureSubscription: '$(azureServiceConnection)'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
           set -e
-          az acr login --name boutiqueacrshared9p2x4
-          docker push $(acrLoginServer)/$(service) --all-tags
+          # Each non-prod environment has its own ACR (no shared registry),
+          # so the same build gets pushed to all three.
+          for ACR in $(devAcr) $(qaAcr) $(stagingAcr); do
+            REGISTRY="${ACR}.azurecr.io"
+            az acr login --name $ACR
+            docker tag $(service):$(imageTag) $REGISTRY/$(service):$(imageTag)
+            docker tag $(service):$(imageTag) $REGISTRY/$(service):latest
+            docker push $REGISTRY/$(service) --all-tags
+          done

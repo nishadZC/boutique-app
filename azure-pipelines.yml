@@ -15,9 +15,11 @@ parameters:
     default: false
 
 variables:
-  imageTag: '$(Build.SourceVersion)'
-  acrLoginServer: 'boutiqueacrshared9p2x4.azurecr.io'
-  azureServiceConnection: 'Azure Resource Group'
+  - group: acr-registries
+  - name: imageTag
+    value: '$(Build.SourceVersion)'
+  - name: azureServiceConnection
+    value: 'Azure Resource Group'
 
 resources:
   repositories:
@@ -65,7 +67,7 @@ stages:
   - template: azure/templates/update-gitops.yml
     parameters:
       environment: 'dev'
-      acrLoginServer: '$(acrLoginServer)'
+      acrLoginServer: '$(devAcr).azurecr.io'
 
 - stage: UpdateQA
   displayName: 'Deploy to QA (GitOps)'
@@ -75,7 +77,7 @@ stages:
   - template: azure/templates/update-gitops.yml
     parameters:
       environment: 'qa'
-      acrLoginServer: '$(acrLoginServer)'
+      acrLoginServer: '$(qaAcr).azurecr.io'
 
 - stage: UpdateStaging
   displayName: 'Deploy to Staging (GitOps)'
@@ -85,7 +87,7 @@ stages:
   - template: azure/templates/update-gitops.yml
     parameters:
       environment: 'staging'
-      acrLoginServer: '$(acrLoginServer)'
+      acrLoginServer: '$(stagingAcr).azurecr.io'
 
 - stage: UpdateProd
   displayName: 'Deploy to Prod (GitOps)'
@@ -95,4 +97,4 @@ stages:
   - template: azure/templates/update-gitops.yml
     parameters:
       environment: 'prod'
-      acrLoginServer: 'boutiqueacrprod9p2x4.azurecr.io'
+      acrLoginServer: '$(prodAcr).azurecr.io'
