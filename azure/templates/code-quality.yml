@@ -1,7 +1,7 @@
 jobs:
 - job: CodeQuality
   pool:
-    name: Default
+    vmImage: 'ubuntu-latest'
 
   steps:
   - checkout: self

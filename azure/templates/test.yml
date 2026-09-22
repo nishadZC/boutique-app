@@ -10,7 +10,7 @@ jobs:
   ${{ if ne(parameters.dependsOn, '') }}:
     dependsOn: ${{ parameters.dependsOn }}
   pool:
-    name: Default
+    vmImage: 'ubuntu-latest'
   strategy:
     matrix: $[ ${{ parameters.matrix }} ]
 

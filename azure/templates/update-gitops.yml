@@ -10,7 +10,7 @@ jobs:
 - deployment: UpdateGitOps
   displayName: 'Deploy to ${{ parameters.environment }}'
   pool:
-    name: Default
+    vmImage: 'ubuntu-latest'
   environment: 'app-${{ parameters.environment }}-environment'
   variables:
     changedServices: $[ stageDependencies.BuildAndScan.GenerateMatrix.outputs['setMatrix.changedServices'] ]

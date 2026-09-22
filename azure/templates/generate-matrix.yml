@@ -2,7 +2,7 @@ jobs:
 - job: GenerateMatrix
   displayName: 'Generate Build Matrix'
   pool:
-    name: Default
+    vmImage: 'ubuntu-latest'
   steps:
   - checkout: self
   - script: |
