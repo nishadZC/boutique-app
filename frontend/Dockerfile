@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:26-alpine3.24 AS builder
 
 RUN apk update && apk upgrade --no-cache
 
@@ -18,7 +18,7 @@ COPY public ./public
 RUN npm run build
 
 # Production stage - serve with nginx
-FROM nginx:1.25-alpine
+FROM nginx:1.30.5-alpine3.24-slim
 
 RUN apk update && apk upgrade --no-cache && \
     addgroup -g 101 -S nginx && \

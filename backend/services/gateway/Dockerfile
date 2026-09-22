@@ -1,5 +1,5 @@
 # Gateway Service Dockerfile
-FROM node:20-alpine AS builder
+FROM node:26-alpine3.24 AS builder
 
 RUN apk update && apk upgrade --no-cache
 
@@ -17,7 +17,7 @@ COPY src ./src
 RUN npm run build
 
 # Production stage
-FROM node:20-alpine
+FROM node:26-alpine3.24
 
 RUN apk update && apk upgrade --no-cache
 
