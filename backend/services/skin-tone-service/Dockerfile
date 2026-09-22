@@ -13,8 +13,10 @@ RUN useradd -m -r -s /bin/bash appuser
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code and set ownership to the non-root user
-COPY --chown=appuser:appuser . .
+# Copy only the application source files (explicit allowlist, not a
+# recursive `COPY . .`, so nothing outside this list can end up in the
+# image regardless of .dockerignore).
+COPY --chown=appuser:appuser main.py color_rules.py skin_tone_analyzer.py ./
 
 # Switch to the non-root user
 USER appuser

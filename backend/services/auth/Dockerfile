@@ -9,8 +9,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copy source code
-COPY . .
+# Copy only the application source (explicit allowlist, not COPY . .)
+COPY tsconfig.json ./
+COPY src ./src
 
 # Build TypeScript
 RUN npm run build

@@ -9,8 +9,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --prefer-offline --no-audit
 
-# Copy source code
-COPY . .
+# Copy only the application source (explicit allowlist, not COPY . .)
+COPY index.html tsconfig.json tsconfig.node.json vite.config.ts vitest.config.mts ./
+COPY src ./src
+COPY public ./public
 
 # Build the React app
 RUN npm run build
