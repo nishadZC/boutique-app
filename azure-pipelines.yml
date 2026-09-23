@@ -9,6 +9,10 @@ pr:
       - main
 
 parameters:
+  - name: deployBeyondDev
+    displayName: "Deploy to QA/Staging (GitOps)"
+    type: boolean
+    default: false
   - name: deployProd
     displayName: "Deploy to Prod"
     type: boolean
@@ -68,7 +72,7 @@ stages:
 - stage: UpdateQA
   displayName: 'Deploy to QA (GitOps)'
   dependsOn: BuildAndScan
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), ${{ parameters.deployBeyondDev }})
   jobs:
   - template: azure/templates/update-gitops.yml
     parameters:
