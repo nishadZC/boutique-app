@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
-  Container, Box, Typography, Button, Grid, Paper, Fade, Slide,
+  Container, Box, Typography, Button, Grid, Paper,
 } from '@mui/material';
 import {
   ShoppingBag as ShoppingBagIcon,
@@ -11,7 +11,7 @@ import {
   Star as StarIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import { ProductCard } from '../../components/common';
+import { ProductCard, HomeCarousel } from '../../components/common';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton/LoadingSkeleton';
 import { useHome } from '../../hooks/useHome';
 import { ROUTES } from '../../constants/routes';
@@ -39,29 +39,8 @@ const Home = memo(function Home() {
   return (
     <>
       <Container maxWidth="lg" sx={{ bgcolor: '#0f0f0f', pt: { xs: 2, md: 4 }, px: { xs: 2, md: 4 }, my: '24px' }}>
-        {/* Hero */}
-        <Box className={styles.hero}>
-          <Box sx={{ height: '100%' }}>
-            <Fade in timeout={1200}>
-              <Box sx={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', maxWidth: '600px', ml: { md: 8 } }}>
-                <Typography variant="overline" sx={{ color: '#cba871', letterSpacing: 2, fontWeight: 600, mb: 3, display: 'block' }}>
-                  NEW COLLECTION
-                </Typography>
-                <Typography variant="h1" className={styles.heroTitle}>
-                  TIMELESS<br />BY NATURE
-                </Typography>
-                <Typography variant="h5" component="p" className={styles.heroSubtitle}>
-                  Premium essentials crafted for the modern wardrobe.
-                </Typography>
-                <Box className={styles.heroCta}>
-                  <Button variant="contained" size="large" endIcon={<ArrowForwardIcon />} component={RouterLink} to={ROUTES.PRODUCTS} className={styles.ctaGold}>
-                    SHOP NOW
-                  </Button>
-                </Box>
-              </Box>
-            </Fade>
-          </Box>
-        </Box>
+        {/* Hero carousel */}
+        <HomeCarousel />
       </Container>
 
       {/* Features */}
@@ -128,7 +107,7 @@ const Home = memo(function Home() {
           {loading
             ? <LoadingSkeleton count={8} />
             : (
-              <Grid container spacing={4}>
+              <Grid container spacing={2.5}>
                 {products.map(product => (
                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={product.id}>
                     <ProductCard product={product} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} isInWishlist={isInWishlist(product.id)} />

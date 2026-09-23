@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" font-family="Helvetica, Arial, sans-serif">
+  <rect width="1024" height="1024" fill="#f4efe6"/>
+
+  <text x="512" y="70" text-anchor="middle" font-size="34" font-weight="700" letter-spacing="1" fill="#1a1a1a">SIZE GUIDE: MEN&#8217;S TROUSERS</text>
+  <line x1="80" y1="94" x2="944" y2="94" stroke="#1a1a1a" stroke-width="1.5"/>
+
+  <text x="512" y="140" text-anchor="middle" font-size="20" font-weight="700" fill="#1a1a1a">MEN&#8217;S TROUSER SIZE CHART (INCHES)</text>
+  <text x="512" y="164" text-anchor="middle" font-size="14" fill="#555">MEASUREMENTS FOR THE PERFECT FIT</text>
+
+  <!-- side silhouette -->
+  <g transform="translate(150,330)" stroke="#333" stroke-width="2.5" fill="none">
+    <path d="M-45 -110 L45 -110 L52 60 L14 60 L4 -20 L-4 -20 L-14 60 L-52 60 Z" fill="#ffffff"/>
+    <line x1="-45" y1="-110" x2="45" y2="-110" stroke="#333"/>
+    <text x="0" y="-125" text-anchor="middle" font-size="12" fill="#333" stroke="none">WAIST</text>
+    <line x1="-70" y1="-70" x2="-52" y2="-70" stroke="#333" stroke-dasharray="3,3"/>
+    <text x="-120" y="-66" text-anchor="middle" font-size="11" fill="#333" stroke="none">HIP</text>
+    <line x1="4" y1="-20" x2="4" y2="60" stroke="#333" stroke-dasharray="3,3"/>
+    <text x="70" y="30" text-anchor="middle" font-size="11" fill="#333" stroke="none">INSEAM</text>
+  </g>
+
+  <!-- table -->
+  <g transform="translate(300,220)">
+    <rect x="0" y="0" width="644" height="46" fill="#232323"/>
+    <text x="60" y="30" font-size="15" font-weight="700" fill="#fff">SIZE</text>
+    <text x="220" y="30" font-size="15" font-weight="700" fill="#fff">WAIST (in)</text>
+    <text x="380" y="30" font-size="15" font-weight="700" fill="#fff">HIP (in)</text>
+    <text x="530" y="30" font-size="15" font-weight="700" fill="#fff">INSEAM (in)</text>
+
+    <!-- rows -->
+    <g font-size="15" fill="#1a1a1a">
+      <rect x="0" y="46" width="644" height="46" fill="#ffffff"/>
+      <text x="60" y="75">28</text><text x="220" y="75">28 - 29</text><text x="380" y="75">36 - 37</text><text x="530" y="75">30 - 31</text>
+
+      <rect x="0" y="92" width="644" height="46" fill="#efe9dc"/>
+      <text x="60" y="121">30</text><text x="220" y="121">30 - 31</text><text x="380" y="121">38 - 39</text><text x="530" y="121">30.5 - 31.5</text>
+
+      <rect x="0" y="138" width="644" height="46" fill="#ffffff"/>
+      <text x="60" y="167">32</text><text x="220" y="167">32 - 33</text><text x="380" y="167">40 - 41</text><text x="530" y="167">31 - 32</text>
+
+      <rect x="0" y="184" width="644" height="46" fill="#efe9dc"/>
+      <text x="60" y="213">34</text><text x="220" y="213">34 - 35</text><text x="380" y="213">42 - 43</text><text x="530" y="213">31.5 - 32.5</text>
+
+      <rect x="0" y="230" width="644" height="46" fill="#ffffff"/>
+      <text x="60" y="259">36</text><text x="220" y="259">36 - 37</text><text x="380" y="259">44 - 45</text><text x="530" y="259">32 - 33</text>
+
+      <rect x="0" y="276" width="644" height="46" fill="#efe9dc"/>
+      <text x="60" y="305">38</text><text x="220" y="305">38 - 39</text><text x="380" y="305">46 - 47</text><text x="530" y="305">32.5 - 33.5</text>
+    </g>
+    <rect x="0" y="0" width="644" height="322" fill="none" stroke="#cfc6b0" stroke-width="1"/>
+  </g>
+
+  <text x="150" y="620" font-size="16" font-weight="700" fill="#1a1a1a">FIT NOTES:</text>
+  <text x="150" y="646" font-size="14" fill="#333">True to size, regular fit. For a slim fit, consider one size down.</text>
+
+  <text x="150" y="690" font-size="16" font-weight="700" fill="#1a1a1a">HOW TO MEASURE</text>
+  <text x="150" y="716" font-size="14" fill="#333">1. Waist &#8212; measure around your natural waistline.</text>
+  <text x="150" y="740" font-size="14" fill="#333">2. Hip &#8212; measure around the fullest part of your hips.</text>
+  <text x="150" y="764" font-size="14" fill="#333">3. Inseam &#8212; measure from crotch seam to the hem.</text>
+</svg>

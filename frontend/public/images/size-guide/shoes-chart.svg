@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" font-family="Helvetica, Arial, sans-serif">
+  <rect width="1024" height="1024" fill="#f4efe6"/>
+
+  <text x="512" y="70" text-anchor="middle" font-size="34" font-weight="700" letter-spacing="1" fill="#1a1a1a">SIZE GUIDE: MEN&#8217;S FORMAL SHOES</text>
+  <line x1="80" y1="94" x2="944" y2="94" stroke="#1a1a1a" stroke-width="1.5"/>
+
+  <text x="512" y="140" text-anchor="middle" font-size="20" font-weight="700" fill="#1a1a1a">MEN&#8217;S SHOE SIZE CHART</text>
+  <text x="512" y="164" text-anchor="middle" font-size="14" fill="#555">UK / US / EU CONVERSION &amp; FOOT LENGTH</text>
+
+  <!-- side shoe silhouette -->
+  <g transform="translate(150,330)" stroke="#333" stroke-width="2.5" fill="#ffffff">
+    <path d="M-70 20 C -70 0 -55 -8 -35 -10 L 10 -14 C 30 -30 55 -34 68 -20 C 78 -10 76 6 60 10 L -60 30 C -68 30 -70 26 -70 20 Z"/>
+    <line x1="-35" y1="-10" x2="-35" y2="18" stroke="#333" stroke-dasharray="3,3"/>
+  </g>
+  <text x="150" y="400" text-anchor="middle" font-size="11" fill="#333">FOOT LENGTH</text>
+
+  <!-- table -->
+  <g transform="translate(280,220)">
+    <rect x="0" y="0" width="680" height="46" fill="#232323"/>
+    <text x="50" y="30" font-size="15" font-weight="700" fill="#fff">UK</text>
+    <text x="220" y="30" font-size="15" font-weight="700" fill="#fff">US</text>
+    <text x="390" y="30" font-size="15" font-weight="700" fill="#fff">EU</text>
+    <text x="520" y="30" font-size="15" font-weight="700" fill="#fff">FOOT LENGTH (CM)</text>
+
+    <g font-size="15" fill="#1a1a1a">
+      <rect x="0" y="46" width="680" height="42" fill="#ffffff"/>
+      <text x="50" y="72">6</text><text x="220" y="72">7</text><text x="390" y="72">40</text><text x="560" y="72">24.5</text>
+
+      <rect x="0" y="88" width="680" height="42" fill="#efe9dc"/>
+      <text x="50" y="114">7</text><text x="220" y="114">8</text><text x="390" y="114">41</text><text x="560" y="114">25.5</text>
+
+      <rect x="0" y="130" width="680" height="42" fill="#ffffff"/>
+      <text x="50" y="156">8</text><text x="220" y="156">9</text><text x="390" y="156">42</text><text x="560" y="156">26.5</text>
+
+      <rect x="0" y="172" width="680" height="42" fill="#efe9dc"/>
+      <text x="50" y="198">9</text><text x="220" y="198">10</text><text x="390" y="198">43</text><text x="560" y="198">27.5</text>
+
+      <rect x="0" y="214" width="680" height="42" fill="#ffffff"/>
+      <text x="50" y="240">10</text><text x="220" y="240">11</text><text x="390" y="240">44</text><text x="560" y="240">28.5</text>
+
+      <rect x="0" y="256" width="680" height="42" fill="#efe9dc"/>
+      <text x="50" y="282">11</text><text x="220" y="282">12</text><text x="390" y="282">45</text><text x="560" y="282">29.5</text>
+
+      <rect x="0" y="298" width="680" height="42" fill="#ffffff"/>
+      <text x="50" y="324">12</text><text x="220" y="324">13</text><text x="390" y="324">46</text><text x="560" y="324">30.5</text>
+    </g>
+    <rect x="0" y="0" width="680" height="340" fill="none" stroke="#cfc6b0" stroke-width="1"/>
+  </g>
+
+  <text x="150" y="620" font-size="16" font-weight="700" fill="#1a1a1a">FIT NOTES:</text>
+  <text x="150" y="646" font-size="14" fill="#333">Runs true to size. If between sizes, we recommend sizing up.</text>
+
+  <text x="150" y="690" font-size="16" font-weight="700" fill="#1a1a1a">HOW TO MEASURE</text>
+  <text x="150" y="716" font-size="14" fill="#333">1. Stand on a sheet of paper and trace your foot outline.</text>
+  <text x="150" y="740" font-size="14" fill="#333">2. Measure heel to longest toe for foot length (cm).</text>
+  <text x="150" y="764" font-size="14" fill="#333">3. Measure the widest part of your foot for foot width.</text>
+</svg>

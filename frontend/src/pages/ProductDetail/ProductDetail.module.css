@@ -34,25 +34,6 @@
   transform: translateY(-5px);
 }
 
-.productImage {
-  width: 100%;
-  height: 600px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-@media (max-width: 900px) {
-  .productImage {
-    height: 420px;
-  }
-}
-
-@media (max-width: 600px) {
-  .productImage {
-    height: 300px;
-  }
-}
-
 .infoContainer {
   display: flex;
   flex-direction: column;

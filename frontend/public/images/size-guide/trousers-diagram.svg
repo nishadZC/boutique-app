@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" font-family="Helvetica, Arial, sans-serif">
+  <rect width="1024" height="1024" fill="#f0eee9"/>
+
+  <!-- trousers outline, front view -->
+  <g transform="translate(512,520)" stroke="#333" stroke-width="3" fill="#ffffff">
+    <path d="M-150 -350 L150 -350 L165 -60 L60 -60 L45 330 L5 330 L-8 -20 L-8 330 L-45 330 L-60 -60 L-165 -60 Z" />
+    <!-- waistband -->
+    <line x1="-150" y1="-350" x2="150" y2="-350" stroke="#333" stroke-width="4"/>
+    <!-- belt loops -->
+    <g stroke="#333" stroke-width="2">
+      <line x1="-90" y1="-350" x2="-90" y2="-330"/>
+      <line x1="0" y1="-350" x2="0" y2="-330"/>
+      <line x1="90" y1="-350" x2="90" y2="-330"/>
+    </g>
+    <!-- pockets -->
+    <path d="M-150 -350 Q-170 -300 -150 -260" fill="none"/>
+    <path d="M150 -350 Q170 -300 150 -260" fill="none"/>
+  </g>
+
+  <!-- WAIST label -->
+  <g font-size="18" fill="#1a1a1a" stroke="none">
+    <line x1="362" y1="170" x2="662" y2="170" stroke="#333" stroke-dasharray="6,5" stroke-width="1.5"/>
+    <line x1="362" y1="160" x2="362" y2="180" stroke="#333" stroke-width="1.5"/>
+    <line x1="662" y1="160" x2="662" y2="180" stroke="#333" stroke-width="1.5"/>
+    <text x="512" y="150" text-anchor="middle" font-weight="700">WAIST</text>
+  </g>
+
+  <!-- HIP label -->
+  <g font-size="18" fill="#1a1a1a" stroke="none">
+    <line x1="347" y1="460" x2="677" y2="460" stroke="#333" stroke-dasharray="6,5" stroke-width="1.5"/>
+    <line x1="347" y1="450" x2="347" y2="470" stroke="#333" stroke-width="1.5"/>
+    <line x1="677" y1="450" x2="677" y2="470" stroke="#333" stroke-width="1.5"/>
+    <text x="512" y="440" text-anchor="middle" font-weight="700">HIP</text>
+  </g>
+
+  <!-- THIGH label -->
+  <g font-size="18" fill="#1a1a1a" stroke="none">
+    <line x1="452" y1="530" x2="572" y2="530" stroke="#333" stroke-dasharray="6,5" stroke-width="1.5"/>
+    <text x="640" y="536" text-anchor="start" font-weight="700">THIGH</text>
+  </g>
+
+  <!-- INSEAM label with vertical dashed arrow along right leg -->
+  <g font-size="18" fill="#1a1a1a" stroke="none">
+    <line x1="760" y1="460" x2="760" y2="850" stroke="#333" stroke-dasharray="6,5" stroke-width="1.5"/>
+    <line x1="750" y1="460" x2="770" y2="460" stroke="#333" stroke-width="1.5"/>
+    <line x1="750" y1="850" x2="770" y2="850" stroke="#333" stroke-width="1.5"/>
+    <text x="800" y="660" text-anchor="start" font-weight="700" transform="rotate(90 800 660)">INSEAM (INNER LEG)</text>
+  </g>
+
+  <text x="512" y="960" text-anchor="middle" font-size="14" fill="#555">Measure inseam from the crotch seam straight down to the hem.</text>
+</svg>

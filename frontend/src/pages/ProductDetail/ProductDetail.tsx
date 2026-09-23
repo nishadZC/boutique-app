@@ -34,6 +34,7 @@ import {
 import { getSizeOptions } from '../../utils/productSizing';
 import { MeasurementField } from '../../utils/measurements';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton/LoadingSkeleton';
+import ImageCarousel from '../../components/common/ImageCarousel/ImageCarousel';
 import { useProductDetail } from '../../hooks/useProductDetail';
 import styles from './ProductDetail.module.css';
 
@@ -76,6 +77,7 @@ const ProductDetail: React.FC = memo(() => {
     customMeasurements,
     relatedProducts,
     isShirt,
+    sizeGuideImages,
     navigate,
     handleAddToCart,
     handleQuantityChange,
@@ -132,15 +134,14 @@ const ProductDetail: React.FC = memo(() => {
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 6 }}>
             <Paper elevation={2} className={styles.imagePaper}>
-              <CardMedia
-                component="img"
-                className={styles.productImage}
-                image={product.imageUrl}
-                alt={product.name}
+              <ImageCarousel
+                images={[{ src: product.imageUrl, alt: product.name }, ...sizeGuideImages]}
+                aspectRatio="4 / 5"
+                bare
               />
             </Paper>
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <Box className={styles.infoContainer}>
               {/* Product Info */}
@@ -377,7 +378,6 @@ const ProductDetail: React.FC = memo(() => {
               <Tab label="Details" />
               <Tab label="Reviews" />
               <Tab label="Shipping" />
-              {isShirt && <Tab label="Size Guide" />}
             </Tabs>
             
             <Box className={styles.tabPanelContent}>
@@ -432,35 +432,6 @@ const ProductDetail: React.FC = memo(() => {
                   • 30-day return policy
                 </Typography>
               </TabPanel>
-
-              {isShirt && (
-                <TabPanel value={tabValue} index={4}>
-                  <Typography variant="h6" gutterBottom>Shirt Size & Measurement Guide</Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    Use our detailed charts below to find your perfect fit. For the best accuracy, measure a shirt you already own that fits well.
-                  </Typography>
-                  <Grid container spacing={4}>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <Box sx={{ border: '1px solid #eaeaea', borderRadius: 2, overflow: 'hidden' }}>
-                        <img 
-                          src="/images/size_chart.jpg" 
-                          alt="Size Chart" 
-                          style={{ width: '100%', display: 'block' }} 
-                        />
-                      </Box>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <Box sx={{ border: '1px solid #eaeaea', borderRadius: 2, overflow: 'hidden' }}>
-                        <img 
-                          src="/images/measurement_guide.jpg" 
-                          alt="Measurement Guide" 
-                          style={{ width: '100%', display: 'block' }} 
-                        />
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </TabPanel>
-              )}
             </Box>
           </Paper>
         </Box>

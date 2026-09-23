@@ -1,6 +1,9 @@
-export const getSizeOptions = (product: { name: string; category?: string }): string[] => {
+export type GarmentType = 'shirt' | 'trousers' | 'shoes';
+
+export const getGarmentType = (product: { name: string; category?: string }): GarmentType | null => {
   const name = product.name.toLowerCase();
   const category = (product.category || '').toLowerCase();
+
   const isShirtLike =
     name.includes('shirt') ||
     name.includes('top') ||
@@ -45,15 +48,26 @@ export const getSizeOptions = (product: { name: string; category?: string }): st
     category.includes('footwear') ||
     category.includes('sneaker');
 
-  if (isShirtLike) {
+  if (isShirtLike) return 'shirt';
+  if (isPantLike) return 'trousers';
+  if (isShoeLike) return 'shoes';
+  return null;
+};
+
+export const getSizeOptions = (product: { name: string; category?: string }): string[] => {
+  const name = product.name.toLowerCase();
+  const category = (product.category || '').toLowerCase();
+  const garmentType = getGarmentType(product);
+
+  if (garmentType === 'shirt') {
     return ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   }
 
-  if (isPantLike) {
+  if (garmentType === 'trousers') {
     return ['28', '30', '32', '34', '36', '38', '40', '42'];
   }
 
-  if (isShoeLike) {
+  if (garmentType === 'shoes') {
     return ['6', '7', '8', '9', '10', '11', '12'];
   }
 

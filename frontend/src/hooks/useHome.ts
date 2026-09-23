@@ -4,6 +4,15 @@ import { productService } from '../services/productService';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export function useHome() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +24,7 @@ export function useHome() {
     let cancelled = false;
     setLoading(true);
     productService.getAll()
-      .then(data => { if (!cancelled) setProducts(data.slice(0, 8)); })
+      .then(data => { if (!cancelled) setProducts(shuffle(data).slice(0, 8)); })
       .catch(() => { if (!cancelled) setError('Failed to load products'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };

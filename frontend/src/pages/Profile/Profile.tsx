@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -6,8 +7,6 @@ import {
   Paper,
   Grid,
   Button,
-  Card,
-  CardContent,
   Avatar,
   Chip,
   List,
@@ -23,9 +22,9 @@ import {
   Edit as EditIcon,
   ShoppingBag as OrdersIcon,
   Favorite as WishlistIcon,
-  CreditCard as PaymentIcon,
-  Settings as SettingsIcon,
   ExitToApp as LogoutIcon,
+  CalendarToday as CalendarIcon,
+  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -35,6 +34,7 @@ import TextField from '@mui/material/TextField';
 import { AddressForm } from '../../components/AddressForm/AddressForm';
 import { useProfile } from '../../hooks/useProfile';
 import { useAuthModal } from '../../contexts/AuthModalContext';
+import { ROUTES } from '../../constants/routes';
 import styles from './Profile.module.css';
 
 const Profile: React.FC = memo(() => {
@@ -68,15 +68,13 @@ const Profile: React.FC = memo(() => {
   }
 
   const menuItems = [
-    { icon: <OrdersIcon />, label: 'Order History', path: '/orders' },
-    { icon: <WishlistIcon />, label: 'Wishlist', path: '/wishlist' },
-    { icon: <PaymentIcon />, label: 'Payment Methods', path: '/payment' },
-    { icon: <SettingsIcon />, label: 'Account Settings', path: '/settings' },
+    { icon: <OrdersIcon />, label: 'Order History', path: ROUTES.ORDERS },
+    { icon: <WishlistIcon />, label: 'Wishlist', path: ROUTES.WISHLIST },
   ];
 
-  const stats = [
-    { label: 'Member Since', value: new Date(user.createdAt || Date.now()).toLocaleDateString() },
-  ];
+  const memberSince = new Date(user.createdAt || Date.now()).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
 
   return (
     <Container maxWidth="lg">
@@ -101,9 +99,15 @@ const Profile: React.FC = memo(() => {
                 size="small"
                 className={styles.roleChip}
               />
-              <Typography variant="body2" color="text.secondary" paragraph>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
                 {user.email}
               </Typography>
+              <Box className={styles.memberSince}>
+                <CalendarIcon fontSize="small" color="action" />
+                <Typography variant="caption" color="text.secondary">
+                  Member since {memberSince}
+                </Typography>
+              </Box>
               <Button
                 variant="outlined"
                 startIcon={<EditIcon />}
@@ -129,26 +133,6 @@ const Profile: React.FC = memo(() => {
           {/* Main Content */}
           <Grid size={{ xs: 12, md: 8 }}>
             <Grid container spacing={3}>
-              {/* Stats Cards */}
-              <Grid size={{ xs: 12 }}>
-                <Grid container spacing={2}>
-                  {stats.map((stat, index) => (
-                    <Grid size={{ xs: 12, sm: 4 }} key={index}>
-                      <Card variant="outlined">
-                        <CardContent className={styles.statCardContent}>
-                          <Typography variant="h4" color="primary" gutterBottom>
-                            {stat.value}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {stat.label}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Grid>
-              
               {/* Personal Information */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Paper elevation={2} className={styles.contentPaper}>
@@ -203,32 +187,19 @@ const Profile: React.FC = memo(() => {
                     Quick Actions
                   </Typography>
                   <List>
-                    {menuItems.map((item, index) => (
+                    {menuItems.map((item) => (
                       <ListItem
-                        key={index}
-                        component="a"
-                        href={item.path}
+                        key={item.path}
+                        component={RouterLink}
+                        to={item.path}
                         className={styles.quickActionItem}
                       >
                         <ListItemIcon>{item.icon}</ListItemIcon>
                         <ListItemText primary={item.label} />
+                        <ChevronRightIcon color="disabled" fontSize="small" />
                       </ListItem>
                     ))}
                   </List>
-                </Paper>
-              </Grid>
-              
-              {/* Recent Activity */}
-              <Grid size={{ xs: 12 }}>
-                <Paper elevation={2} className={styles.contentPaper}>
-                  <Typography variant="h6" gutterBottom>
-                    Recent Activity
-                  </Typography>
-                  <Box className={styles.recentActivityBox}>
-                    <Typography variant="body2" color="text.secondary">
-                      Your recent activity will appear here
-                    </Typography>
-                  </Box>
                 </Paper>
               </Grid>
             </Grid>

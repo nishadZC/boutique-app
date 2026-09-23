@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" font-family="Helvetica, Arial, sans-serif">
+  <rect width="1024" height="1024" fill="#f0eee9"/>
+
+  <!-- top-down foot/shoe outline -->
+  <g transform="translate(512,500)" stroke="#333" stroke-width="3" fill="#ffffff">
+    <path d="M0 -380
+             C 90 -380 130 -300 128 -220
+             C 126 -140 96 -80 100 0
+             C 104 90 130 170 110 260
+             C 95 330 40 380 0 380
+             C -40 380 -95 330 -110 260
+             C -130 170 -104 90 -100 0
+             C -96 -80 -126 -140 -128 -220
+             C -130 -300 -90 -380 0 -380 Z"/>
+  </g>
+
+  <!-- FOOT LENGTH vertical dashed arrow -->
+  <g font-size="18" fill="#1a1a1a" stroke="none">
+    <line x1="200" y1="120" x2="200" y2="880" stroke="#333" stroke-dasharray="6,5" stroke-width="1.5"/>
+    <line x1="190" y1="120" x2="210" y2="120" stroke="#333" stroke-width="1.5"/>
+    <line x1="190" y1="880" x2="210" y2="880" stroke="#333" stroke-width="1.5"/>
+    <text x="150" y="500" text-anchor="middle" font-weight="700" transform="rotate(-90 150 500)">FOOT LENGTH</text>
+  </g>
+
+  <!-- FOOT WIDTH horizontal dashed arrow -->
+  <g font-size="18" fill="#1a1a1a" stroke="none">
+    <line x1="382" y1="570" x2="642" y2="570" stroke="#333" stroke-dasharray="6,5" stroke-width="1.5"/>
+    <line x1="382" y1="560" x2="382" y2="580" stroke="#333" stroke-width="1.5"/>
+    <line x1="642" y1="560" x2="642" y2="580" stroke="#333" stroke-width="1.5"/>
+    <text x="512" y="610" text-anchor="middle" font-weight="700">FOOT WIDTH</text>
+  </g>
+
+  <text x="512" y="960" text-anchor="middle" font-size="14" fill="#555">Trace your foot on paper, then measure length (heel to toe) and width (widest point).</text>
+</svg>

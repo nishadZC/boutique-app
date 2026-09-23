@@ -6,6 +6,22 @@ import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useToast } from '../contexts/ToastContext';
 import { isValidMeasurement, MEASUREMENT_LIMITS, MeasurementField } from '../utils/measurements';
+import { getGarmentType } from '../utils/productSizing';
+
+export const SIZE_GUIDE_IMAGES: Record<'shirt' | 'trousers' | 'shoes', { src: string; alt: string }[]> = {
+  shirt: [
+    { src: '/images/size_chart.jpg', alt: 'Shirt size chart' },
+    { src: '/images/measurement_guide.jpg', alt: 'Shirt measurement guide' },
+  ],
+  trousers: [
+    { src: '/images/size-guide/trousers-chart.svg', alt: 'Trousers size chart' },
+    { src: '/images/size-guide/trousers-diagram.svg', alt: 'Trousers measurement guide' },
+  ],
+  shoes: [
+    { src: '/images/size-guide/shoes-chart.svg', alt: 'Shoes size chart' },
+    { src: '/images/size-guide/shoes-diagram.svg', alt: 'Shoes measurement guide' },
+  ],
+};
 
 export const useProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -83,6 +99,8 @@ export const useProductDetail = () => {
   };
 
   const isShirt = product ? (product.category.toLowerCase().includes('shirt') || product.name.toLowerCase().includes('shirt')) : false;
+  const sizeGuideType = product ? getGarmentType(product) : null;
+  const sizeGuideImages = sizeGuideType ? SIZE_GUIDE_IMAGES[sizeGuideType] : [];
 
   return {
     product,
@@ -94,6 +112,8 @@ export const useProductDetail = () => {
     customMeasurements,
     relatedProducts,
     isShirt,
+    sizeGuideType,
+    sizeGuideImages,
     navigate,
     handleAddToCart,
     handleQuantityChange,

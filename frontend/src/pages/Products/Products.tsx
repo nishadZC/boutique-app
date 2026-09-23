@@ -71,7 +71,7 @@ const Products = memo(function Products() {
               </Button>
             </Box>
 
-            <Grid container spacing={viewMode === 'list' ? 2 : 4}>
+            <Grid container spacing={viewMode === 'list' ? 2 : 2.5}>
               {pagedProducts.map(product => (
                 <Grid key={product.id} size={{ xs: viewMode === 'list' ? 12 : 6, md: viewMode === 'list' ? 12 : 4, lg: viewMode === 'list' ? 12 : 3 }}>
                   <ProductCard product={product} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} isInWishlist={isInWishlist(product.id)} variant={viewMode} />

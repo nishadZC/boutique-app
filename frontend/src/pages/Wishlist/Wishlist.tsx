@@ -56,7 +56,7 @@ const Wishlist = memo(function Wishlist() {
         ) : (
           <Box>
             <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>{productIds.length} {productIds.length === 1 ? 'item' : 'items'} saved</Typography>
-            <Grid container spacing={4}>
+            <Grid container spacing={2.5}>
               {wishlistProducts.map(product => (
                 <Grid key={product.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                   <ProductCard

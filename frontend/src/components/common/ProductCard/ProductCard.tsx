@@ -116,9 +116,11 @@ const ProductCard = memo<ProductCardProps>(function ProductCard({
         <Typography variant="h6" component="h3" className={`${styles.name} ${variant === 'list' ? styles.nameList : ''}`}>
           {product.name}
         </Typography>
-        <Typography variant="body2" color="text.secondary" className={`${styles.description} ${variant === 'list' ? styles.descList : ''}`}>
-          {product.description}
-        </Typography>
+        {variant === 'list' && (
+          <Typography variant="body2" color="text.secondary" className={`${styles.description} ${styles.descList}`}>
+            {product.description}
+          </Typography>
+        )}
         {!!product.rating && <StarRating rating={product.rating} count={product.reviewCount ?? 0} />}
         <Box className={styles.priceRow}>
           <Typography variant="h6" color="primary" fontWeight="bold" className={styles.price}>₹{formattedPrice}</Typography>
