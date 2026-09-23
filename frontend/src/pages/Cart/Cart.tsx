@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -50,7 +51,14 @@ const Cart: React.FC = memo(() => {
     subtotal,
     shipping,
     tax,
+    unselectedKeys,
+    toggleItemSelection,
+    toggleAllSelection,
+    selectedCartItems,
+    getItemKey,
   } = useCartPage();
+
+  const navigate = useNavigate();
 
   if (items.length === 0) {
     return (
@@ -88,81 +96,112 @@ const Cart: React.FC = memo(() => {
 
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 8 }}>
-            <Paper elevation={0} className={styles.cartItemsPaper}>
-              {items.map((item, index) => (
-                <Box key={`${item.id}-${item.selectedSize || 'one-size'}`}>
-                  <Box className={styles.cartItemBox}>
-                    <Grid container spacing={3} alignItems="center">
-                      <Grid size={{ xs: 12, sm: 2 }}>
-                        <CardMedia
-                          component="img"
-                          className={styles.cartItemMedia}
-                          image={item.imageUrl || fallbackImage}
-                          onError={(event) => {
-                            if (event.currentTarget.src !== fallbackImage) event.currentTarget.src = fallbackImage;
+            <Paper elevation={0} className={styles.cartItemsPaper} sx={{ p: 0, overflow: 'hidden' }}>
+              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(0,0,0,0.08)', bgcolor: '#fafafa' }}>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  {items.length - unselectedKeys.size} of {items.length} Selected
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={toggleAllSelection}
+                  sx={{
+                    color: '#1a1a1a',
+                    borderColor: '#ccc',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    '&:hover': { borderColor: '#1a1a1a', bgcolor: 'rgba(0,0,0,0.02)' }
+                  }}
+                >
+                  {unselectedKeys.size === 0 && items.length > 0 ? 'Deselect All' : 'Select All'}
+                </Button>
+              </Box>
+
+              <Box sx={{ p: 2 }}>
+                {items.map((item) => (
+                  <Box key={`${item.id}-${item.selectedSize || 'one-size'}`} sx={{ mb: 3 }}>
+                    <Box className={styles.cartItemBox} sx={{ p: 0, overflow: 'hidden' }}>
+                      <Box sx={{ display: 'flex', gap: 3, p: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+                        <Box onClick={() => navigate(`/products/${item.id}`)} sx={{ cursor: 'pointer', flexShrink: 0 }}>
+                          <CardMedia
+                            component="img"
+                            className={styles.cartItemMedia}
+                            sx={{ width: { xs: 100, sm: 120 }, height: { xs: 100, sm: 120 } }}
+                            image={item.imageUrl || fallbackImage}
+                            onError={(event) => {
+                              if (event.currentTarget.src !== fallbackImage) event.currentTarget.src = fallbackImage;
+                            }}
+                            alt={item.name}
+                          />
+                        </Box>
+
+                        <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                            <Box>
+                              <Typography variant="h6" className={styles.itemTitle} noWrap sx={{ cursor: 'pointer', mb: 0.5, '&:hover': { color: 'primary.main' } }} onClick={() => navigate(`/products/${item.id}`)}>
+                                {item.name}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" className={styles.itemCategory}>
+                                {item.category} {item.selectedSize && `| Size: ${item.selectedSize}`}
+                              </Typography>
+                            </Box>
+                            <Typography variant="h6" className={styles.itemTotalPrice} sx={{ pl: 2 }}>
+                              ₹{((typeof item.price === 'string' ? parseFloat(item.price) : item.price) * item.quantity).toFixed(2)}
+                            </Typography>
+                          </Box>
+
+                          <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', md: '-webkit-box' }, WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', mb: 2 }}>
+                            {item.shortDescription || item.description || 'Premium quality product.'}
+                          </Typography>
+
+                          <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Qty:</Typography>
+                            <Box className={styles.quantityBox}>
+                              <IconButton onClick={() => handleQuantityChange(item.id, -1, item.selectedSize)} disabled={item.quantity <= 1} size="small" sx={{ border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                                <RemoveIcon fontSize="small" />
+                              </IconButton>
+                              <Typography sx={{ fontWeight: 600, minWidth: '1.5rem', textAlign: 'center' }}>{item.quantity}</Typography>
+                              <IconButton onClick={() => handleQuantityChange(item.id, 1, item.selectedSize)} disabled={item.quantity >= item.inventory} size="small" sx={{ border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                                <AddIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            {item.inventory <= 5 && item.inventory > 0 && (
+                              <Typography variant="caption" color="warning.main" sx={{ ml: 2, fontWeight: 500 }}>
+                                Only {item.inventory} left!
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      </Box>
+
+                      {/* Bottom Actions */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', borderTop: '1px solid rgba(0,0,0,0.08)', bgcolor: '#fafafa' }}>
+                        <Button
+                          fullWidth
+                          sx={{ py: 1.5, borderRadius: 0, color: 'error.main', fontWeight: 600, borderRight: '1px solid rgba(0,0,0,0.08)', '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.04)' } }}
+                          onClick={() => handleRemoveItem(item.id, item.name, item.selectedSize)}
+                          startIcon={<DeleteIcon fontSize="small" />}
+                        >
+                          REMOVE
+                        </Button>
+                        <Button
+                          fullWidth
+                          sx={{
+                            py: 1.5, borderRadius: 0, fontWeight: 600,
+                            color: !unselectedKeys.has(getItemKey(item.id, item.selectedSize)) ? '#1a1a1a' : 'text.secondary',
+                            bgcolor: !unselectedKeys.has(getItemKey(item.id, item.selectedSize)) ? 'rgba(0,0,0,0.03)' : 'transparent',
+                            '&:hover': { bgcolor: 'rgba(0,0,0,0.06)' }
                           }}
-                          alt={item.name}
-                        />
-                      </Grid>
-
-                      <Grid size={{ xs: 12, sm: 5 }}>
-                        <Typography variant="h6" className={styles.itemTitle}>
-                          {item.name}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" className={styles.itemCategory}>
-                          {item.category}
-                        </Typography>
-                        <Typography variant="body1" color="primary" className={styles.itemPriceText}>
-                          ₹{typeof item.price === 'string' ? parseFloat(item.price).toFixed(2) : item.price.toFixed(2)} each
-                        </Typography>
-                      </Grid>
-
-                      <Grid size={{ xs: 12, sm: 3 }}>
-                        <Box className={styles.quantityBox}>
-                          <IconButton
-                            onClick={() => handleQuantityChange(item.id, -1, item.selectedSize)}
-                            disabled={item.quantity <= 1}
-                            className={styles.quantityIconButton}
-                          >
-                            <RemoveIcon />
-                          </IconButton>
-                          <Typography className={styles.quantityText}>
-                            {item.quantity}
-                          </Typography>
-                          <IconButton
-                            onClick={() => handleQuantityChange(item.id, 1, item.selectedSize)}
-                            disabled={item.quantity >= item.inventory}
-                            className={styles.quantityIconButton}
-                          >
-                            <AddIcon />
-                          </IconButton>
-                        </Box>
-                        {item.inventory <= 5 && item.inventory > 0 && (
-                          <Typography variant="caption" color="warning.main">
-                            Only {item.inventory} left in stock!
-                          </Typography>
-                        )}
-                      </Grid>
-
-                      <Grid size={{ xs: 12, sm: 2 }}>
-                        <Box className={styles.itemTotalBox}>
-                          <Typography variant="h6" className={styles.itemTotalPrice}>
-                            ₹{((typeof item.price === 'string' ? parseFloat(item.price) : item.price) * item.quantity).toFixed(2)}
-                          </Typography>
-                          <IconButton
-                            onClick={() => handleRemoveItem(item.id, item.name, item.selectedSize)}
-                            color="error"
-                            className={styles.removeButton}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Box>
-                      </Grid>
-                    </Grid>
+                          onClick={() => toggleItemSelection(item.id, item.selectedSize)}
+                        >
+                          {!unselectedKeys.has(getItemKey(item.id, item.selectedSize)) ? 'SELECTED' : 'SELECT'}
+                        </Button>
+                      </Box>
+                    </Box>
                   </Box>
-                  {index < items.length - 1 && <Divider />}
-                </Box>
-              ))}
+                ))}
+              </Box>
             </Paper>
 
             <Box className={styles.cartActionsBox}>
@@ -287,7 +326,7 @@ const Cart: React.FC = memo(() => {
                   fullWidth
                   size="large"
                   onClick={handleCheckout}
-                  disabled={isCheckingOut}
+                  disabled={isCheckingOut || selectedCartItems.length === 0 || !phone.trim() || !addressFields.street.trim()}
                   className={styles.checkoutButton}
                 >
                   Proceed to Checkout

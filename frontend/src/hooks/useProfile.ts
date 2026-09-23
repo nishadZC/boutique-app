@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { AddressFields, SavedAddress } from '../types/address';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../constants/routes';
 
 function parseAddressFields(address?: string): AddressFields {
   if (!address) return { houseNumber: '', street: '', city: '', state: '', postalCode: '', country: '' };
@@ -66,7 +67,7 @@ export function useProfile() {
 
   const handleLogout = useCallback(async () => {
     await logout();
-    navigate('/login');
+    navigate(ROUTES.HOME);
   }, [logout, navigate]);
 
   return {

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { AUTH_REQUIRED_EVENT } from '../constants/events';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -44,7 +45,9 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        // No dedicated /login route - ask the global auth modal to open
+        // in place, on whatever page the user is currently on.
+        window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT));
       }
     }
     

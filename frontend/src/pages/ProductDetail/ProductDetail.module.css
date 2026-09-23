@@ -142,12 +142,14 @@
 .customizeButtonActive {
   min-width: 120px;
   height: 40px;
-  background-color: #d4af37 !important;
-  color: #fff !important;
+  background-color: #fff !important;
+  border: 1px solid #c62828 !important;
+  color: #c62828 !important;
   transition: all 0.3s ease;
 }
 .customizeButtonActive:hover {
-  background-color: #b8941f !important;
+  background-color: #fff5f5 !important;
+  border-color: #b71c1c !important;
 }
 
 .customizeButtonInactive {

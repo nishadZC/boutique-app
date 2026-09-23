@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { useAuthModal } from './AuthModalContext';
 import { Product } from '../types';
 import { useToast } from './ToastContext';
 
@@ -18,6 +18,7 @@ interface CartState {
 type CartAction =
   | { type: 'ADD_ITEM'; payload: { product: Product; selectedSize?: string } }
   | { type: 'REMOVE_ITEM'; payload: { id: string; selectedSize?: string } }
+  | { type: 'REMOVE_ITEMS'; payload: { id: string; selectedSize?: string }[] }
   | { type: 'UPDATE_QUANTITY'; payload: { id: string; selectedSize?: string; quantity: number } }
   | { type: 'CLEAR_CART' };
 
@@ -102,13 +103,26 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       };
     }
     
+    case 'REMOVE_ITEMS': {
+      const itemsToRemove = action.payload;
+      const newItems = state.items.filter(item =>
+        !itemsToRemove.some(toRemove => toRemove.id === item.id && toRemove.selectedSize === item.selectedSize)
+      );
+      return {
+        ...state,
+        items: newItems,
+        total: calculateTotal(newItems),
+        itemCount: calculateItemCount(newItems),
+      };
+    }
+
     case 'CLEAR_CART':
       return {
         items: [],
         total: 0,
         itemCount: 0,
       };
-    
+
     default:
       return state;
   }
@@ -126,6 +140,7 @@ const calculateItemCount = (items: CartItem[]): number =>
 interface CartContextType extends CartState {
   addItem: (product: Product, selectedSize?: string, showFeedback?: boolean) => boolean;
   removeItem: (productId: string, selectedSize?: string) => void;
+  removeItems: (items: { id: string; selectedSize?: string }[]) => void;
   updateQuantity: (productId: string, selectedSize: string | undefined, quantity: number) => void;
   clearCart: () => void;
 }
@@ -134,7 +149,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialState);
-  const navigate = useNavigate();
+  const { openLoginModal } = useAuthModal();
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const { showToast } = useToast();
 
@@ -153,7 +168,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addItem = (product: Product, selectedSize?: string, showFeedback = true): boolean => {
     if (!isAuthenticated) {
       showToast('Please sign in to add products to your cart.', 'warning');
-      navigate('/login');
+      openLoginModal();
       return false;
     }
     dispatch({ type: 'ADD_ITEM', payload: { product, selectedSize } });
@@ -163,6 +178,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const removeItem = (productId: string, selectedSize?: string) => {
     dispatch({ type: 'REMOVE_ITEM', payload: { id: productId, selectedSize } });
+  };
+
+  const removeItems = (items: { id: string; selectedSize?: string }[]) => {
+    dispatch({ type: 'REMOVE_ITEMS', payload: items });
   };
 
   const updateQuantity = (productId: string, selectedSize: string | undefined, quantity: number) => {
@@ -175,7 +194,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <CartContext.Provider
-      value={{ ...state, addItem, removeItem, updateQuantity, clearCart }}
+      value={{ ...state, addItem, removeItem, removeItems, updateQuantity, clearCart }}
     >
       {children}
     </CartContext.Provider>

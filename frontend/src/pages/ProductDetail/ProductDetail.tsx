@@ -32,9 +32,17 @@ import {
   FavoriteBorder as WishlistIcon,
 } from '@mui/icons-material';
 import { getSizeOptions } from '../../utils/productSizing';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import { MeasurementField } from '../../utils/measurements';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton/LoadingSkeleton';
 import { useProductDetail } from '../../hooks/useProductDetail';
 import styles from './ProductDetail.module.css';
+
+const MEASUREMENT_FIELDS: { field: MeasurementField; label: string; placeholder: string }[] = [
+  { field: 'shoulder', label: 'Shoulder (cm)', placeholder: 'e.g. 45' },
+  { field: 'chest', label: 'Chest (cm)', placeholder: 'e.g. 100' },
+  { field: 'sleeve', label: 'Sleeve (cm)', placeholder: 'e.g. 64' },
+  { field: 'neck', label: 'Neck (cm)', placeholder: 'e.g. 40' },
+];
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -76,7 +84,8 @@ const ProductDetail: React.FC = memo(() => {
     setIsCustomizing,
     setCustomMeasurements,
     toggleWishlist,
-    isInWishlist
+    isInWishlist,
+    measurementLimits
   } = useProductDetail();
 
   if (loading) {
@@ -240,9 +249,15 @@ const ProductDetail: React.FC = memo(() => {
                       
                       {isShirt && (
                         <Button
-                          variant={isCustomizing ? "contained" : "outlined"}
+                          variant="outlined"
                           onClick={() => setIsCustomizing(!isCustomizing)}
                           className={isCustomizing ? styles.customizeButtonActive : styles.customizeButtonInactive}
+                          sx={isCustomizing ? {
+                            backgroundColor: '#fff !important',
+                            border: '1px solid #c62828 !important',
+                            color: '#c62828 !important',
+                            '&:hover': { backgroundColor: '#fff5f5 !important', borderColor: '#b71c1c !important' },
+                          } : undefined}
                         >
                           {isCustomizing ? 'Cancel' : 'Customize'}
                         </Button>
@@ -255,50 +270,21 @@ const ProductDetail: React.FC = memo(() => {
                           Enter your exact measurements (cm)
                         </Typography>
                         <Grid container spacing={2}>
-                          <Grid size={{ xs: 6, sm: 3 }}>
-                            <TextField 
-                              size="small" 
-                              label="Shoulder (cm)" 
-                              placeholder="e.g. 45"
-                              value={customMeasurements.shoulder}
-                              onChange={(e) => setCustomMeasurements({...customMeasurements, shoulder: e.target.value})}
-                              fullWidth
-                              InputProps={{ className: styles.textFieldInput }}
-                            />
-                          </Grid>
-                          <Grid size={{ xs: 6, sm: 3 }}>
-                            <TextField 
-                              size="small" 
-                              label="Chest (cm)" 
-                              placeholder="e.g. 100"
-                              value={customMeasurements.chest}
-                              onChange={(e) => setCustomMeasurements({...customMeasurements, chest: e.target.value})}
-                              fullWidth
-                              InputProps={{ className: styles.textFieldInput }}
-                            />
-                          </Grid>
-                          <Grid size={{ xs: 6, sm: 3 }}>
-                            <TextField 
-                              size="small" 
-                              label="Sleeve (cm)" 
-                              placeholder="e.g. 64"
-                              value={customMeasurements.sleeve}
-                              onChange={(e) => setCustomMeasurements({...customMeasurements, sleeve: e.target.value})}
-                              fullWidth
-                              InputProps={{ className: styles.textFieldInput }}
-                            />
-                          </Grid>
-                          <Grid size={{ xs: 6, sm: 3 }}>
-                            <TextField 
-                              size="small" 
-                              label="Neck (cm)" 
-                              placeholder="e.g. 40"
-                              value={customMeasurements.neck}
-                              onChange={(e) => setCustomMeasurements({...customMeasurements, neck: e.target.value})}
-                              fullWidth
-                              InputProps={{ className: styles.textFieldInput }}
-                            />
-                          </Grid>
+                          {MEASUREMENT_FIELDS.map(({ field, label, placeholder }) => (
+                            <Grid size={{ xs: 6, sm: 3 }} key={field}>
+                              <TextField
+                                size="small"
+                                type="number"
+                                inputProps={{ min: measurementLimits[field].min, max: measurementLimits[field].max, step: '0.01' }}
+                                label={label}
+                                placeholder={placeholder}
+                                value={customMeasurements[field]}
+                                onChange={(e) => setCustomMeasurements({ ...customMeasurements, [field]: e.target.value })}
+                                fullWidth
+                                InputProps={{ className: styles.textFieldInput }}
+                              />
+                            </Grid>
+                          ))}
                         </Grid>
                       </Box>
                     )}

@@ -17,16 +17,31 @@ const formatDate = (value: string): string => new Date(value).toLocaleDateString
   day: '2-digit', month: 'long', year: 'numeric',
 });
 
+// jsPDF's addImage needs rasterized PNG/JPEG data, so the brand SVG is drawn
+// onto an offscreen canvas at a higher resolution than its placed size for
+// a crisp result, rather than pulling in the generic CRA logo192.png icon.
 const loadLogo = async (): Promise<string | null> => {
   try {
-    const response = await fetch(`${import.meta.env.BASE_URL}logo192.png`);
+    const response = await fetch(`${import.meta.env.BASE_URL}lux-atelier-logo.svg`);
     if (!response.ok) return null;
-    const blob = await response.blob();
+    const svgText = await response.text();
+    const svgUrl = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
+
     return await new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const size = 256;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        URL.revokeObjectURL(svgUrl);
+        if (!ctx) { resolve(null); return; }
+        ctx.drawImage(img, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => { URL.revokeObjectURL(svgUrl); resolve(null); };
+      img.src = svgUrl;
     });
   } catch {
     return null;

@@ -34,9 +34,11 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import { AddressForm } from '../../components/AddressForm/AddressForm';
 import { useProfile } from '../../hooks/useProfile';
+import { useAuthModal } from '../../contexts/AuthModalContext';
 import styles from './Profile.module.css';
 
 const Profile: React.FC = memo(() => {
+  const { openLoginModal } = useAuthModal();
   const {
     user,
     editOpen,
@@ -57,7 +59,7 @@ const Profile: React.FC = memo(() => {
           <Typography variant="h4" gutterBottom>
             Please log in to view your profile
           </Typography>
-          <Button variant="contained" href="/login">
+          <Button variant="contained" onClick={() => openLoginModal()}>
             Sign In
           </Button>
         </Box>

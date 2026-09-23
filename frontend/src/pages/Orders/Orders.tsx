@@ -16,6 +16,7 @@ import {
   Divider,
   List,
   ListItem,
+  ListItemButton,
   ListItemText,
   ListItemIcon,
   Accordion,
@@ -33,8 +34,9 @@ import {
   Star as StarIcon,
   ShoppingBag as ShoppingBagIcon,
 } from '@mui/icons-material';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton/LoadingSkeleton';
 import { useOrders } from '../../hooks/useOrders';
+import { useAuthModal } from '../../contexts/AuthModalContext';
 import styles from './Orders.module.css';
 
 const getStatusIcon = (status: string) => {
@@ -51,6 +53,7 @@ const getStatusIcon = (status: string) => {
 };
 
 const Orders: React.FC = memo(() => {
+  const { openLoginModal } = useAuthModal();
   const {
     user,
     orders,
@@ -67,7 +70,7 @@ const Orders: React.FC = memo(() => {
           <Typography variant="h4" gutterBottom>
             Please log in to view your orders
           </Typography>
-          <Button variant="contained" href="/login">
+          <Button variant="contained" onClick={() => openLoginModal()}>
             Sign In
           </Button>
         </Box>
@@ -148,7 +151,7 @@ const Orders: React.FC = memo(() => {
                           })}
                         </Typography>
                       </Box>
-                      
+
                       <Box className={styles.orderHeaderActions}>
                         <Chip
                           icon={order.paymentStatus === 'paid' ? undefined : getStatusIcon(order.status)}
@@ -179,33 +182,64 @@ const Orders: React.FC = memo(() => {
                           </Typography>
                         </Box>
                       </AccordionSummary>
-                      <AccordionDetails>
-                        <List>
-                          {order.items.map((item, index) => (
-                            <Box key={item.id}>
-                              <ListItem className={styles.listItem}>
-                                <ListItemIcon className={styles.listItemIcon}>
-                                  <CardMedia
-                                    component="img"
-                                    className={styles.itemImage}
-                                    image={item.product.imageUrl}
-                                    alt={item.product.name}
-                                  />
-                                </ListItemIcon>
-                                <ListItemText
-                                  primary={item.product.name}
-                                  secondary={`Size: ${item.size || 'One Size'} | Quantity: ${item.quantity} x ₹${typeof item.price === 'string' ? parseFloat(item.price).toFixed(2) : item.price.toFixed(2)}`}
-                                  primaryTypographyProps={{ variant: 'subtitle2' }}
-                                  secondaryTypographyProps={{ variant: 'body2' }}
+                      <AccordionDetails sx={{ p: { xs: 1, sm: 2 } }}>
+                        {order.items.map((item, index) => (
+                          <Box key={item.id} sx={{ mb: index !== order.items.length - 1 ? 2 : 0 }}>
+                            <Box
+                              sx={{
+                                p: 2,
+                                overflow: 'hidden',
+                                border: '1px solid rgba(0,0,0,0.08)',
+                                borderRadius: 2,
+                                display: 'flex',
+                                gap: 3,
+                                flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                                bgcolor: 'background.paper',
+                                '&:hover': { bgcolor: 'rgba(0,0,0,0.02)' }
+                              }}
+                            >
+                              <Box onClick={() => navigate(`/products/${item.product.id}`)} sx={{ cursor: 'pointer', flexShrink: 0 }}>
+                                <CardMedia
+                                  component="img"
+                                  sx={{ width: { xs: 80, sm: 100 }, height: { xs: 80, sm: 100 }, borderRadius: 1, objectFit: 'cover' }}
+                                  image={item.product.imageUrl || 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg'}
+                                  alt={item.product.name}
                                 />
-                                <Typography variant="subtitle1" className={styles.itemPrice}>
-                                  ₹{((typeof item.price === 'string' ? parseFloat(item.price) : item.price) * item.quantity).toFixed(2)}
+                              </Box>
+
+                              <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                                  <Box>
+                                    <Typography
+                                      variant="h6"
+                                      noWrap
+                                      sx={{
+                                        cursor: 'pointer',
+                                        mb: 0.5,
+                                        fontSize: '1.1rem',
+                                        fontWeight: 600,
+                                        '&:hover': { color: 'primary.main' }
+                                      }}
+                                      onClick={() => navigate(`/products/${item.product.id}`)}
+                                    >
+                                      {item.product.name}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                      {item.product.category || 'Product'} {item.size && `| Size: ${item.size}`} | Qty: {item.quantity}
+                                    </Typography>
+                                  </Box>
+                                  <Typography variant="h6" sx={{ pl: 2, fontWeight: 700, fontSize: '1.1rem' }}>
+                                    ₹{((typeof item.price === 'string' ? parseFloat(item.price) : item.price) * item.quantity).toFixed(2)}
+                                  </Typography>
+                                </Box>
+
+                                <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', md: '-webkit-box' }, WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                  {item.product.shortDescription || item.product.description || 'Premium quality product.'}
                                 </Typography>
-                              </ListItem>
-                              {index < order.items.length - 1 && <Divider />}
+                              </Box>
                             </Box>
-                          ))}
-                        </List>
+                          </Box>
+                        ))}
                       </AccordionDetails>
                     </Accordion>
 
@@ -239,7 +273,7 @@ const Orders: React.FC = memo(() => {
                           </Button>
                         )}
                       </Box>
-                      
+
                       <Typography variant="body2" color="text.secondary">
                         Est. Delivery: {new Date(
                           new Date(order.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000

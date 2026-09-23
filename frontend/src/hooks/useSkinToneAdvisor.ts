@@ -1,16 +1,17 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { recommendationService, RecommendationResult } from 'services/skinToneService';
-
-export type StepId = 'choose' | 'preview' | 'analyzing' | 'results';
+import { recommendationService } from 'services/skinToneService';
+import { useSkinToneAdvisorState } from 'contexts/SkinToneAdvisorContext';
 
 export const useSkinToneAdvisor = () => {
-  const [step, setStep] = useState<StepId>('choose');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<RecommendationResult | null>(null);
-  const [outfitTab, setOutfitTab] = useState<'outfits' | 'individual'>('outfits');
+  const {
+    step, setStep,
+    imageFile, setImageFile,
+    previewUrl, setPreviewUrl,
+    error, setError,
+    result, setResult,
+    outfitTab, setOutfitTab,
+  } = useSkinToneAdvisorState();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -103,14 +104,6 @@ export const useSkinToneAdvisor = () => {
       fileInputRef.current.value = '';
     }
   };
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
 
   return {
     step,

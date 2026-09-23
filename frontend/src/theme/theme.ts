@@ -98,7 +98,33 @@ export const theme = createTheme({
     MuiChip: { styleOverrides: { root: { borderRadius: 16, fontWeight: 500 } } },
     MuiAppBar: {
       styleOverrides: {
-        root: { backgroundColor: BRAND.WHITE, color: BRAND.DARK, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderBottom: `1px solid ${BRAND.BORDER}` },
+        root: {
+          backgroundColor: 'rgba(255, 255, 255, 0.85)',
+          backdropFilter: 'blur(12px)',
+          color: BRAND.DARK,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+          borderBottom: `1px solid rgba(255, 255, 255, 0.3)`
+        },
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          margin: '4px 12px',
+          padding: '8px 16px',
+          transition: 'all 0.2s ease-in-out',
+          '&.Mui-selected': {
+            backgroundColor: 'rgba(212, 175, 55, 0.12)', // gold transparent
+            color: BRAND.GOLD_DARK,
+            '& .MuiListItemIcon-root': {
+              color: BRAND.GOLD_DARK,
+            }
+          },
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+          }
+        },
       },
     },
     MuiToolbar: { styleOverrides: { root: { minHeight: 72 } } },

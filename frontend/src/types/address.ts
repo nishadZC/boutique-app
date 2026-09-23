@@ -28,7 +28,15 @@ export const formatAddress = (address: AddressFields): string =>
     .filter(Boolean)
     .join(', ');
 
-export const addressFromString = (value?: string): AddressFields => ({
-  ...emptyAddress,
-  street: value || '',
-});
+export const addressFromString = (value?: string): AddressFields => {
+  if (!value) return { ...emptyAddress };
+  const parts = value.split(',').map(part => part.trim());
+  return {
+    houseNumber: parts[0] || '',
+    street: parts[1] || '',
+    city: parts[2] || '',
+    state: parts[3] || '',
+    postalCode: parts[4] || '',
+    country: parts[5] || 'India',
+  };
+};

@@ -12,6 +12,7 @@ interface CheckoutOptions {
   phone: string;
   setAddressError: (message: string) => void;
   onAddressSaved: () => void;
+  checkoutItems: any[];
 }
 
 interface RazorpayResponse {
@@ -20,13 +21,13 @@ interface RazorpayResponse {
   razorpay_signature: string;
 }
 
-export const useCheckout = ({ address, phone, setAddressError, onAddressSaved }: CheckoutOptions) => {
-  const { items, clearCart } = useCart();
+export const useCheckout = ({ address, phone, setAddressError, onAddressSaved, checkoutItems }: CheckoutOptions) => {
+  const { removeItems } = useCart();
   const { user, updateProfile } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const { total: finalTotal } = calculateCartTotals(items);
+  const { total: finalTotal } = calculateCartTotals(checkoutItems);
 
   const handleCheckout = async (): Promise<void> => {
     if (!address.trim()) {
@@ -55,7 +56,7 @@ export const useCheckout = ({ address, phone, setAddressError, onAddressSaved }:
       }
 
       const order = await orderService.createOrder({
-        items: items.map(item => ({
+        items: checkoutItems.map(item => ({
           productId: item.id,
           quantity: item.quantity,
           selectedSize: item.selectedSize,
@@ -93,7 +94,7 @@ export const useCheckout = ({ address, phone, setAddressError, onAddressSaved }:
 
       showToast('Payment successful. Your order is confirmed.', 'success');
       onAddressSaved();
-      clearCart();
+      removeItems(checkoutItems.map(item => ({ id: item.id, selectedSize: item.selectedSize })));
       navigate('/orders');
     } catch (error) {
       console.error('Failed to create order:', error);

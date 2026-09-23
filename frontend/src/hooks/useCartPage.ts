@@ -10,7 +10,30 @@ export const useCartPage = () => {
   const { items, removeItem, updateQuantity, clearCart } = useCart();
   const { user } = useAuth();
   const { showToast } = useToast();
-  
+
+  const getItemKey = (id: string, size?: string) => `${id}|${size || ''}`;
+  const [unselectedKeys, setUnselectedKeys] = useState<Set<string>>(new Set());
+
+  const toggleItemSelection = (id: string, size?: string) => {
+    const key = getItemKey(id, size);
+    setUnselectedKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleAllSelection = () => {
+    if (unselectedKeys.size === 0) {
+      setUnselectedKeys(new Set(items.map(item => getItemKey(item.id, item.selectedSize))));
+    } else {
+      setUnselectedKeys(new Set());
+    }
+  };
+
+  const selectedCartItems = items.filter(item => !unselectedKeys.has(getItemKey(item.id, item.selectedSize)));
+
   const [addressFields, setAddressFields] = useState<AddressFields>(() => addressFromString(user?.address));
   const [phone, setPhone] = useState(user?.phone || '');
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
@@ -55,6 +78,7 @@ export const useCartPage = () => {
     phone,
     setAddressError,
     onAddressSaved: saveCurrentAddress,
+    checkoutItems: selectedCartItems,
   });
 
   useEffect(() => {
@@ -112,7 +136,7 @@ export const useCartPage = () => {
     showToast(`${productName} removed from your cart.`, 'info');
   };
 
-  const { subtotal, shipping, tax } = calculateCartTotals(items);
+  const { subtotal, shipping, tax } = calculateCartTotals(selectedCartItems);
 
   return {
     items,
@@ -135,5 +159,10 @@ export const useCartPage = () => {
     subtotal,
     shipping,
     tax,
+    unselectedKeys,
+    toggleItemSelection,
+    toggleAllSelection,
+    selectedCartItems,
+    getItemKey,
   };
 };

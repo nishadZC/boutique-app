@@ -5,6 +5,7 @@ import { Product } from '../types';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useToast } from '../contexts/ToastContext';
+import { isValidMeasurement, MEASUREMENT_LIMITS, MeasurementField } from '../utils/measurements';
 
 export const useProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,8 +51,9 @@ export const useProductDetail = () => {
       let finalSize = selectedSize;
       
       if (isCustomizing) {
-        if (!customMeasurements.shoulder || !customMeasurements.chest || !customMeasurements.sleeve || !customMeasurements.neck) {
-          showToast('Please fill out all custom measurements.', 'warning');
+        const fields = Object.keys(customMeasurements) as MeasurementField[];
+        if (fields.some(field => !isValidMeasurement(field, customMeasurements[field]))) {
+          showToast('Enter valid measurements within the allowed ranges.', 'warning');
           return;
         }
         finalSize = `Custom (Shoulder: ${customMeasurements.shoulder}cm, Chest: ${customMeasurements.chest}cm, Sleeve: ${customMeasurements.sleeve}cm, Neck: ${customMeasurements.neck}cm)`;
@@ -100,6 +102,7 @@ export const useProductDetail = () => {
     setIsCustomizing,
     setCustomMeasurements,
     toggleWishlist,
-    isInWishlist
+    isInWishlist,
+    measurementLimits: MEASUREMENT_LIMITS
   };
 };

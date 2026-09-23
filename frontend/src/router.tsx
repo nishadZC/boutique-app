@@ -11,25 +11,23 @@ import Cart            from './pages/Cart/Cart';
 import Wishlist        from './pages/Wishlist/Wishlist';
 import Orders          from './pages/Orders/Orders';
 import Profile         from './pages/Profile/Profile';
-import Login           from './pages/Login/Login';
-import Register        from './pages/Register/Register';
 import SkinToneAdvisor from './pages/SkinToneAdvisor/SkinToneAdvisor';
 
+// No dedicated /login or /register routes - LoginModal (global, via
+// AuthModalContext) handles both in place, on whatever page triggered it.
 export const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<Providers />}>
-      <Route path={ROUTES.LOGIN}    element={<Login />} />
-      <Route path={ROUTES.REGISTER} element={<Register />} />
-
-      <Route path={ROUTES.HOME} element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+      <Route path={ROUTES.HOME} element={<Layout />}>
         <Route index                                  element={<Home />} />
         <Route path="products"                        element={<Products />} />
         <Route path="products/:id"                    element={<ProductDetail />} />
-        <Route path="cart"                            element={<Cart />} />
-        <Route path="wishlist"                        element={<Wishlist />} />
         <Route path="style-advisor"                   element={<SkinToneAdvisor />} />
-        <Route path="profile"                         element={<Profile />} />
-        <Route path="orders"                          element={<Orders />} />
+
+        <Route path="cart"     element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+        <Route path="wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
+        <Route path="profile"  element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="orders"   element={<ProtectedRoute><Orders /></ProtectedRoute>} />
       </Route>
 
       <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />

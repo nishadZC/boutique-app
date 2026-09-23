@@ -1,16 +1,17 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import {
-  Container, Paper, Box, Button, Typography,
-  IconButton, CircularProgress, Chip, Grid, Divider, Alert, Tooltip,
+  Container, Box, Button, Typography,
+  CircularProgress, Chip, Grid, Divider, Alert, Tooltip,
 } from '@mui/material';
 import {
-  Close as CloseIcon, Upload as UploadIcon,
+  Upload as UploadIcon,
   ArrowForward as ArrowIcon, Refresh as RefreshIcon, ShoppingBag as BagIcon,
   CheckroomOutlined as OutfitIcon, ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import { LIGHT_COLORS, getHex } from 'constants/colors';
-import MiniProductCard from './components/MiniProductCard';
+import RecommendedProductsGrid from './components/RecommendedProductsGrid';
 import OutfitCard from './components/OutfitCard';
+import OutfitConfigDialog from './components/OutfitConfigDialog';
 import { useSkinToneAdvisor } from '../../hooks/useSkinToneAdvisor';
 import styles from './SkinToneAdvisor.module.css';
 
@@ -32,41 +33,218 @@ const SkinToneAdvisor: React.FC = memo(() => {
     handleRetry
   } = useSkinToneAdvisor();
 
-  return (
-    <Container component="main" maxWidth="md" sx={{ py: 6 }}>
-      <Paper elevation={3} className={styles.paper}>
-        {/* ── Header ── */}
-        <Box className={styles.header}>
-          <Box>
-            <Typography variant="h5" className={styles.title}>
-              Find Your Style
-            </Typography>
+  // A single shared dialog instance for every outfit card, instead of each
+  // card owning its own Dialog - only the selected outfit's index is tracked.
+  const [selectedOutfitIndex, setSelectedOutfitIndex] = useState<number | null>(null);
 
-            <Box className={styles.breadcrumb}>
-              <Typography variant="body2">Select your photo</Typography>
-              <ChevronRightIcon className={styles.breadcrumbIcon} />
-              <Typography variant="body2">Preview</Typography>
-              <ChevronRightIcon className={styles.breadcrumbIcon} />
-              <Typography variant="body2">Skin tone detected</Typography>
-              <ChevronRightIcon className={styles.breadcrumbIcon} />
-              <Typography variant="body2">Outfit recommendations generated</Typography>
-            </Box>
-          </Box>
+  const fileInput = (
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="image/*"
+      style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }}
+      onChange={handleFileChange}
+    />
+  );
 
-          <IconButton onClick={handleClose} className={styles.closeButton}>
-            <CloseIcon />
-          </IconButton>
+  if (step === 'results' && result) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        {fileInput}
+
+        <Box sx={{ mb: 1 }}>
+          <Typography variant="h3" component="h1" gutterBottom>
+            Your Style Recommendations
+          </Typography>
+          <Typography variant="h6" color="text.secondary">
+            Curated for your skin tone
+          </Typography>
         </Box>
 
-        <Box className={styles.content}>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }}
-            onChange={handleFileChange}
-          />
+        <Box sx={{ mt: 4 }}>
+          <Box className={styles.skinToneCard}>
+            <Box
+              className={styles.swatch}
+              style={{
+                background: result.skinTone.hex,
+                boxShadow: `0 0 24px ${result.skinTone.hex}60`,
+              }}
+            />
 
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" sx={{ color: '#d4af37', fontFamily: '"Playfair Display", serif' }}>
+                {result.skinTone.name} Skin Tone
+              </Typography>
+
+              <Typography variant="body2" sx={{ color: '#666', mt: 0.5 }}>
+                Hex:{' '}
+                <span style={{ color: '#424242', fontWeight: 600 }}>
+                  {result.skinTone.hex}
+                </span>
+                &ensp;·&ensp;Confidence:{' '}
+                <span style={{ color: '#4caf50' }}>
+                  {Math.round(result.skinTone.confidence * 100)}%
+                </span>
+              </Typography>
+
+              {!result.skinTone.faceDetected && (
+                <Typography variant="body2" sx={{ color: '#ff9800', mt: 0.5 }}>
+                  Face not clearly detected — results may be approximate
+                </Typography>
+              )}
+            </Box>
+
+            <Button
+              size="small"
+              startIcon={<RefreshIcon />}
+              variant="outlined"
+              onClick={handleRetry}
+              className={styles.secondaryBtn}
+            >
+              Try Again
+            </Button>
+          </Box>
+
+          <Typography variant="subtitle1" className={styles.colorPaletteTitle}>
+            Your Recommended Color Palette
+          </Typography>
+
+          <Box className={styles.colorsContainer}>
+            {result.recommendedColors.slice(0, 10).map((color) => (
+              <Tooltip key={color} title={color} arrow>
+                <Chip
+                  label={color}
+                  style={{
+                    background: getHex(color),
+                    color: LIGHT_COLORS.has(color) ? '#111' : '#fff',
+                  }}
+                  className={styles.colorChip}
+                />
+              </Tooltip>
+            ))}
+          </Box>
+
+          <Divider className={styles.divider} />
+
+          <Box className={styles.tabsContainer}>
+            {[
+              { id: 'outfits', label: 'Outfit Combinations', icon: <OutfitIcon sx={{ fontSize: 16 }} /> },
+              { id: 'individual', label: 'Individual Products', icon: <BagIcon sx={{ fontSize: 16 }} /> },
+            ].map((tab) => (
+              <Button
+                key={tab.id}
+                size="small"
+                startIcon={tab.icon}
+                variant={outfitTab === tab.id ? 'contained' : 'outlined'}
+                onClick={() => setOutfitTab(tab.id as 'outfits' | 'individual')}
+                className={outfitTab === tab.id ? styles.tabActive : styles.tabInactive}
+              >
+                {tab.label}
+              </Button>
+            ))}
+          </Box>
+
+          {outfitTab === 'outfits' && (
+            <>
+              <Typography variant="body2" className={styles.outfitSubtitle}>
+                Complete formal outfit combinations curated for your skin tone
+              </Typography>
+
+              {result.outfits.length > 0 ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {result.outfits.map((outfit, i) => (
+                    <Box key={i}>
+                      <OutfitCard outfit={outfit} index={i} onSelect={() => setSelectedOutfitIndex(i)} />
+                      {i < result.outfits.length - 1 && <Divider sx={{ mt: 4 }} />}
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Alert severity="warning" className={styles.alertWarning}>
+                  No outfit combinations found. Try browsing the individual
+                  products below.
+                </Alert>
+              )}
+            </>
+          )}
+
+          {outfitTab === 'individual' && (
+            <>
+              {([
+                { label: 'Formal Shirts', items: result.recommendations.topwear, cat: 'Formal+Shirts' },
+                { label: 'Trousers & Pants', items: result.recommendations.pants, cat: 'Trousers+%26+Pants' },
+                { label: 'Formal Shoes', items: result.recommendations.shoes, cat: 'Formal+Shoes' },
+              ] as const).map(({ label, items, cat }) =>
+                items.length > 0 ? (
+                  <Box key={label} sx={{ mb: 4 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="subtitle1" className={styles.categoryTitle}>
+                        {label}
+                      </Typography>
+
+                      <Button
+                        size="small"
+                        endIcon={<ArrowIcon />}
+                        onClick={() => navigate(`/products?category=${cat}`)}
+                        className={styles.viewAllBtn}
+                      >
+                        View All
+                      </Button>
+                    </Box>
+
+                    <RecommendedProductsGrid items={items.slice(0, 4)} />
+                  </Box>
+                ) : null
+              )}
+            </>
+          )}
+
+          <Box sx={{ textAlign: 'center', mt: 4 }}>
+            <Button
+              variant="contained"
+              size="large"
+              endIcon={<ArrowIcon />}
+              onClick={() => {
+                handleClose();
+                navigate('/products');
+              }}
+              className={styles.primaryBtn}
+            >
+              Browse Full Collection
+            </Button>
+          </Box>
+        </Box>
+
+        <OutfitConfigDialog
+          outfit={selectedOutfitIndex !== null ? result.outfits[selectedOutfitIndex] : null}
+          index={selectedOutfitIndex ?? 0}
+          open={selectedOutfitIndex !== null}
+          onClose={() => setSelectedOutfitIndex(null)}
+        />
+      </Container>
+    );
+  }
+
+  return (
+    <Container component="main" maxWidth="lg" sx={{ py: 4 }}>
+      {fileInput}
+
+      <Box sx={{ mb: 1 }}>
+        <Typography variant="h3" component="h1" gutterBottom>
+          Find Your Style
+        </Typography>
+        <Box className={styles.breadcrumb}>
+          <Typography variant="body2">Select your photo</Typography>
+          <ChevronRightIcon className={styles.breadcrumbIcon} />
+          <Typography variant="body2">Preview</Typography>
+          <ChevronRightIcon className={styles.breadcrumbIcon} />
+          <Typography variant="body2">Skin tone detected</Typography>
+          <ChevronRightIcon className={styles.breadcrumbIcon} />
+          <Typography variant="body2">Outfit recommendations generated</Typography>
+        </Box>
+      </Box>
+
+      <Box sx={{ maxWidth: 560, mx: 'auto', mt: 4 }}>
           {step === 'choose' && (
             <Box className={styles.stepContainer}>
               {error && (
@@ -164,169 +342,7 @@ const SkinToneAdvisor: React.FC = memo(() => {
               </Typography>
             </Box>
           )}
-
-          {step === 'results' && result && (
-            <Box>
-              <Box className={styles.skinToneCard}>
-                <Box
-                  className={styles.swatch}
-                  style={{
-                    background: result.skinTone.hex,
-                    boxShadow: `0 0 24px ${result.skinTone.hex}60`,
-                  }}
-                />
-
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6" sx={{ color: '#d4af37', fontFamily: '"Playfair Display", serif' }}>
-                    {result.skinTone.name} Skin Tone
-                  </Typography>
-
-                  <Typography variant="body2" sx={{ color: '#666', mt: 0.5 }}>
-                    Hex:{' '}
-                    <span style={{ color: '#424242', fontWeight: 600 }}>
-                      {result.skinTone.hex}
-                    </span>
-                    &ensp;·&ensp;Confidence:{' '}
-                    <span style={{ color: '#4caf50' }}>
-                      {Math.round(result.skinTone.confidence * 100)}%
-                    </span>
-                  </Typography>
-
-                  {!result.skinTone.faceDetected && (
-                    <Typography variant="body2" sx={{ color: '#ff9800', mt: 0.5 }}>
-                      Face not clearly detected — results may be approximate
-                    </Typography>
-                  )}
-                </Box>
-
-                <Button
-                  size="small"
-                  startIcon={<RefreshIcon />}
-                  variant="outlined"
-                  onClick={handleRetry}
-                  className={styles.secondaryBtn}
-                >
-                  Try Again
-                </Button>
-              </Box>
-
-              <Typography variant="subtitle1" className={styles.colorPaletteTitle}>
-                Your Recommended Color Palette
-              </Typography>
-
-              <Box className={styles.colorsContainer}>
-                {result.recommendedColors.slice(0, 10).map((color) => (
-                  <Tooltip key={color} title={color} arrow>
-                    <Chip
-                      label={color}
-                      style={{
-                        background: getHex(color),
-                        color: LIGHT_COLORS.has(color) ? '#111' : '#fff',
-                      }}
-                      className={styles.colorChip}
-                    />
-                  </Tooltip>
-                ))}
-              </Box>
-
-              <Divider className={styles.divider} />
-
-              <Box className={styles.tabsContainer}>
-                {[
-                  { id: 'outfits', label: 'Outfit Combinations', icon: <OutfitIcon sx={{ fontSize: 16 }} /> },
-                  { id: 'individual', label: 'Individual Products', icon: <BagIcon sx={{ fontSize: 16 }} /> },
-                ].map((tab) => (
-                  <Button
-                    key={tab.id}
-                    size="small"
-                    startIcon={tab.icon}
-                    variant={outfitTab === tab.id ? 'contained' : 'outlined'}
-                    onClick={() => setOutfitTab(tab.id as 'outfits' | 'individual')}
-                    className={outfitTab === tab.id ? styles.tabActive : styles.tabInactive}
-                  >
-                    {tab.label}
-                  </Button>
-                ))}
-              </Box>
-
-              {outfitTab === 'outfits' && (
-                <>
-                  <Typography variant="body2" className={styles.outfitSubtitle}>
-                    Complete formal outfit combinations curated for your skin tone
-                  </Typography>
-
-                  {result.outfits.length > 0 ? (
-                    <Grid container spacing={2}>
-                      {result.outfits.map((outfit, i) => (
-                        <Grid size={{ xs: 12, sm: 6 }} key={i}>
-                          <OutfitCard outfit={outfit} index={i} />
-                        </Grid>
-                      ))}
-                    </Grid>
-                  ) : (
-                    <Alert severity="warning" className={styles.alertWarning}>
-                      No outfit combinations found. Try browsing the individual
-                      products below.
-                    </Alert>
-                  )}
-                </>
-              )}
-
-              {outfitTab === 'individual' && (
-                <>
-                  {([
-                    { label: 'Formal Shirts', items: result.recommendations.topwear, cat: 'Formal+Shirts' },
-                    { label: 'Trousers & Pants', items: result.recommendations.pants, cat: 'Trousers+%26+Pants' },
-                    { label: 'Formal Shoes', items: result.recommendations.shoes, cat: 'Formal+Shoes' },
-                  ] as const).map(({ label, items, cat }) =>
-                    items.length > 0 ? (
-                      <Box key={label} sx={{ mb: 4 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                          <Typography variant="subtitle1" className={styles.categoryTitle}>
-                            {label}
-                          </Typography>
-
-                          <Button
-                            size="small"
-                            endIcon={<ArrowIcon />}
-                            onClick={() => navigate(`/products?category=${cat}`)}
-                            className={styles.viewAllBtn}
-                          >
-                            View All
-                          </Button>
-                        </Box>
-
-                        <Grid container spacing={2}>
-                          {items.slice(0, 4).map((product) => (
-                            <Grid size={{ xs: 6, sm: 3 }} key={product.id}>
-                              <MiniProductCard product={product} label={product.color} />
-                            </Grid>
-                          ))}
-                        </Grid>
-                      </Box>
-                    ) : null
-                  )}
-                </>
-              )}
-
-              <Box sx={{ textAlign: 'center', mt: 4 }}>
-                <Button
-                  variant="contained"
-                  size="large"
-                  endIcon={<ArrowIcon />}
-                  onClick={() => {
-                    handleClose();
-                    navigate('/products');
-                  }}
-                  className={styles.primaryBtn}
-                >
-                  Browse Full Collection
-                </Button>
-              </Box>
-            </Box>
-          )}
-        </Box>
-      </Paper>
+      </Box>
     </Container>
   );
 });

@@ -38,40 +38,31 @@ const Home = memo(function Home() {
 
   return (
     <>
-      {/* Hero */}
-      <Box className={styles.hero}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4} alignItems="center">
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Fade in timeout={800}>
-                <Box>
-                  <Typography variant="h1" className={styles.heroTitle}>
-                    Redefine Your <Box component="span" className={styles.heroAccent}>Elegance</Box>
-                  </Typography>
-                  <Typography variant="h5" component="p" className={styles.heroSubtitle} sx={{ pb: 3 }}>
-                    Indulge in our curated collection of luxury products, where sophistication meets exceptional quality.
-                  </Typography>
-                  <Box className={styles.heroCta}>
-                    <Button variant="contained" size="large" endIcon={<ShoppingBagIcon />} component={RouterLink} to={ROUTES.PRODUCTS} className={styles.ctaGold}>
-                      Shop Collection
-                    </Button>
-                    <Button variant="outlined" size="large" endIcon={<ArrowForwardIcon />} href="#featured" className={styles.ctaOutline}>
-                      Explore More
-                    </Button>
-                  </Box>
+      <Container maxWidth="lg" sx={{ bgcolor: '#0f0f0f', pt: { xs: 2, md: 4 }, px: { xs: 2, md: 4 }, my: '24px' }}>
+        {/* Hero */}
+        <Box className={styles.hero}>
+          <Box sx={{ height: '100%' }}>
+            <Fade in timeout={1200}>
+              <Box sx={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', maxWidth: '600px', ml: { md: 8 } }}>
+                <Typography variant="overline" sx={{ color: '#cba871', letterSpacing: 2, fontWeight: 600, mb: 3, display: 'block' }}>
+                  NEW COLLECTION
+                </Typography>
+                <Typography variant="h1" className={styles.heroTitle}>
+                  TIMELESS<br />BY NATURE
+                </Typography>
+                <Typography variant="h5" component="p" className={styles.heroSubtitle}>
+                  Premium essentials crafted for the modern wardrobe.
+                </Typography>
+                <Box className={styles.heroCta}>
+                  <Button variant="contained" size="large" endIcon={<ArrowForwardIcon />} component={RouterLink} to={ROUTES.PRODUCTS} className={styles.ctaGold}>
+                    SHOP NOW
+                  </Button>
                 </Box>
-              </Fade>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Slide in timeout={1500} direction="right">
-                <Box className={styles.heroVisual}>
-                  <Typography variant="h2" className={styles.heroVisualText}>LUXURY<br />REDEFINED</Typography>
-                </Box>
-              </Slide>
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
+              </Box>
+            </Fade>
+          </Box>
+        </Box>
+      </Container>
 
       {/* Features */}
       <Container maxWidth="lg">
@@ -86,6 +77,47 @@ const Home = memo(function Home() {
         </Box>
       </Container>
 
+      {/* About Section */}
+      <Box className={styles.aboutSection}>
+        <Container maxWidth="lg">
+          <Grid container spacing={8} alignItems="center">
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Box className={styles.aboutImageWrapper}>
+                <Box
+                  component="img"
+                  src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=2000&auto=format&fit=crop"
+                  alt="Men's formal tailoring"
+                  className={styles.aboutImage}
+                />
+              </Box>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Box className={styles.aboutContent}>
+                <Typography variant="overline" className={styles.aboutSubtitle}>
+                  Our Heritage
+                </Typography>
+                <Typography variant="h3" component="h2" className={styles.aboutTitle}>
+                  The Art of Fine Tailoring
+                </Typography>
+                <Typography variant="body1" className={styles.aboutText}>
+                  At Lux Atelier, we believe that true elegance lies in the details.
+                  Our curated collection of premium men's formal wear is designed for the modern gentleman who refuses to compromise on quality or style.
+                </Typography>
+                <Typography variant="body1" className={styles.aboutText}>
+                  From perfectly tailored suits to impeccably crafted accessories, every piece reflects our commitment to exceptional craftsmanship and timeless sophistication.
+                  Step into a world where luxury is tailored to perfection.
+                </Typography>
+                <Box sx={{ mt: 2 }}>
+                  <Button variant="outlined" size="large" component={RouterLink} to={ROUTES.STYLE_ADVISOR} className={styles.ctaDark}>
+                    Discover Your Style
+                  </Button>
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+
       {/* Featured Products */}
       <Box className={styles.featuredSection} id="featured">
         <Container maxWidth="lg">
@@ -98,7 +130,7 @@ const Home = memo(function Home() {
             : (
               <Grid container spacing={4}>
                 {products.map(product => (
-                  <Grid size={{ xs: 6, sm: 6, md: 3 }} key={product.id}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={product.id}>
                     <ProductCard product={product} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} isInWishlist={isInWishlist(product.id)} />
                   </Grid>
                 ))}

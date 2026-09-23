@@ -107,10 +107,15 @@
 }
 
 .listItem {
-  padding-left: 0;
-  padding-right: 0;
-  padding-top: 1rem;
-  padding-bottom: 1rem;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background-color: transparent;
+  transition: all 0.2s ease;
+}
+.listItem:hover {
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .listItemIcon {

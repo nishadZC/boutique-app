@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
+import { useAuthModal } from './AuthModalContext';
 import { useToast } from './ToastContext';
 import { wishlistService } from '../services/wishlistService';
 
@@ -14,6 +15,7 @@ const WishlistContext = createContext<WishlistContextValue | undefined>(undefine
 
 export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
+  const { openLoginModal } = useAuthModal();
   const { showToast } = useToast();
   const [productIds, setProductIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,6 +35,7 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const toggleWishlist = async (productId: string) => {
     if (!isAuthenticated) {
       showToast('Please sign in to manage your wishlist.', 'warning');
+      openLoginModal();
       return;
     }
     const included = productIds.includes(productId);
