@@ -52,3 +52,28 @@ jobs:
           docker tag $(service):$(imageTag) $REGISTRY/$(service):$(imageTag)
           docker tag $(service):$(imageTag) $REGISTRY/$(service):latest
           docker push $REGISTRY/$(service) --all-tags
+
+- ${{ if eq(parameters.pushImage, true) }}:
+  - job: PublishDeployInfo
+    displayName: 'Publish deploy info for Release pipelines'
+    dependsOn: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - checkout: none
+
+    - task: Bash@3
+      displayName: 'Write image tag to deploy-info'
+      inputs:
+        targetType: 'inline'
+        script: |
+          set -e
+          mkdir -p "$(Build.ArtifactStagingDirectory)/deploy"
+          echo "$(imageTag)" > "$(Build.ArtifactStagingDirectory)/deploy/imageTag.txt"
+
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish deploy-info artifact'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/deploy'
+        artifact: 'deploy-info'
+        publishLocation: 'pipeline'
