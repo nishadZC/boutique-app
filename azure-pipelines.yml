@@ -8,28 +8,12 @@ pr:
     include:
       - main
 
-parameters:
-  - name: deployBeyondDev
-    displayName: "Deploy to QA/Staging (GitOps)"
-    type: boolean
-    default: false
-  - name: deployProd
-    displayName: "Deploy to Prod"
-    type: boolean
-    default: false
-
 variables:
   - group: acr-registries
   - name: imageTag
     value: '$(Build.SourceVersion)'
   - name: azureServiceConnection
     value: 'Azure Resource Group'
-
-resources:
-  repositories:
-  - repository: gitops
-    type: git
-    name: boutique-gitops
 
 stages:
 - stage: CodeQuality
@@ -63,38 +47,17 @@ stages:
       ${{ else }}:
         pushImage: true
 
-# Dev no longer deploys via this GitOps stage: it's deployed by the
-# "boutique-app - Dev" Azure DevOps Release pipeline, which consumes the
-# deploy-info pipeline artifact published in BuildAndScan and applies the
-# Helm chart directly (see boutique-gitops Application boutique-azure-dev,
-# switched to manual ArgoCD sync on 2026-09-23 for this reason).
-
-- stage: UpdateQA
-  displayName: 'Deploy to QA (GitOps)'
-  dependsOn: BuildAndScan
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), ${{ parameters.deployBeyondDev }})
-  jobs:
-  - template: azure/templates/update-gitops.yml
-    parameters:
-      environment: 'qa'
-      acrLoginServer: '$(qaAcr).azurecr.io'
-
-- stage: UpdateStaging
-  displayName: 'Deploy to Staging (GitOps)'
-  dependsOn: UpdateQA
-  condition: succeeded()
-  jobs:
-  - template: azure/templates/update-gitops.yml
-    parameters:
-      environment: 'staging'
-      acrLoginServer: '$(stagingAcr).azurecr.io'
-
-- stage: UpdateProd
-  displayName: 'Deploy to Prod (GitOps)'
-  dependsOn: UpdateStaging
-  condition: and(succeeded(), ${{ parameters.deployProd }}, eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-  jobs:
-  - template: azure/templates/update-gitops.yml
-    parameters:
-      environment: 'prod'
-      acrLoginServer: '$(prodAcr).azurecr.io'
+# Deployment beyond this point is intentionally not part of this pipeline
+# right now. Dev is deployed by the "boutique-app - Dev" Azure DevOps
+# Release pipeline, which consumes the deploy-info artifact published
+# above and applies the Helm chart directly (see boutique-gitops
+# Application boutique-azure-dev, switched to manual ArgoCD sync on
+# 2026-09-23 for this reason).
+#
+# QA/Staging/Prod Applications in boutique-gitops are still on automated
+# ArgoCD sync, but nothing in this pipeline updates their values-*.yaml
+# image tags anymore, so they're effectively frozen on whatever tag was
+# last pushed there rather than tracking new builds. See
+# backup/main-2026-09-23-pre-ado-release for the previous
+# UpdateQA/UpdateStaging/UpdateProd GitOps stages if this needs to be
+# restored or extended to other environments later.
