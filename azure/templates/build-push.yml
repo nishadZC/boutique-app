@@ -34,7 +34,7 @@ jobs:
     displayName: Scan local image with Trivy
     inputs:
       image: '$(service):$(imageTag)'
-      severity: 'CRITICAL,HIGH'
+      severities: 'CRITICAL,HIGH'
       exitCode: '0'
 
   - ${{ if eq(parameters.pushImage, true) }}:
