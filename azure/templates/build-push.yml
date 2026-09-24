@@ -1,7 +1,7 @@
 parameters:
   - name: dependsOn
     type: string
-    default: DetectChanges
+    default: GenerateMatrix
   - name: matrix
     type: string
   - name: pushImage

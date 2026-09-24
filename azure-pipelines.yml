@@ -47,17 +47,8 @@ stages:
       ${{ else }}:
         pushImage: true
 
-# Deployment beyond this point is intentionally not part of this pipeline
-# right now. Dev is deployed by the "boutique-app - Dev" Azure DevOps
-# Release pipeline, which consumes the deploy-info artifact published
-# above and applies the Helm chart directly (see boutique-gitops
-# Application boutique-azure-dev, switched to manual ArgoCD sync on
-# 2026-09-23 for this reason).
-#
-# QA/Staging/Prod Applications in boutique-gitops are still on automated
-# ArgoCD sync, but nothing in this pipeline updates their values-*.yaml
-# image tags anymore, so they're effectively frozen on whatever tag was
-# last pushed there rather than tracking new builds. See
-# backup/main-2026-09-23-pre-ado-release for the previous
-# UpdateQA/UpdateStaging/UpdateProd GitOps stages if this needs to be
-# restored or extended to other environments later.
+# Deployment is not part of this pipeline. Each environment is deployed by
+# its Azure DevOps Release pipeline, which consumes the deploy-info artifact
+# published above and runs `helm upgrade --install` with the chart from
+# boutique-gitops (helm/boutique-app). The cluster platform layer it depends
+# on is installed by boutique-infra's platform pipeline.

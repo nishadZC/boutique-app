@@ -26,7 +26,9 @@ Welcome to the **Boutique Microservices App**, an enterprise-grade luxury e-comm
 5. [DevOps &amp; Infrastructure](#-devops--infrastructure)
    - [Docker &amp; Containerization](#docker--containerization)
    - [CI/CD Pipelines (Azure DevOps)](#cicd-pipelines-azure-devops)
-   - [GitOps Workflow](#gitops-workflow)
+   - [Deployment: Azure DevOps Release Pipelines](#deployment-azure-devops-release-pipelines)
+     - [Dev: Azure DevOps Release Pipeline](#dev-azure-devops-release-pipeline)
+     - [QA/Staging/Prod](#qastagingprod)
 6. [Observability &amp; Monitoring](#-observability--monitoring)
    - [Prometheus &amp; Alertmanager](#prometheus--alertmanager)
    - [Grafana Dashboards](#grafana-dashboards)
@@ -206,7 +208,7 @@ A standout feature of the Boutique App is its personalized fashion advisor.
 
 ## 🚀 DevOps & Infrastructure
 
-The project embraces modern DevOps practices, utilizing containerization, comprehensive CI/CD, and GitOps for continuous delivery.
+The project embraces modern DevOps practices, utilizing containerization, comprehensive CI/CD, and Helm-based release pipelines for continuous delivery.
 
 ### Docker & Containerization
 
@@ -218,41 +220,56 @@ The project embraces modern DevOps practices, utilizing containerization, compre
 
 The repository contains an extensive Azure DevOps pipeline (`azure-pipelines.yml`) for automated testing, building, and deployment.
 
-- **Dynamic Matrix Builds**: The `azure/templates/detect-changes.yml` script intelligently uses `git diff` against `azure/services.json` to determine exactly which microservices have changed. Only modified services are built, drastically reducing CI times.
+- **Matrix Builds**: `azure/templates/generate-matrix.yml` turns `azure/services.json` into a build matrix, so every service is tested, built and scanned in parallel. Add a new service by adding it to `services.json`.
 - **Security Scanning**:
   - **SonarQube**: Static code analysis is run on changed services (`SonarQubeAnalyze@7`).
   - **Trivy**: Container images are scanned for vulnerabilities before being pushed to the registry.
-- **Artifacts**: Docker images are pushed to an Azure Container Registry (ACR) (`boutiqueacrshared.azurecr.io`).
+- **Artifacts**: Docker images are pushed to the dev Azure Container Registry, tagged with the commit SHA.
+- **Pipeline scope**: `azure-pipelines.yml` currently ends at `BuildAndScan` — `CodeQuality → Test → BuildAndScan`. `BuildAndScan` also publishes a `deploy-info` pipeline artifact (just the built image tag, `$(Build.SourceVersion)`) for consumption by the separate Dev Release pipeline described below. There are no `UpdateDev`/`UpdateQA`/`UpdateStaging`/`UpdateProd` stages in this file anymore — see [Deployment](#deployment-azure-devops-release-pipelines).
 
-### GitOps Workflow
+### Deployment: Azure DevOps Release Pipelines
 
-Continuous Deployment is handled via a GitOps model, separating CI (Build) from CD (Deploy).
+Each environment is built in three layers, each with its own pipeline:
+
+1. **Infrastructure** — `boutique-infra` infra pipeline (Terraform): AKS, Key Vault, identities, Postgres, App Gateway.
+2. **Platform** — `boutique-infra` platform pipeline (Helm): external-secrets, cert-manager, reflector (shares the environment's TLS certificate), kube-prometheus-stack.
+3. **Application** — the Release pipeline below runs `helm upgrade --install` with the chart from `boutique-gitops`.
+
+Only **Dev** is deployed today; the other environments are opt-in in every pipeline.
+
+#### Dev: Azure DevOps Release Pipeline
 
 ```mermaid
 sequenceDiagram
     participant Dev as Developer
-    participant Azure as Azure DevOps (CI)
-    participant ACR as Container Registry
-    participant GitOps as GitOps Repo (CD)
-    participant Argo as ArgoCD / Flux
-    participant K8s as Kubernetes
+    participant CI as Azure DevOps CI (azure-pipelines.yml)
+    participant ACR as Dev ACR
+    participant Rel as Release Pipeline ("boutique-app - Dev")
+    participant K8s as bq-dev-aks
 
-    Dev->>Azure: Commits to master
-    Azure->>Azure: Detect changed services
-    Azure->>Azure: Build, Test, SonarQube, Trivy
-    Azure->>ACR: Push Docker Image (Tag: Commit SHA)
-    Azure->>GitOps: Update values-dev.yaml with new Image Tag
-    GitOps-->>Azure: Commit & Push to GitOps Repo
-    Azure->>GitOps: Update values-qa.yaml
-    Azure->>GitOps: Update values-staging.yaml
-    Argo->>GitOps: Detects change in manifests
-    Argo->>K8s: Applies new deployments
-    K8s->>ACR: Pulls new image
+    Dev->>CI: Commit to main
+    CI->>CI: CodeQuality, Test, BuildAndScan
+    CI->>ACR: Push images (tag: commit SHA)
+    CI->>CI: Publish deploy-info artifact (imageTag.txt)
+    CI-->>Rel: CD trigger fires
+    Rel->>Rel: Read imageTag.txt into $(imageTag)
+    Rel->>K8s: helm upgrade --install (chart from boutique-gitops,<br/>--set images.*=...:$(imageTag))
 ```
 
-- The Azure pipeline stages (`UpdateDev`, `UpdateQA`, `UpdateStaging`, `UpdateProd`) check out a separate `boutique-gitops` repository.
-- A script updates the Helm `values-{env}.yaml` files with the newly built Docker image tags (the git commit SHA).
-- These changes are committed and pushed back to the GitOps repository, triggering cluster synchronization tools (like ArgoCD or Flux) to deploy the new versions.
+- **Pipeline**: "boutique-app - Dev" (Azure DevOps → Pipelines → Releases).
+- **Artifacts**:
+  - `_boutique-app` (Build artifact, latest from the CI pipeline) — provides `deploy-info/imageTag.txt`.
+  - `_boutique-gitops` (Azure Repos Git, `main`) — provides the Helm chart at `helm/boutique-app`. The chart itself still lives in `boutique-gitops`; only *who applies it* changed.
+- **`dev` stage tasks** (in order):
+  1. **Bash** — reads `imageTag.txt` and sets it as the `$(imageTag)` pipeline variable.
+  2. **Package and deploy Helm charts** (`HelmDeploy@0`) — `helm upgrade --install`, connecting via **Azure Resource Manager** (the existing `Azure Resource Group` service connection, not a dedicated Kubernetes service connection — AKS uses Azure AD/Entra ID authorization, so ARM-based auth with short-lived tokens is the correct approach here rather than a static Kubernetes Service Account token) against resource group `bq-dev-rg`, cluster `bq-dev-aks`, namespace `boutique-app`. Uses `values.yaml` + `values-dev.yaml`, overrides `images.*` with the resolved tag, and runs with `--create-namespace --rollback-on-failure --timeout 5m0s`.
+- **CD trigger**: enabled on the `_boutique-app` artifact, so every successful `main` build auto-creates a Dev release.
+- **Prerequisite**: the platform pipeline must have run for the environment, because the chart uses CRDs, the `azure-store` `ClusterSecretStore` and the `edge-tls` certificate that it provides.
+- **URLs (dev)**: app at `https://bq-dev-boutique.uaenorth.cloudapp.azure.com`, Grafana at `https://bq-dev-boutique.uaenorth.cloudapp.azure.com/grafana`.
+
+#### QA/Staging/Prod
+
+Not deployed yet. Each has Terraform in `boutique-infra/azure/environments/<env>` and `values-<env>.yaml` in `boutique-gitops`. Turning one on needs: the infra and platform pipelines run with that environment ticked, images pushed or promoted to its ACR (only the dev ACR receives images today), and a Release pipeline for it with approval gates.
 
 ---
 
