@@ -1,154 +1,147 @@
 .carousel {
   position: relative;
-  border-radius: 24px;
-  min-height: 80vh;
+  height: clamp(520px, 80vh, 780px);
   overflow: hidden;
+  background: var(--ink);
 }
 
 .slide {
   position: absolute;
   inset: 0;
   background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background-position: center 30%;
   display: flex;
   align-items: center;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.8s ease;
+  transform: scale(1.03);
+  transition: opacity 0.9s ease, transform 6s ease, visibility 0.9s;
 }
-
 .slideActive {
   opacity: 1;
   visibility: visible;
+  transform: scale(1);
   z-index: 1;
 }
 
 .slideOverlay {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(to right, rgba(5,5,5,0.95) 0%, rgba(10,10,10,0.78) 45%, rgba(10,10,10,0.35) 75%, rgba(10,10,10,0.25) 100%);
-  z-index: 1;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(14,14,14,0.92) 0%, rgba(14,14,14,0.66) 36%, rgba(14,14,14,0.2) 68%, rgba(14,14,14,0.1) 100%),
+    linear-gradient(0deg, rgba(14,14,14,0.85) 0%, rgba(14,14,14,0) 28%);
 }
 
 .slideContent {
   position: relative;
   z-index: 2;
-  width: 100%;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  max-width: 600px;
-  padding: 0 32px;
-  margin-left: 0;
-}
-
-@media (min-width: 900px) {
-  .slideContent { margin-left: 64px; }
-}
-
-.badgeSlot {
-  min-height: 40px;
-  display: flex;
-  align-items: flex-start;
-}
-
-.badge {
-  background: #cba871 !important;
-  color: #111 !important;
-  font-weight: 700 !important;
-  letter-spacing: 1px !important;
+  max-width: 760px;
+  padding: 0 clamp(20px, 6vw, 96px);
+  color: #fff;
 }
 
 .eyebrow {
-  color: #cba871 !important;
-  letter-spacing: 2px !important;
-  font-weight: 600 !important;
-  margin-bottom: 24px !important;
-  display: block !important;
+  display: block;
+  color: var(--gold);
+  margin-bottom: 18px !important;
 }
-
 .title {
-  color: #fff !important;
-  margin-bottom: 24px !important;
-  font-family: "Playfair Display", serif !important;
-  font-size: clamp(2.5rem, 6.5vw, 5rem) !important;
-  font-weight: 400 !important;
-  line-height: 1.15 !important;
-  letter-spacing: -1px;
+  font-family: var(--font-display) !important;
+  font-weight: 500 !important;
+  font-size: clamp(2.6rem, 6vw, 5rem) !important;
+  line-height: 1.02 !important;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-bottom: 22px !important;
+  color: var(--cream);
 }
-
 .subtitle {
-  margin-bottom: 40px !important;
-  color: rgba(255, 255, 255, 0.7) !important;
-  font-weight: 300 !important;
-  font-size: clamp(1rem, 2.5vw, 1.25rem) !important;
-  line-height: 1.6 !important;
-  max-width: 460px;
+  color: rgba(242,237,228,0.8);
+  font-size: clamp(0.95rem, 1.3vw, 1.08rem) !important;
+  max-width: 440px;
+  margin-bottom: 36px !important;
 }
 
-.cta {
-  display: flex;
-  gap: 20px;
-}
-
-.ctaGold {
-  background: #cba871 !important;
-  color: #111 !important;
-  padding: 14px 42px !important;
+.cta { display: flex; flex-wrap: wrap; align-items: center; gap: 28px; }
+.ctaPrimary {
+  font-size: 0.72rem !important;
   font-weight: 600 !important;
-  font-size: 0.9rem !important;
-  border-radius: 2px !important;
-  letter-spacing: 1px !important;
-  box-shadow: none !important;
-  transition: all 0.3s ease !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+  padding: 15px 30px !important;
+  border-radius: 0 !important;
+  background: var(--gold) !important;
+  color: var(--ink) !important;
 }
-.ctaGold:hover {
-  background: #e6c38a !important;
-  transform: translateY(-2px);
+.ctaPrimary:hover { background: var(--gold-light) !important; }
+.ctaSecondary {
+  color: var(--cream);
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(242,237,228,0.45);
+  transition: border-color 0.2s ease, color 0.2s ease;
 }
+.ctaSecondary:hover { color: var(--gold); border-color: var(--gold); }
 
-.arrow {
-  position: absolute !important;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 3;
-  background: rgba(0, 0, 0, 0.35) !important;
-  color: #fff !important;
-  transition: background 0.2s ease !important;
-}
-.arrow:hover {
-  background: rgba(0, 0, 0, 0.6) !important;
-}
-.arrowLeft { left: 16px; }
-.arrowRight { right: 16px; }
-
-.dots {
+/* ---------- Controls ---------- */
+.controls {
   position: absolute;
   z-index: 3;
-  bottom: 24px;
-  left: 0;
-  right: 0;
+  left: clamp(20px, 6vw, 96px);
+  bottom: clamp(24px, 5vh, 44px);
   display: flex;
-  justify-content: center;
-  gap: 10px;
+  align-items: center;
+  gap: 40px;
 }
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.4);
+.counter { display: flex; align-items: center; gap: 14px; }
+.counterItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: none;
+  border: 0;
+  padding: 4px 0;
   cursor: pointer;
-  padding: 0;
-  transition: background 0.2s ease, transform 0.2s ease;
+  color: rgba(242,237,228,0.45);
+  font: 600 0.78rem var(--font-sans);
+  letter-spacing: 0.08em;
 }
-.dot:hover {
-  background: rgba(255, 255, 255, 0.7);
+.counterItem:hover { color: #fff; }
+.counterItemActive { color: var(--gold); }
+.counterLine {
+  display: block;
+  width: 56px;
+  height: 1px;
+  background: rgba(255,255,255,0.35);
+  position: relative;
+  overflow: hidden;
 }
-.dotActive {
-  background: #cba871;
-  transform: scale(1.2);
+.counterLine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gold);
+  transform-origin: left;
+  animation: progress 6s linear forwards;
+}
+.carousel:hover .counterLine::after { animation-play-state: paused; }
+@keyframes progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.arrows { display: flex; gap: 6px; }
+.arrow { color: #fff !important; }
+.arrow:hover { background: rgba(255,255,255,0.12) !important; }
+
+@media (max-width: 599px) {
+  .slideOverlay { background: linear-gradient(180deg, rgba(10,10,10,0.35) 0%, rgba(10,10,10,0.85) 100%); }
+  .slide { align-items: flex-end; padding-bottom: 96px; }
+  .controls { gap: 20px; }
+  .counterLine { width: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide { transition: opacity 0.3s ease; transform: none; }
+  .counterLine::after { animation: none; transform: scaleX(1); }
 }

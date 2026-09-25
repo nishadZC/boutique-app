@@ -1,0 +1,48 @@
+.root { display: flex; min-height: 100vh; background: #f6f5f2; }
+
+.desktopSidebar { width: 248px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; }
+.drawerPaper { width: 260px; }
+.sidebar {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--ink);
+  color: var(--cream);
+  padding: 24px 14px;
+}
+.brand { display: flex; flex-direction: column; padding: 4px 12px 28px; text-decoration: none; line-height: 1; }
+.brandMark { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; letter-spacing: 0.08em; color: var(--cream); }
+.brandSub { margin-top: 6px; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.42em; color: var(--gold); }
+
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: #bdb7ad;
+  font: 500 0.9rem var(--font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.navLink :global(.MuiSvgIcon-root) { font-size: 1.2rem; }
+.navLink:hover { background: rgba(255, 255, 255, 0.06); color: var(--cream); }
+.navLinkActive { background: rgba(200, 164, 110, 0.16); color: var(--gold) !important; }
+
+.sidebarFooter { margin-top: auto; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--ink-line); padding-top: 12px; }
+.signedInAs { font-size: 0.72rem !important; color: var(--muted-on-dark); padding: 8px 12px 0; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mobileBar { display: none; align-items: center; gap: 8px; padding: 10px 12px; background: var(--ink); color: var(--cream); }
+.mobileBar :global(.MuiIconButton-root) { color: var(--cream); }
+.content { padding: clamp(18px, 3vw, 36px); max-width: 1400px; width: 100%; box-sizing: border-box; }
+
+@media (max-width: 999px) {
+  .desktopSidebar { display: none; }
+  .mobileBar { display: flex; }
+}

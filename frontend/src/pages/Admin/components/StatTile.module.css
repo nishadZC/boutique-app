@@ -1,0 +1,9 @@
+.tile { background: #fff; border: 1px solid #ebe7e0; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+.attention { border-color: #f0d9a8; background: #fffbf2; }
+.label { font-size: 0.7rem !important; font-weight: 600 !important; letter-spacing: 0.14em !important; text-transform: uppercase; color: #6f6a62; }
+.value { font-family: var(--font-sans) !important; font-size: 1.85rem !important; font-weight: 600 !important; color: #1a1a1a; line-height: 1.15 !important; font-variant-numeric: tabular-nums; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 20px; font-size: 0.78rem; }
+.up, .down { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; }
+.up { color: #1f5e33; }
+.down { color: #9b1c1c; }
+.hint { color: #8a857d; }

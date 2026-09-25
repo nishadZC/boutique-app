@@ -5,4 +5,3 @@ export type { FilterOptions }        from './FilterPanel/FilterPanel';
 export { default as LoadingSkeleton} from './LoadingSkeleton/LoadingSkeleton';
 export { ErrorBoundary }             from './ErrorBoundary/ErrorBoundary';
 export { default as HomeCarousel }   from './HomeCarousel/HomeCarousel';
-export { default as ImageCarousel }  from './ImageCarousel/ImageCarousel';

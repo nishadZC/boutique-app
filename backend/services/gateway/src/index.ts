@@ -41,6 +41,13 @@ const services = {
   wishlist: process.env.WISHLIST_SERVICE_URL || 'http://localhost:3007',
 };
 
+// The internal token authenticates service-to-service calls inside the cluster.
+// Never forward one supplied by a client.
+app.use((req, _res, next) => {
+  delete req.headers['x-internal-token'];
+  next();
+});
+
 app.use('/api/auth', createProxyMiddleware({
   target: services.auth,
   changeOrigin: true,

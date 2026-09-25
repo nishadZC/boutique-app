@@ -373,7 +373,7 @@ Grafana is pre-provisioned via Docker volumes with datasources and several compr
    Create a `.env` file in the root directory. You can copy the variables from the `docker-compose.yml` environment blocks or use the provided example below:
 
    ```env
-   # .env
+   # .env  (gitignored — never commit it)
    RAZORPAY_KEY_ID=your_razorpay_key
    RAZORPAY_KEY_SECRET=your_razorpay_secret
    CLOUDINARY_CLOUD_NAME=your_cloudinary_name
@@ -381,7 +381,12 @@ Grafana is pre-provisioned via Docker volumes with datasources and several compr
    CLOUDINARY_API_SECRET=your_cloudinary_api_secret
    AZURE_MAPS_SUBSCRIPTION_KEY=your_azure_maps_key
    GOOGLE_CLIENT_ID=your_google_oauth_client_id
+   JWT_SECRET=$(openssl rand -hex 32)            # token signing secret
+   INTERNAL_API_TOKEN=$(openssl rand -hex 32)    # service-to-service calls
+   ADMIN_INITIAL_PASSWORD=<12+ random characters> # first password of admin@luxatelier.in
    ```
+
+   Compose refuses to start if any of these is missing.
 
 ### Running with Docker Compose
 
@@ -395,7 +400,7 @@ The easiest way to run the entire stack locally is via Docker Compose.
    ```
 2. **Accessing the Application**:
 
-   - **Frontend**: http://localhost:3000
+   - **Frontend**: http://localhost:3000 (admin area: http://localhost:3000/admin)
    - **API Gateway**: http://localhost:3001
    - **Grafana**: http://localhost:3008 (User: `admin`, Password: `admin`)
    - **Prometheus**: http://localhost:9090
@@ -552,11 +557,29 @@ erDiagram
 
 ## 🔒 Security & Authentication
 
-- **Authentication**: Custom JWT-based authentication (with demo mode fallback) and Google OAuth integration using `google-auth-library`.
-- **Password Security**: Passwords are hashed using `bcryptjs` before storage.
-- **Frontend Security**: Nginx is configured with strict security headers (`X-Frame-Options`, `X-XSS-Protection`, `Content-Security-Policy`).
-- **Backend Security**: Express APIs utilize `helmet` for secure HTTP headers and `cors` for Cross-Origin Resource Sharing restrictions.
-- **Payment Security**: Razorpay integration ensures sensitive payment details do not hit the application servers, utilizing server-side signature verification.
+### Accounts and roles
+
+- Every account has a role in `auth_db.users.role`: `customer` (default) or `admin`. The role is carried in the signed access token (1 hour); refreshes re-read it from the database.
+- **Store admin:** on first start the auth service creates `admin@luxatelier.in` (`ADMIN_EMAIL`) with the password in `ADMIN_INITIAL_PASSWORD` and a *must change password* flag. The first sign-in only returns a 10-minute password-change token, and the sign-in dialog forces a new password (12+ characters, different from the initial one) before any session is issued. An existing account is never modified, so restarts and redeploys cannot reset it.
+- **More admins:** there is deliberately no API or UI to grant the role. Run [database/scripts/grant-admin.sql](database/scripts/grant-admin.sql) against `auth_db` (`-v role=customer` to revoke); the user must sign in again.
+- There are no seeded or demo accounts. Demo sign-in (`DEMO_LOGIN_ENABLED=true`) is local-only, never works in production, and can only create new demo customers.
+
+### How requests are authorised
+
+- Every service verifies the JWT itself (`src/middleware/auth.ts`, identical in each service): `requireUser`, `requireAdmin`, and `requireInternal` for service-to-service calls authenticated with `INTERNAL_API_TOKEN`. Refresh and password-change tokens are rejected as access tokens. Services refuse to start in production without `JWT_SECRET`.
+- The gateway strips any client-supplied `x-internal-token` header, and admin routes live under `/api/<service>/admin/...`.
+
+### Orders and payments
+
+- Prices, shipping (₹15 up to ₹500, free above) and 8% tax are computed by the orders service; the client never sends amounts.
+- The payment service creates the Razorpay order for the stored total, binds its id to the order, and on verification checks ownership, the binding and the signature before the order is marked paid.
+- Stock is deducted once when an order is paid and returned when it is cancelled or refunded; every change is recorded in `inventory_adjustments`, and every order change in `order_events`.
+- Fulfilment moves one step at a time (`confirmed → packed → shipped → out_for_delivery → delivered`); orders can be cancelled until they ship. Only customers with a delivered order can review its items.
+
+### Other controls
+
+- Passwords are hashed with `bcryptjs`; email and phone are validated on the client and enforced on the server (`validation.ts`).
+- Nginx sends security headers and HSTS and redirects plain HTTP to HTTPS behind App Gateway; Express services use `helmet`.
 
 ---
 

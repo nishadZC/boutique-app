@@ -1,0 +1,162 @@
+/* ---------- Announcement bar ---------- */
+.announcementBar {
+  background: #000;
+  color: var(--muted-on-dark);
+  border-bottom: 1px solid var(--ink-line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 9px clamp(16px, 4vw, 48px);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.announcement {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.announcement :global(.MuiSvgIcon-root) { font-size: 1rem; color: var(--gold); }
+@media (max-width: 899px) {
+  .announcementBar { justify-content: center; }
+  .announcementSecondary { display: none; }
+}
+
+/* ---------- Main bar ---------- */
+.appBar {
+  z-index: 1100;
+  background: rgba(14, 14, 14, 0.96) !important;
+  backdrop-filter: blur(10px);
+  color: var(--cream) !important;
+  border-bottom: 1px solid var(--ink-line) !important;
+}
+.toolbar {
+  min-height: 76px !important;
+  padding: 0 clamp(16px, 4vw, 48px);
+  gap: 16px;
+}
+.menuButton { display: none !important; margin-left: -8px !important; }
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: var(--cream);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.logoMark {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--cream);
+}
+.logoSub {
+  margin-top: 5px;
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  color: var(--gold-dark);
+}
+
+.nav {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  gap: clamp(18px, 2.4vw, 36px);
+}
+.navLink {
+  position: relative;
+  color: #cfc9bf;
+  text-decoration: none;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 6px 0;
+  white-space: nowrap;
+}
+.navLink::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1.5px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s ease;
+}
+.navLink:hover::after,
+.navLinkActive::after { transform: scaleX(1); }
+.navLink:hover { color: var(--cream); }
+.navLinkActive { color: var(--gold) !important; }
+
+.actions { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.actionButton { color: var(--cream) !important; }
+.actionButton:hover { color: var(--gold) !important; background: rgba(255, 255, 255, 0.06) !important; }
+.menuButton { color: var(--cream) !important; }
+.badge :global(.MuiBadge-badge) {
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.62rem;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+}
+
+/* ---------- Inline search (expands beside the search icon) ---------- */
+.searchInline {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: width 0.3s ease, opacity 0.2s ease;
+  border-bottom: 1px solid transparent;
+}
+.searchInlineOpen { width: 240px; opacity: 1; border-bottom-color: var(--gold); }
+.searchInput { width: 100%; font-size: 0.92rem !important; color: var(--cream) !important; }
+.searchInput input { padding: 6px 2px; }
+.searchInput input::placeholder { color: var(--muted-on-dark); opacity: 1; }
+
+/* ---------- Account menu ---------- */
+.accountMenu { min-width: 220px; margin-top: 8px; border-radius: 2px !important; }
+.accountMenuHeader { padding: 8px 16px 12px; }
+
+/* ---------- Mobile drawer ---------- */
+.drawerPaper { width: min(320px, 86vw); }
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.drawerLink {
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1099px) {
+  .nav { display: none; }
+  .menuButton { display: inline-flex !important; }
+  .toolbar { gap: 8px; }
+  .logo { align-items: flex-start; }
+}
+@media (max-width: 599px) {
+  .hideOnMobile { display: none !important; }
+  /* While searching on a phone, the field takes the logo's space. */
+  .searching .logo { display: none; }
+  .searching .actions { flex: 1; }
+  .searching .searchInlineOpen { width: auto; flex: 1; }
+  .logoMark { font-size: 1.25rem; }
+  .logoSub { letter-spacing: 0.3em; }
+}

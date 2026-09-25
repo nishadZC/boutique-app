@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useCheckout } from '../hooks/useCheckout';
 import { calculateCartTotals } from '../utils/cartPricing';
 import { addressFromString, formatAddress, AddressFields, SavedAddress } from '../types/address';
+import { normalizePhone } from '../utils/validation';
 
 export const useCartPage = () => {
   const { items, removeItem, updateQuantity, clearCart } = useCart();
@@ -47,7 +48,8 @@ export const useCartPage = () => {
   const normalizeAddress = (addr: string) => addr.toLowerCase().replace(/\s+/g, ' ').trim();
 
   const saveCurrentAddress = () => {
-    if (!user || !address.trim() || !phone.trim()) return;
+    const normalizedPhone = normalizePhone(phone);
+    if (!user || !address.trim() || !normalizedPhone) return;
     const normCurrent = normalizeAddress(address);
 
     const existingIndex = savedAddresses.findIndex(
@@ -57,14 +59,14 @@ export const useCartPage = () => {
     let nextAddresses: SavedAddress[];
     if (existingIndex >= 0) {
       nextAddresses = savedAddresses.map((saved, idx) =>
-        idx === existingIndex ? { ...saved, fields: addressFields, phone } : saved
+        idx === existingIndex ? { ...saved, fields: addressFields, phone: normalizedPhone } : saved
       );
     } else {
       const nextAddress: SavedAddress = {
         id: `${Date.now()}`,
         label: savedAddresses.length === 0 ? 'Profile address' : `Address ${savedAddresses.length + 1}`,
         fields: addressFields,
-        phone,
+        phone: normalizedPhone,
       };
       nextAddresses = [...savedAddresses, nextAddress];
     }

@@ -7,6 +7,7 @@ import { useWishlist } from 'contexts/WishlistContext';
 import { productService } from 'services/productService';
 import { OutfitCombination } from 'services/skinToneService';
 import { Product } from 'types';
+import { BRAND } from '../../../constants/colors';
 
 interface OutfitCardProps {
   outfit: OutfitCombination;
@@ -73,13 +74,13 @@ const OutfitCard: React.FC<OutfitCardProps> = ({ outfit, index, onSelect }) => {
           startIcon={<BagIcon sx={{ fontSize: 20 }} />}
           onClick={onSelect}
           sx={{
-            py: 1.25, px: 4, background: '#d4af37', color: '#000',
+            py: 1.25, px: 4, background: BRAND.GOLD, color: '#000',
             borderRadius: '6px',
             fontWeight: 700,
             fontSize: '1rem',
             textTransform: 'none',
             boxShadow: 'none',
-            '&:hover': { background: '#b8941f', boxShadow: 'none' }
+            '&:hover': { background: BRAND.GOLD_DARK, boxShadow: 'none' }
           }}
         >
           Select Outfit

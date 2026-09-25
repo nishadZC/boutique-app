@@ -1,6 +1,9 @@
 import { createTheme } from '@mui/material/styles';
 import { BRAND } from '../constants/colors';
 
+const DISPLAY = '"Cormorant Garamond", "Times New Roman", serif';
+const SANS = '"Jost", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+
 export const theme = createTheme({
   palette: {
     mode: 'light',
@@ -30,65 +33,67 @@ export const theme = createTheme({
     success: { main: '#2e7d32' },
   },
   typography: {
-    fontFamily: ['"Inter"', '"Playfair Display"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'].join(','),
-    h1: { fontFamily: '"Playfair Display", serif', fontWeight: 700, fontSize: '3.5rem', lineHeight: 1.2 },
-    h2: { fontFamily: '"Playfair Display", serif', fontWeight: 600, fontSize: '2.5rem', lineHeight: 1.3 },
-    h3: { fontFamily: '"Playfair Display", serif', fontWeight: 600, fontSize: '2rem', lineHeight: 1.3 },
-    h4: { fontFamily: '"Playfair Display", serif', fontWeight: 600, fontSize: '1.5rem', lineHeight: 1.4 },
-    h5: { fontFamily: '"Playfair Display", serif', fontWeight: 500, fontSize: '1.25rem', lineHeight: 1.4 },
-    h6: { fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '1rem', lineHeight: 1.4 },
-    body1: { fontFamily: '"Inter", sans-serif', fontSize: '1rem', lineHeight: 1.6 },
-    body2: { fontFamily: '"Inter", sans-serif', fontSize: '0.875rem', lineHeight: 1.5 },
-    subtitle1: { fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: '1rem' },
-    subtitle2: { fontFamily: '"Inter", sans-serif', fontWeight: 500, fontSize: '0.875rem' },
-    button: { fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.875rem', textTransform: 'none' },
-    caption: { fontFamily: '"Inter", sans-serif', fontSize: '0.75rem' },
+    fontFamily: SANS,
+    h1: { fontFamily: DISPLAY, fontWeight: 700, fontSize: '3.5rem', lineHeight: 1.2 },
+    h2: { fontFamily: DISPLAY, fontWeight: 600, fontSize: '2.5rem', lineHeight: 1.3 },
+    h3: { fontFamily: DISPLAY, fontWeight: 600, fontSize: '2rem', lineHeight: 1.3 },
+    h4: { fontFamily: DISPLAY, fontWeight: 600, fontSize: '1.5rem', lineHeight: 1.4 },
+    h5: { fontFamily: DISPLAY, fontWeight: 500, fontSize: '1.25rem', lineHeight: 1.4 },
+    h6: { fontFamily: SANS, fontWeight: 600, fontSize: '1rem', lineHeight: 1.4 },
+    body1: { fontFamily: SANS, fontSize: '1rem', lineHeight: 1.6 },
+    body2: { fontFamily: SANS, fontSize: '0.875rem', lineHeight: 1.5 },
+    subtitle1: { fontFamily: SANS, fontWeight: 500, fontSize: '1rem' },
+    subtitle2: { fontFamily: SANS, fontWeight: 500, fontSize: '0.875rem' },
+    button: { fontFamily: SANS, fontWeight: 600, fontSize: '0.875rem', textTransform: 'none' },
+    caption: { fontFamily: SANS, fontSize: '0.75rem' },
+    overline: { fontFamily: SANS, fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.18em', lineHeight: 1.6 },
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          padding: '12px 24px',
+          borderRadius: 2,
+          padding: '12px 28px',
           boxShadow: 'none',
-          transition: 'all 0.3s ease-in-out',
-          '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' },
+          letterSpacing: '0.04em',
+          transition: 'background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease',
+          '&:hover': { boxShadow: 'none' },
         },
         contained: {
-          background: `linear-gradient(135deg, ${BRAND.DARK} 0%, ${BRAND.DARK_SOFT} 100%)`,
+          backgroundColor: BRAND.DARK,
           color: BRAND.WHITE,
-          '&:hover': { background: `linear-gradient(135deg, ${BRAND.DARK_DEEP} 0%, ${BRAND.DARK} 100%)` },
+          '&:hover': { backgroundColor: BRAND.DARK_DEEP },
         },
         outlined: {
           borderColor: BRAND.DARK,
           color: BRAND.DARK,
-          '&:hover': { backgroundColor: 'rgba(26,26,26,0.04)', borderColor: BRAND.DARK_DEEP },
+          '&:hover': { backgroundColor: BRAND.DARK, color: BRAND.WHITE, borderColor: BRAND.DARK },
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          borderRadius: 4,
+          boxShadow: 'none',
           border: `1px solid ${BRAND.BORDER}`,
-          transition: 'all 0.3s ease-in-out',
-          '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' },
+          transition: 'box-shadow 0.25s ease',
+          '&:hover': { boxShadow: '0 10px 30px rgba(0,0,0,0.08)' },
         },
       },
     },
     MuiPaper: {
       styleOverrides: {
-        root: { borderRadius: 12 },
-        elevation1: { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
-        elevation3: { boxShadow: '0 4px 16px rgba(0,0,0,0.12)' },
+        root: { borderRadius: 4 },
+        elevation1: { boxShadow: '0 1px 4px rgba(0,0,0,0.06)' },
+        elevation3: { boxShadow: '0 4px 16px rgba(0,0,0,0.10)' },
       },
     },
     MuiTextField: {
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            borderRadius: 8,
+            borderRadius: 2,
             '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: BRAND.GOLD },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: BRAND.GOLD, borderWidth: 2 },
           },
@@ -99,11 +104,10 @@ export const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(255, 255, 255, 0.85)',
-          backdropFilter: 'blur(12px)',
+          backgroundColor: BRAND.WHITE,
           color: BRAND.DARK,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-          borderBottom: `1px solid rgba(255, 255, 255, 0.3)`
+          boxShadow: 'none',
+          borderBottom: `1px solid ${BRAND.BORDER}`,
         },
       },
     },
@@ -115,7 +119,7 @@ export const theme = createTheme({
           padding: '8px 16px',
           transition: 'all 0.2s ease-in-out',
           '&.Mui-selected': {
-            backgroundColor: 'rgba(212, 175, 55, 0.12)', // gold transparent
+            backgroundColor: 'rgba(200, 164, 110, 0.14)', // gold transparent
             color: BRAND.GOLD_DARK,
             '& .MuiListItemIcon-root': {
               color: BRAND.GOLD_DARK,

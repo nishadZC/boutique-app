@@ -1,69 +1,146 @@
-import { useState, useCallback } from 'react';
-import { useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { AddressFields, SavedAddress } from '../types/address';
-import { useNavigate } from 'react-router-dom';
+import { useWishlist } from '../contexts/WishlistContext';
+import { AddressFields, SavedAddress, addressFromString, formatAddress } from '../types/address';
+import { Order } from '../types';
 import { ROUTES } from '../constants/routes';
+import { orderService } from '../services/orderService';
+import { authService } from '../services/authService';
+import { apiErrorMessage } from '../services/adminService';
+import { getPhoneError, normalizePhone } from '../utils/validation';
 
-function parseAddressFields(address?: string): AddressFields {
-  if (!address) return { houseNumber: '', street: '', city: '', state: '', postalCode: '', country: '' };
-  const parts = address.split(',').map(s => s.trim());
-  return {
-    houseNumber: parts[0] || '',
-    street:      parts[1] || '',
-    city:        parts[2] || '',
-    state:       parts[3] || '',
-    postalCode:  parts[4] || '',
-    country:     parts[5] || 'India',
-  };
+export interface ProfileDetails { firstName: string; lastName: string; phone: string }
+
+const savedAddressKey = (userId: string) => `savedAddresses:${userId}`;
+
+function readSavedAddresses(userId: string): SavedAddress[] {
+  try {
+    const raw = localStorage.getItem(savedAddressKey(userId));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
 
 export function useProfile() {
   const { user, updateProfile, logout } = useAuth();
   const { showToast } = useToast();
+  const { productIds } = useWishlist();
   const navigate = useNavigate();
-  const [editOpen, setEditOpen] = useState(false);
-  const [editData, setEditData] = useState({ firstName: '', lastName: '', phone: '' });
-  const [editAddress, setEditAddress] = useState<AddressFields>(() => parseAddressFields(user?.address));
-  const [updating, setUpdating] = useState(false);
+
+  const [details, setDetails] = useState<ProfileDetails>({ firstName: '', lastName: '', phone: '' });
+  const [address, setAddress] = useState<AddressFields>(() => addressFromString(user?.address));
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [savingDetails, setSavingDetails] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    setEditData({ firstName: user.firstName || '', lastName: user.lastName || '', phone: user.phone || '' });
-    setEditAddress(parseAddressFields(user.address));
+    setDetails({ firstName: user.firstName || '', lastName: user.lastName || '', phone: user.phone || '' });
+    setAddress(addressFromString(user.address));
+    setSavedAddresses(readSavedAddresses(user.id));
   }, [user]);
 
-  const handleSaveProfile = useCallback(async () => {
-    setUpdating(true);
-    try {
-      const address = [editAddress.houseNumber, editAddress.street, editAddress.city, editAddress.state, editAddress.postalCode, editAddress.country].join(', ');
-      await updateProfile({ ...editData, address });
-      setEditOpen(false);
-      showToast('Profile updated successfully!', 'success');
-    } catch {
-      showToast('Failed to update profile.', 'error');
-    } finally {
-      setUpdating(false);
-    }
-  }, [editAddress, editData, updateProfile, showToast]);
+  useEffect(() => {
+    if (!user) return undefined;
+    let cancelled = false;
+    orderService.getUserOrders()
+      .then(data => { if (!cancelled) setOrders(data); })
+      .catch(() => { if (!cancelled) setOrders([]); });
+    return () => { cancelled = true; };
+  }, [user]);
 
-  const handleSaveAddress = useCallback(async (label: string, phone: string) => {
+  const stats = useMemo(() => {
+    const list = orders ?? [];
+    const paid = list.filter(o => o.paymentStatus === 'paid');
+    return {
+      orders: paid.length,
+      spent: paid.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0),
+      delivered: list.filter(o => o.status === 'delivered').length,
+      wishlist: productIds.length,
+    };
+  }, [orders, productIds]);
+
+  const detailsErrors = useMemo(() => ({
+    firstName: details.firstName.trim() ? null : 'Enter your first name',
+    lastName: details.lastName.trim() ? null : 'Enter your last name',
+    phone: getPhoneError(details.phone, { required: false }),
+  }), [details]);
+
+  const save = useCallback(async (next: { details?: ProfileDetails; address?: AddressFields }) => {
+    if (!user) return false;
+    const d = next.details ?? { firstName: user.firstName, lastName: user.lastName, phone: user.phone ?? '' };
+    const a = next.address ?? addressFromString(user.address);
+    await updateProfile({
+      firstName: d.firstName.trim(),
+      lastName: d.lastName.trim(),
+      phone: normalizePhone(d.phone) ?? '',
+      address: a.street.trim() ? formatAddress(a) : '',
+    });
+    return true;
+  }, [updateProfile, user]);
+
+  const saveDetails = useCallback(async () => {
+    if (detailsErrors.firstName || detailsErrors.lastName || detailsErrors.phone) return false;
+    setSavingDetails(true);
     try {
-      const address = [editAddress.houseNumber, editAddress.street, editAddress.city, editAddress.state, editAddress.postalCode, editAddress.country].join(', ');
-      if (!user) throw new Error('User must be signed in to save an address');
-      const saved: SavedAddress = { id: `${Date.now()}`, label, fields: editAddress, phone };
-      const storageKey = `savedAddresses:${user.id}`;
-      const stored = localStorage.getItem(storageKey);
-      const addresses: SavedAddress[] = stored ? JSON.parse(stored) : [];
-      localStorage.setItem(storageKey, JSON.stringify([...addresses, saved]));
-      setSavedAddresses(prev => [...prev, saved]);
-      showToast('Address saved!', 'success');
-    } catch {
-      showToast('Failed to save address.', 'error');
+      await save({ details });
+      showToast('Your details were saved', 'success');
+      return true;
+    } catch (err) {
+      showToast(apiErrorMessage(err, 'Could not save your details'), 'error');
+      return false;
+    } finally {
+      setSavingDetails(false);
     }
-  }, [editAddress, showToast, user]);
+  }, [details, detailsErrors, save, showToast]);
+
+  const saveAddress = useCallback(async () => {
+    if (!address.street.trim() || !address.city.trim() || !address.postalCode.trim()) {
+      showToast('Add at least the street, city and postcode', 'warning');
+      return false;
+    }
+    setSavingAddress(true);
+    try {
+      await save({ address });
+      showToast('Delivery address saved', 'success');
+      return true;
+    } catch (err) {
+      showToast(apiErrorMessage(err, 'Could not save your address'), 'error');
+      return false;
+    } finally {
+      setSavingAddress(false);
+    }
+  }, [address, save, showToast]);
+
+  const removeSavedAddress = useCallback((id: string) => {
+    if (!user) return;
+    const next = savedAddresses.filter(a => a.id !== id);
+    localStorage.setItem(savedAddressKey(user.id), JSON.stringify(next));
+    setSavedAddresses(next);
+    showToast('Address removed', 'success');
+  }, [savedAddresses, showToast, user]);
+
+  const makeDefaultAddress = useCallback(async (saved: SavedAddress) => {
+    setAddress(saved.fields);
+    setSavingAddress(true);
+    try {
+      await save({ address: saved.fields });
+      showToast(`“${saved.label}” is now your default address`, 'success');
+    } catch (err) {
+      showToast(apiErrorMessage(err, 'Could not update your address'), 'error');
+    } finally {
+      setSavingAddress(false);
+    }
+  }, [save, showToast]);
+
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    await authService.changePassword(currentPassword, newPassword);
+    showToast('Password updated', 'success');
+  }, [showToast]);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -71,7 +148,8 @@ export function useProfile() {
   }, [logout, navigate]);
 
   return {
-    user, editOpen, setEditOpen, editData, setEditData, editAddress, setEditAddress,
-    updating, savedAddresses, setSavedAddresses, handleLogout, handleSaveProfile, handleSaveAddress,
+    user, details, setDetails, detailsErrors, saveDetails, savingDetails,
+    address, setAddress, saveAddress, savingAddress, savedAddresses, removeSavedAddress, makeDefaultAddress,
+    orders, stats, changePassword, handleLogout,
   };
 }

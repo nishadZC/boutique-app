@@ -1,0 +1,35 @@
+.chartTools { display: flex; justify-content: flex-end; margin: -6px 0 8px; }
+.chartWrap { position: relative; width: 100%; }
+.grid { stroke: #efece6; stroke-width: 1; }
+.crosshair { stroke: #b9b3a9; stroke-width: 1; stroke-dasharray: 3 3; }
+.axisLabel { fill: #8a857d; font: 500 11px var(--font-sans); font-variant-numeric: tabular-nums; }
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  min-width: 150px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #1a1a1a;
+  color: #f2ede4;
+  font-size: 0.78rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+.tooltipTitle { font-weight: 600; margin-bottom: 4px; }
+.tooltipRow { display: flex; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+.tableScroll { max-height: 260px; overflow: auto; }
+
+.pipeline { display: flex; flex-direction: column; gap: 4px; }
+.pipelineRow {
+  display: grid;
+  grid-template-columns: 130px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 6px;          /* hit target larger than the bar */
+  border-radius: 6px;
+}
+.pipelineClickable { cursor: pointer; }
+.pipelineClickable:hover, .pipelineClickable:focus-visible { background: #faf7f0; outline: none; }
+.pipelineLabel { font-size: 0.84rem; color: #3d3a35; }
+.pipelineTrack { height: 16px; display: flex; align-items: center; }
+.pipelineBar { display: block; height: 16px; border-radius: 0 4px 4px 0; }
+.pipelineValue { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; color: #1a1a1a; }

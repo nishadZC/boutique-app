@@ -1,193 +1,218 @@
 import { jsPDF } from 'jspdf';
 import { Address, Order, User } from '../../types';
+import { hasInvoice } from '../../constants/orderStatus';
+import { orderDelivery } from '../../utils/delivery';
 
-const GOLD = '#c59b3d';
-const INK = '#1f1b18';
-const MUTED = '#6b665f';
+// Brand palette (mirrors constants/colors.ts): ink, champagne gold, warm neutrals.
+const INK: [number, number, number] = [14, 14, 14];
+const CREAM: [number, number, number] = [242, 237, 228];
+const GOLD: [number, number, number] = [200, 164, 110];
+const GOLD_DARK: [number, number, number] = [138, 104, 52];
+const MUTED: [number, number, number] = [110, 105, 98];
+const RULE: [number, number, number] = [228, 222, 212];
+const STONE: [number, number, number] = [247, 244, 239];
+
 const PAGE_WIDTH = 210;
 const LEFT = 18;
 const RIGHT = 192;
+const CONTENT_BOTTOM = 262;
 
+// jsPDF measures right-aligned text without charSpace, so letter-spacing is
+// only used on left-aligned labels. The built-in PDF fonts have no rupee glyph.
 const formatMoney = (value: number | string): string => {
   const amount = typeof value === 'string' ? parseFloat(value) : value;
-  return `INR ${Number.isFinite(amount) ? amount.toFixed(2) : '0.00'}`;
+  return `INR ${(Number.isFinite(amount) ? amount : 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 const formatDate = (value: string): string => new Date(value).toLocaleDateString('en-IN', {
   day: '2-digit', month: 'long', year: 'numeric',
 });
 
-// jsPDF's addImage needs rasterized PNG/JPEG data, so the brand SVG is drawn
-// onto an offscreen canvas at a higher resolution than its placed size for
-// a crisp result, rather than pulling in the generic CRA logo192.png icon.
-const loadLogo = async (): Promise<string | null> => {
-  try {
-    const response = await fetch(`${import.meta.env.BASE_URL}lux-atelier-logo.svg`);
-    if (!response.ok) return null;
-    const svgText = await response.text();
-    const svgUrl = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
+export const invoiceNumber = (orderId: string) => `LA-${orderId.slice(0, 8).toUpperCase()}`;
 
-    return await new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        const size = 256;
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        URL.revokeObjectURL(svgUrl);
-        if (!ctx) { resolve(null); return; }
-        ctx.drawImage(img, 0, 0, size, size);
-        resolve(canvas.toDataURL('image/png'));
-      };
-      img.onerror = () => { URL.revokeObjectURL(svgUrl); resolve(null); };
-      img.src = svgUrl;
-    });
-  } catch {
-    return null;
+const getAddressText = (shippingAddress: Order['shippingAddress'] | undefined, fallback?: string): string => {
+  if (typeof shippingAddress === 'string' && shippingAddress.trim()) return shippingAddress;
+  if (shippingAddress && typeof shippingAddress === 'object' && 'address' in shippingAddress && shippingAddress.address) {
+    return shippingAddress.address;
   }
-};
-
-const getAddressText = (shippingAddress: Address | { address?: string } | undefined, fallback?: string): string => {
-  if (shippingAddress && 'address' in shippingAddress && shippingAddress.address) return shippingAddress.address;
-  if (shippingAddress) {
-    const address = shippingAddress as Address;
-    const formattedAddress = [address.street, address.city, address.state, address.zipCode, address.country]
-      .filter(Boolean)
-      .join(', ');
-    if (formattedAddress) return formattedAddress;
+  if (shippingAddress && typeof shippingAddress === 'object') {
+    const a = shippingAddress as Address;
+    const formatted = [a.street, a.city, a.state, a.zipCode, a.country].filter(Boolean).join(', ');
+    if (formatted) return formatted;
   }
   return fallback?.trim() || 'Not provided';
 };
 
-const drawWrappedText = (pdf: jsPDF, value: string, x: number, y: number, width: number): number => {
-  const lines = pdf.splitTextToSize(value, width);
-  pdf.text(lines, x, y);
-  return lines.length;
-};
+const customerName = (user?: User | null) => (user ? `${user.firstName} ${user.lastName}`.trim() : '') || 'Customer';
 
-const formatStatus = (status: string): string => status.charAt(0).toUpperCase() + status.slice(1);
+function drawHeader(pdf: jsPDF) {
+  pdf.setFillColor(...INK);
+  pdf.rect(0, 0, PAGE_WIDTH, 44, 'F');
+  pdf.setFont('times', 'bold');
+  pdf.setFontSize(24);
+  pdf.setTextColor(...CREAM);
+  pdf.text('LUX ATELIER', LEFT, 22, { charSpace: 1.2 });
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(7);
+  pdf.setTextColor(...GOLD);
+  pdf.text("MEN'S BOUTIQUE", LEFT, 30, { charSpace: 2.4 });
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9);
+  pdf.setTextColor(...GOLD);
+  pdf.text('INVOICE', RIGHT, 22, { align: 'right' });
+  pdf.setDrawColor(...GOLD);
+  pdf.setLineWidth(0.6);
+  pdf.line(0, 44, PAGE_WIDTH, 44);
+}
 
-const getCustomerName = (user?: User | null): string => {
-  const name = user ? `${user.firstName} ${user.lastName}`.trim() : '';
-  return name || 'Customer';
-};
+function drawTableHeader(pdf: jsPDF, top: number) {
+  pdf.setFillColor(...STONE);
+  pdf.rect(LEFT, top, RIGHT - LEFT, 9, 'F');
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(...MUTED);
+  pdf.text('ITEM', LEFT + 3, top + 6, { charSpace: 1 });
+  pdf.text('QTY', 132, top + 6, { align: 'right' });
+  pdf.text('UNIT PRICE', 162, top + 6, { align: 'right' });
+  pdf.text('AMOUNT', RIGHT - 3, top + 6, { align: 'right' });
+}
 
-const getCustomerPhone = (user?: User | null): string => user?.phone?.trim() || 'Not provided';
+function drawFooter(pdf: jsPDF, page: number, pages: number) {
+  pdf.setDrawColor(...GOLD);
+  pdf.setLineWidth(0.3);
+  pdf.line(LEFT, 276, RIGHT, 276);
+  pdf.setFont('times', 'italic');
+  pdf.setFontSize(10);
+  pdf.setTextColor(...INK);
+  pdf.text('Thank you for dressing with Lux Atelier.', LEFT, 283);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(...MUTED);
+  pdf.text('Questions about this invoice? Reply to your order confirmation email.', LEFT, 288);
+  pdf.text(`Page ${page} of ${pages}`, RIGHT, 288, { align: 'right' });
+}
 
-const getCustomerEmail = (user?: User | null): string => user?.email?.trim() || 'Not provided';
+function detailBlock(pdf: jsPDF, x: number, y: number, title: string, rows: [string, string][]) {
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(...GOLD_DARK);
+  pdf.text(title.toUpperCase(), x, y, { charSpace: 1.2 });
+  let cursor = y + 7;
+  pdf.setFontSize(9.5);
+  for (const [label, value] of rows) {
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...MUTED);
+    if (label) pdf.text(label, x, cursor);
+    pdf.setTextColor(...INK);
+    const lines = pdf.splitTextToSize(value, label ? 50 : 80);
+    pdf.text(lines, label ? x + 30 : x, cursor);
+    cursor += 6 * Math.max(1, lines.length);
+  }
+  return cursor;
+}
 
-const getShippingAddress = (order: Order, user?: User | null): string => {
-  return getAddressText(order.shippingAddress as Address | { address?: string }, user?.address);
-};
-
+/** Downloads a PDF invoice. Invoices only exist for paid (or since-refunded) orders. */
 export const downloadInvoicePdf = async (order: Order, user?: User | null): Promise<void> => {
+  if (!hasInvoice(order.paymentStatus)) {
+    throw new Error('An invoice is available once the order has been paid');
+  }
+
   const pdf = new jsPDF();
-  const logo = await loadLogo();
-  const customerName = getCustomerName(user);
-  const subtotal = order.items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
-  const paymentStatus = order.paymentStatus || 'pending';
+  const itemsTotal = order.items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
+  const subtotal = order.subtotalAmount ?? itemsTotal;
+  const shipping = order.shippingAmount ?? 0;
+  const tax = order.taxAmount ?? 0;
+  const delivery = orderDelivery(order, order.timeline?.find(t => t.status === 'delivered')?.at);
+  drawHeader(pdf);
 
-  pdf.setFillColor(INK);
-  pdf.rect(0, 0, PAGE_WIDTH, 42, 'F');
-  if (logo) pdf.addImage(logo, 'PNG', LEFT, 8, 25, 25);
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(20);
-  pdf.text('LUX ATELIER', logo ? 50 : LEFT, 19);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(9);
-  pdf.setTextColor(224, 185, 88);
-  pdf.text('FORMAL WEAR & PERSONAL STYLE', logo ? 50 : LEFT, 27);
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(18);
-  pdf.text('INVOICE', RIGHT, 18, { align: 'right' });
+  const leftEnd = detailBlock(pdf, LEFT, 58, 'Invoice', [
+    ['Number', invoiceNumber(order.id)],
+    ['Issued', formatDate(order.paidAt || order.createdAt)],
+    ['Order date', formatDate(order.createdAt)],
+    ['Payment', order.paymentStatus === 'refunded' ? 'Paid, since refunded' : 'Paid in full'],
+    ...(delivery ? [[delivery.label, delivery.date] as [string, string]] : []),
+  ]);
+  const rightEnd = detailBlock(pdf, 112, 58, 'Billed to', [
+    ['', customerName(user)],
+    ['', user?.email?.trim() || ''],
+    ['', user?.phone?.trim() || ''],
+  ].filter(([, v]) => v) as [string, string][]);
 
-  pdf.setTextColor(INK);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(11);
-  pdf.text('Invoice details', LEFT, 57);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(10);
-  pdf.setTextColor(MUTED);
-  pdf.text('Invoice number', LEFT, 66);
-  pdf.text('Issue date', LEFT, 74);
-  pdf.text('Payment status', LEFT, 82);
-  pdf.setTextColor(INK);
-  drawWrappedText(pdf, order.id, 58, 66, 46);
-  pdf.text(formatDate(order.createdAt), 58, 74);
-  pdf.text(formatStatus(paymentStatus), 58, 82);
+  let y = Math.max(leftEnd, rightEnd) + 4;
+  pdf.setDrawColor(...RULE);
+  pdf.setLineWidth(0.3);
+  pdf.line(LEFT, y, RIGHT, y);
+  y = detailBlock(pdf, LEFT, y + 10, 'Ship to', [['', getAddressText(order.shippingAddress, user?.address)]]) + 4;
 
-  pdf.setTextColor(INK);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('Customer details', 112, 57);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(10);
-  pdf.text(customerName, 112, 66);
-  pdf.setTextColor(MUTED);
-  pdf.text(getCustomerEmail(user), 112, 74);
-  pdf.text(getCustomerPhone(user), 112, 82);
-
-  pdf.setDrawColor(GOLD);
-  pdf.setLineWidth(0.5);
-  pdf.line(LEFT, 91, RIGHT, 91);
-  pdf.setTextColor(INK);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('Shipping address', LEFT, 103);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setTextColor(MUTED);
-  drawWrappedText(pdf, getShippingAddress(order, user), LEFT, 111, 174);
-
-  const tableTop = 125;
-  pdf.setFillColor(245, 241, 233);
-  pdf.rect(LEFT, tableTop, RIGHT - LEFT, 10, 'F');
-  pdf.setTextColor(INK);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(9);
-  pdf.text('ITEM', LEFT + 3, tableTop + 6);
-  pdf.text('QTY', 137, tableTop + 6, { align: 'right' });
-  pdf.text('PRICE', 160, tableTop + 6, { align: 'right' });
-  pdf.text('AMOUNT', RIGHT - 3, tableTop + 6, { align: 'right' });
-
-  let y = tableTop + 18;
-  pdf.setFont('helvetica', 'normal');
-  order.items.forEach(item => {
-    const itemName = item.product?.name || 'Product';
-    const itemLines = pdf.splitTextToSize(itemName, 105);
-    pdf.setTextColor(INK);
-    pdf.text(itemLines, LEFT + 3, y);
-    pdf.setTextColor(MUTED);
-    if (item.size) pdf.text(`Size: ${item.size}`, LEFT + 3, y + itemLines.length * 4 + 1);
-    pdf.text(String(item.quantity), 137, y, { align: 'right' });
-    pdf.text(formatMoney(item.price), 160, y, { align: 'right' });
-    pdf.setTextColor(INK);
+  drawTableHeader(pdf, y);
+  y += 17;
+  pdf.setFontSize(9.5);
+  for (const item of order.items) {
+    const name = pdf.splitTextToSize(item.product?.name || 'Product', 100);
+    const rowHeight = Math.max(11, name.length * 4.5 + (item.size ? 5 : 0) + 4);
+    if (y + rowHeight > CONTENT_BOTTOM) {
+      pdf.addPage();
+      drawHeader(pdf);
+      drawTableHeader(pdf, 56);
+      y = 73;
+      pdf.setFontSize(9.5);
+    }
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...INK);
+    pdf.text(name, LEFT + 3, y);
+    if (item.size) {
+      pdf.setFontSize(8);
+      pdf.setTextColor(...MUTED);
+      pdf.text(`Size ${item.size}`, LEFT + 3, y + name.length * 4.5);
+      pdf.setFontSize(9.5);
+    }
+    pdf.setTextColor(...MUTED);
+    pdf.text(String(item.quantity), 132, y, { align: 'right' });
+    pdf.text(formatMoney(item.price), 162, y, { align: 'right' });
+    pdf.setTextColor(...INK);
     pdf.text(formatMoney(Number(item.price) * item.quantity), RIGHT - 3, y, { align: 'right' });
-    y += Math.max(12, itemLines.length * 4 + (item.size ? 6 : 0));
-    pdf.setDrawColor(225, 220, 211);
-    pdf.line(LEFT, y - 5, RIGHT, y - 5);
-  });
+    y += rowHeight;
+    pdf.setDrawColor(...RULE);
+    pdf.line(LEFT, y - 6, RIGHT, y - 6);
+  }
 
-  y += 5;
+  if (y + 26 > CONTENT_BOTTOM) {
+    pdf.addPage();
+    drawHeader(pdf);
+    y = 64;
+  }
   pdf.setFont('helvetica', 'normal');
-  pdf.setTextColor(MUTED);
-  pdf.text('Subtotal', 145, y, { align: 'right' });
-  pdf.setTextColor(INK);
+  pdf.setFontSize(9.5);
+  pdf.setTextColor(...MUTED);
+  pdf.text('Subtotal', 150, y, { align: 'right' });
+  pdf.setTextColor(...INK);
   pdf.text(formatMoney(subtotal), RIGHT - 3, y, { align: 'right' });
-  y += 9;
+  y += 6;
+  pdf.setTextColor(...MUTED);
+  pdf.text('Shipping', 150, y, { align: 'right' });
+  pdf.setTextColor(...INK);
+  pdf.text(shipping > 0 ? formatMoney(shipping) : 'Complimentary', RIGHT - 3, y, { align: 'right' });
+  if (tax > 0) {
+    y += 6;
+    pdf.setTextColor(...MUTED);
+    pdf.text('Tax', 150, y, { align: 'right' });
+    pdf.setTextColor(...INK);
+    pdf.text(formatMoney(tax), RIGHT - 3, y, { align: 'right' });
+  }
+  y += 5;
+  pdf.setFillColor(...INK);
+  pdf.rect(118, y, RIGHT - 118, 11, 'F');
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(12);
-  pdf.setTextColor(INK);
-  pdf.text('Total', 145, y, { align: 'right' });
-  pdf.setTextColor(GOLD);
-  pdf.text(formatMoney(order.totalAmount), RIGHT - 3, y, { align: 'right' });
+  pdf.setFontSize(10.5);
+  pdf.setTextColor(...CREAM);
+  pdf.text('TOTAL PAID', 123, y + 7.3, { charSpace: 1 });
+  pdf.setTextColor(...GOLD);
+  pdf.text(formatMoney(order.totalAmount), RIGHT - 3, y + 7.3, { align: 'right' });
 
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(9);
-  pdf.setTextColor(MUTED);
-  pdf.text('Thank you for choosing Lux Atelier.', LEFT, 275);
-  pdf.text('For questions about this invoice, please contact our support team.', LEFT, 282);
-  pdf.setTextColor(INK);
-  pdf.setFontSize(8);
-  pdf.text('Lux Atelier | Premium formal wear and personal style', PAGE_WIDTH / 2, 291, { align: 'center' });
-  pdf.save(`lux-atelier-invoice-${order.id}.pdf`);
+  const pages = pdf.getNumberOfPages();
+  for (let page = 1; page <= pages; page++) {
+    pdf.setPage(page);
+    drawFooter(pdf, page, pages);
+  }
+  pdf.save(`lux-atelier-invoice-${invoiceNumber(order.id)}.pdf`);
 };

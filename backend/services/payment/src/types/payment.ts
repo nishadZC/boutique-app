@@ -1,4 +1,6 @@
 export interface CreatePaymentOrderRequest {
+  orderId?: string;
+  /** Ignored: the amount always comes from the stored order. */
   amount?: number;
   currency?: string;
   receipt?: string;
@@ -13,5 +15,5 @@ export interface VerifyPaymentRequest {
 
 export interface UpdatePaymentStatusRequest {
   orderId?: string;
-  paymentStatus?: 'failed' | 'refunded';
+  paymentStatus?: 'failed';
 }

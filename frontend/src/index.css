@@ -1,11 +1,28 @@
+:root {
+  /* Brand typefaces (loaded via @fontsource in index.tsx) */
+  --font-display: 'Cormorant Garamond', 'Times New Roman', serif;
+  --font-sans: 'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Brand colours (mirror constants/colors.ts) */
+  --gold: #c8a46e;
+  --gold-dark: #a8844f;
+  --gold-light: #e8d9bd;
+  --ink: #0e0e0e;
+  --ink-soft: #171615;
+  --ink-line: #2a2826;
+  --cream: #f2ede4;
+  --muted-on-dark: #9b958c;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Cormorant defaults to old-style numerals; order numbers and prices in headings read better lining. */
+h1, h2, h3, h4, h5, h6 { font-variant-numeric: lining-nums; }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',

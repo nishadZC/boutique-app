@@ -6,6 +6,7 @@ import { useToast } from '../contexts/ToastContext';
 import { orderService } from '../services/orderService';
 import { paymentService } from '../services/paymentService';
 import { calculateCartTotals } from '../utils/cartPricing';
+import { getPhoneError, normalizePhone } from '../utils/validation';
 
 interface CheckoutOptions {
   address: string;
@@ -35,7 +36,13 @@ export const useCheckout = ({ address, phone, setAddressError, onAddressSaved, c
       showToast('Please enter a shipping address before checkout.', 'warning');
       return;
     }
-    if (!user || !user.firstName || !user.lastName || !phone || !address.trim()) {
+    const phoneError = getPhoneError(phone);
+    if (phoneError) {
+      showToast(phoneError, 'warning');
+      return;
+    }
+    const normalizedPhone = normalizePhone(phone)!;
+    if (!user || !user.firstName || !user.lastName || !address.trim()) {
       showToast('Please complete your profile before checkout.', 'warning');
       navigate('/profile');
       return;
@@ -46,11 +53,11 @@ export const useCheckout = ({ address, phone, setAddressError, onAddressSaved, c
     let createdOrderId: string | undefined;
 
     try {
-      if (user.address !== address || user.phone !== phone) {
+      if (user.address !== address || user.phone !== normalizedPhone) {
         await updateProfile({
           firstName: user.firstName,
           lastName: user.lastName,
-          phone,
+          phone: normalizedPhone,
           address,
         }).catch((error) => console.error('Failed to update profile address during checkout:', error));
       }
@@ -64,7 +71,7 @@ export const useCheckout = ({ address, phone, setAddressError, onAddressSaved, c
         shippingAddress: { address },
       });
       createdOrderId = order.id;
-      const paymentOrder = await paymentService.createPaymentOrder(finalTotal, order.id);
+      const paymentOrder = await paymentService.createPaymentOrder(order.id);
 
       await new Promise<void>((resolve, reject) => {
         paymentService.openCheckout({
@@ -74,7 +81,7 @@ export const useCheckout = ({ address, phone, setAddressError, onAddressSaved, c
           name: 'Boutique',
           description: `Payment for order ${order.id}`,
           order_id: paymentOrder.id,
-          prefill: { name: `${user.firstName} ${user.lastName}`, email: user.email },
+          prefill: { name: `${user.firstName} ${user.lastName}`, email: user.email, contact: normalizedPhone },
           handler: async (response: RazorpayResponse) => {
             try {
               await paymentService.verifyPayment({

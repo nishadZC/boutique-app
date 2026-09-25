@@ -27,6 +27,8 @@ import {
 import { AddressForm } from '../../components/AddressForm/AddressForm';
 import { formatAddress } from '../../types/address';
 import { useCartPage } from '../../hooks/useCartPage';
+import { formatPhone, getPhoneError, PHONE_MAX_INPUT_LENGTH } from '../../utils/validation';
+import { estimatedDeliveryDate, formatDeliveryDate } from '../../utils/delivery';
 import styles from './Cart.module.css';
 
 const Cart: React.FC = memo(() => {
@@ -57,6 +59,9 @@ const Cart: React.FC = memo(() => {
     selectedCartItems,
     getItemKey,
   } = useCartPage();
+  const [phoneTouched, setPhoneTouched] = React.useState(false);
+  const phoneError = getPhoneError(phone);
+  const showPhoneError = phoneTouched && !!phoneError;
 
   const navigate = useNavigate();
 
@@ -252,6 +257,11 @@ const Cart: React.FC = memo(() => {
                 )}
 
                 <Box className={styles.summaryRow}>
+                  <Typography variant="body1">Delivery by:</Typography>
+                  <Typography variant="body1">{formatDeliveryDate(estimatedDeliveryDate())}</Typography>
+                </Box>
+
+                <Box className={styles.summaryRow}>
                   <Typography variant="body1">Tax:</Typography>
                   <Typography variant="body1">₹{tax.toFixed(2)}</Typography>
                 </Box>
@@ -285,7 +295,7 @@ const Cart: React.FC = memo(() => {
                             <Box className={styles.radioLabelBox}>
                               <Typography variant="body2" fontWeight={600}>{saved.label}</Typography>
                               <Typography variant="caption" color="text.secondary">
-                                {formatAddress(saved.fields)} | {saved.phone || 'No phone saved'}
+                                {formatAddress(saved.fields)} | {saved.phone ? formatPhone(saved.phone) : 'No phone saved'}
                               </Typography>
                             </Box>
                           }
@@ -303,10 +313,16 @@ const Cart: React.FC = memo(() => {
                 )}
                 <TextField
                   label="Phone Number"
+                  type="tel"
                   required
                   fullWidth
                   value={phone}
                   onChange={event => setPhone(event.target.value)}
+                  onBlur={() => { if (phone.trim()) setPhoneTouched(true); }}
+                  error={showPhoneError}
+                  helperText={showPhoneError ? phoneError : 'For delivery updates, e.g. 98765 43210'}
+                  autoComplete="tel"
+                  slotProps={{ htmlInput: { inputMode: 'tel', maxLength: PHONE_MAX_INPUT_LENGTH } }}
                   className={styles.phoneField}
                   sx={{ mb: 3 }}
                 />
@@ -326,7 +342,7 @@ const Cart: React.FC = memo(() => {
                   fullWidth
                   size="large"
                   onClick={handleCheckout}
-                  disabled={isCheckingOut || selectedCartItems.length === 0 || !phone.trim() || !addressFields.street.trim()}
+                  disabled={isCheckingOut || selectedCartItems.length === 0 || !!phoneError || !addressFields.street.trim()}
                   className={styles.checkoutButton}
                 >
                   Proceed to Checkout

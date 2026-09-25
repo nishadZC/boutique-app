@@ -2,14 +2,17 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import * as dotenv from 'dotenv';
-import multer from 'multer';
-import { uploadProductImage } from './services/imageService';
 import { productRoutes } from './routes/products';
+import { adminRoutes } from './routes/admin';
+import { internalRoutes } from './routes/internal';
+import { reviewRoutes } from './routes/reviews';
+import { getJwtSecret } from './middleware/auth';
 import { recommendationRoutes } from './routes/recommendations';
-import { connectDB,query } from './database/connection';
+import { connectDB } from './database/connection';
 import { metricsMiddleware, setupMetrics } from './metrics';
 
 dotenv.config({ path: './.env' });
+getJwtSecret(); // fail fast if JWT_SECRET is missing in production
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -26,33 +29,12 @@ setupMetrics(app, { serviceName: 'product-service', serviceVersion: '1.0.0' });
 
 app.use(metricsMiddleware);
 
-app.use('', productRoutes);
+// Specific prefixes first: productRoutes' '/:id' would otherwise match them.
+app.use('/admin', adminRoutes);
+app.use('/internal', internalRoutes);
+app.use('/reviews', reviewRoutes);
 app.use('/recommendations', recommendationRoutes);
-
-app.post('/products/:id/images', multer({ storage: multer.memoryStorage() }).single('image'), async (req, res) => {
-  if (!req.file) {
-    res.status(400).json({ success: false, error: 'An image file is required' });
-    return;
-  }
-
-  try {
-    const imageUrl = await uploadProductImage(req.file.buffer, req.params.id);
-    const imageResult = await query(
-      'UPDATE product_images SET image_url = $1 WHERE product_id = $2 AND is_primary = true',
-      [imageUrl, req.params.id]
-    );
-    if (imageResult.rowCount === 0) {
-      await query(
-        'INSERT INTO product_images (product_id, image_url, is_primary) VALUES ($1, $2, true)',
-        [req.params.id, imageUrl]
-      );
-    }
-    res.status(201).json({ success: true, data: { imageUrl } });
-  } catch (error) {
-    console.error('Product image upload error:', error);
-    res.status(502).json({ success: false, error: 'Failed to upload product image' });
-  }
-});
+app.use('', productRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);

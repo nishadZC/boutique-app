@@ -1,101 +1,89 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo, useRef } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
-  Container,
-  Typography,
-  Box,
-  Button,
-  Grid,
-  IconButton,
-  Card,
-  CardMedia,
-  CardContent,
-  Chip,
-  Paper,
-  Breadcrumbs,
-  Link,
-  Tabs,
-  Tab,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
+  Container, Typography, Box, Button, Grid, IconButton, Breadcrumbs, Link, TextField,
+  Accordion, AccordionSummary, AccordionDetails, Tooltip, Rating,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
-  ShoppingBag as ShoppingBagIcon,
-  LocalShipping as LocalShippingIcon,
-  Security as SecurityIcon,
-  Refresh as RefreshIcon,
-  Star as StarIcon,
+  ShoppingBagOutlined as BagIcon,
+  LocalShippingOutlined as ShippingIcon,
+  CachedOutlined as ReturnsIcon,
+  LockOutlined as SecureIcon,
+  Favorite as WishlistFilledIcon,
   FavoriteBorder as WishlistIcon,
+  ExpandMore as ExpandIcon,
+  StraightenOutlined as MeasureIcon,
+  ContentCutOutlined as TailorIcon,
+  West as PrevIcon,
+  East as NextIcon,
 } from '@mui/icons-material';
 import { getSizeOptions } from '../../utils/productSizing';
-import { MeasurementField } from '../../utils/measurements';
+import { MEASUREMENT_LABELS, measurementExample } from '../../utils/measurements';
+import { BRAND, getHex } from '../../constants/colors';
+import { productsUrl } from '../../constants/navigation';
+import { FREE_SHIPPING_THRESHOLD } from '../../constants/config';
+import { ROUTES } from '../../constants/routes';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton/LoadingSkeleton';
-import ImageCarousel from '../../components/common/ImageCarousel/ImageCarousel';
+import { ProductCard } from '../../components/common';
 import { useProductDetail } from '../../hooks/useProductDetail';
+import ProductGallery, { GalleryImage } from './ProductGallery';
+import ProductReviews from './ProductReviews';
 import styles from './ProductDetail.module.css';
 
-const MEASUREMENT_FIELDS: { field: MeasurementField; label: string; placeholder: string }[] = [
-  { field: 'shoulder', label: 'Shoulder (cm)', placeholder: 'e.g. 45' },
-  { field: 'chest', label: 'Chest (cm)', placeholder: 'e.g. 100' },
-  { field: 'sleeve', label: 'Sleeve (cm)', placeholder: 'e.g. 64' },
-  { field: 'neck', label: 'Neck (cm)', placeholder: 'e.g. 40' },
+const PROMISES = [
+  { icon: <ShippingIcon />, title: 'Free shipping', desc: `On orders over ₹${FREE_SHIPPING_THRESHOLD}` },
+  { icon: <ReturnsIcon />, title: 'Easy returns', desc: 'Within 30 days' },
+  { icon: <SecureIcon />, title: 'Secure payment', desc: '100% protected' },
 ];
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`product-tabpanel-${index}`}
-      aria-labelledby={`product-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box className={styles.container}>{children}</Box>}
-    </div>
-  );
-}
+const toNumber = (value: number | string | undefined) => {
+  const n = typeof value === 'string' ? parseFloat(value) : (value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
+const formatPrice = (value: number) => `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 const ProductDetail: React.FC = memo(() => {
   const {
     product,
     loading,
     quantity,
-    tabValue,
     selectedSize,
     isCustomizing,
     customMeasurements,
     relatedProducts,
-    isShirt,
+    garmentType,
+    canTailor,
+    isMadeToMeasure,
+    tailoringFields,
     sizeGuideImages,
     navigate,
     handleAddToCart,
     handleQuantityChange,
-    handleTabChange,
     setSelectedSize,
     setIsCustomizing,
     setCustomMeasurements,
     toggleWishlist,
     isInWishlist,
-    measurementLimits
+    addItem,
+    measurementLimits,
   } = useProductDetail();
+
+  const railRef = useRef<HTMLDivElement>(null);
+  const scrollRail = (direction: 1 | -1) => {
+    const rail = railRef.current;
+    if (rail) rail.scrollBy({ left: direction * rail.clientWidth * 0.8, behavior: 'smooth' });
+  };
+
+  const galleryImages = useMemo<GalleryImage[]>(() => (product
+    ? [{ src: product.imageUrl, alt: product.name }, ...sizeGuideImages.map(img => ({ ...img, isGuide: true }))]
+    : []), [product, sizeGuideImages]);
 
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box className={styles.loadingBox}>
-          <LoadingSkeleton variant="detail" />
-        </Box>
+        <Box className={styles.loadingBox}><LoadingSkeleton variant="detail" /></Box>
       </Container>
     );
   }
@@ -104,371 +92,250 @@ const ProductDetail: React.FC = memo(() => {
     return (
       <Container maxWidth="md">
         <Box className={styles.notFoundBox}>
-          <Typography variant="h4" gutterBottom>
-            Product not found
-          </Typography>
-          <Button variant="contained" onClick={() => navigate('/products')}>
-            Back to Products
-          </Button>
+          <Typography variant="h4" gutterBottom>Product not found</Typography>
+          <Button variant="contained" onClick={() => navigate(ROUTES.PRODUCTS)}>Back to Products</Button>
         </Box>
       </Container>
     );
   }
 
+  const price = toNumber(product.price);
+  const originalPrice = toNumber(product.originalPrice);
+  const discount = originalPrice > price ? Math.round((1 - price / originalPrice) * 100) : 0;
+  const stock = product.inventory_quantity ?? product.inventory ?? 0;
+  const isOutOfStock = stock === 0;
+  const wishlisted = isInWishlist(product.id);
+  const sizes = getSizeOptions(product);
+
   return (
-    <Container maxWidth="lg">
-      <Box className={styles.container}>
-        {/* Breadcrumbs */}
-        <Breadcrumbs className={styles.breadcrumbs}>
-          <Link component="button" variant="body1" onClick={() => navigate('/')}>
-            Home
-          </Link>
-          <Link component="button" variant="body1" onClick={() => navigate('/products')}>
-            Products
-          </Link>
-          <Typography variant="body1" color="text.primary">
-            {product.name}
-          </Typography>
+    <Box className={styles.page}>
+      <Container maxWidth="lg">
+        <Breadcrumbs className={styles.breadcrumbs} aria-label="Breadcrumb">
+          <Link component={RouterLink} to={ROUTES.HOME}>Home</Link>
+          <Link component={RouterLink} to={productsUrl({ category: product.category })}>{product.category}</Link>
+          <Typography color="text.primary" noWrap>{product.name}</Typography>
         </Breadcrumbs>
 
-        <Grid container spacing={4}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Paper elevation={2} className={styles.imagePaper}>
-              <ImageCarousel
-                images={[{ src: product.imageUrl, alt: product.name }, ...sizeGuideImages]}
-                aspectRatio="4 / 5"
-                bare
-              />
-            </Paper>
+        <Grid container spacing={{ xs: 4, md: 7 }}>
+          <Grid size={{ xs: 12, md: 7 }}>
+            <ProductGallery images={galleryImages} />
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Box className={styles.infoContainer}>
-              {/* Product Info */}
-              <Box className={styles.infoSection}>
-                <Box className={styles.chipContainer}>
-                  <Chip
-                    label={product.category}
-                    size="small"
-                    variant="outlined"
-                    className={styles.categoryChip}
-                  />
-                  {product.isNew && (
-                    <Chip label="NEW" color="secondary" size="small" />
-                  )}
-                  {product.inventory <= 5 && product.inventory > 0 && (
-                    <Chip label="Only a few left!" color="warning" size="small" />
-                  )}
-                </Box>
-                
-                <Typography variant="h3" component="h1" gutterBottom className={styles.title}>
-                  {product.name}
-                </Typography>
-                
-                {product.rating && (
-                  <Box className={styles.ratingContainer}>
-                    {[...Array(5)].map((_, index) => (
-                      <StarIcon
-                        key={index}
-                        className={styles.starIcon}
-                        style={{ color: index < product.rating! ? '#ffc107' : '#e0e0e0' }}
-                      />
-                    ))}
-                    <Typography variant="body2" color="text.secondary">
-                      ({product.reviewCount || 0} reviews)
-                    </Typography>
-                  </Box>
-                )}
-                
-                <Box className={styles.priceContainer}>
-                  <Typography variant="h4" color="primary" className={styles.price}>
-                    ₹{(() => {
-                      const price = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
-                      return isNaN(price) || !isFinite(price) ? '0.00' : price.toFixed(2);
-                    })()}
-                  </Typography>
-                  {product.originalPrice && product.originalPrice > product.price && (
-                    <Typography variant="h6" color="text.secondary" className={styles.originalPrice}>
-                      ₹{(() => {
-                        const price = typeof product.originalPrice === 'string' ? parseFloat(product.originalPrice) : product.originalPrice;
-                        return isNaN(price) || !isFinite(price) ? '0.00' : price.toFixed(2);
-                      })()}
-                    </Typography>
-                  )}
-                  {product.discountPercentage && product.discountPercentage > 0 && (
-                    <Chip
-                      label={`-${product.discountPercentage}%`}
-                      color="error"
-                      size="small"
-                    />
-                  )}
-                </Box>
-                
-                <Typography variant="body1" color="text.secondary" paragraph className={styles.description}>
-                  {product.description}
-                </Typography>
-                
-                <Box className={styles.featuresBox}>
-                  <Box className={styles.featureItem}>
-                    <LocalShippingIcon color="action" />
-                    <Typography variant="body2">Free shipping over ₹500</Typography>
-                  </Box>
-                  <Box className={styles.featureItem}>
-                    <RefreshIcon color="action" />
-                    <Typography variant="body2">30-day returns</Typography>
-                  </Box>
-                  <Box className={styles.featureItem}>
-                    <SecurityIcon color="action" />
-                    <Typography variant="body2">Secure payment</Typography>
-                  </Box>
-                </Box>
+          <Grid size={{ xs: 12, md: 5 }}>
+            <Box className={styles.info}>
+              <Box className={styles.badges}>
+                {product.brand && <span className={styles.brand}>{product.brand}</span>}
+                {product.isNew && <span className={styles.badge}>New</span>}
+                {product.isHandcrafted && <span className={`${styles.badge} ${styles.badgeCraft}`}>Handcrafted</span>}
               </Box>
-              
-              {/* Purchase Controls */}
-              <Paper elevation={1} className={styles.purchasePaper}>
-                {product.inventory === 0 ? (
-                  <Typography variant="h6" color="error" gutterBottom>
-                    Out of Stock
-                  </Typography>
-                ) : (
-                  <>
-                    <Box className={styles.sizeContainer}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel id="product-size-label">Size</InputLabel>
-                        <Select
-                          labelId="product-size-label"
-                          value={selectedSize}
-                          label="Size"
-                          onChange={(event) => setSelectedSize(event.target.value as string)}
-                          disabled={isCustomizing}
-                        >
-                          {getSizeOptions(product).map((size) => (
-                            <MenuItem value={size} key={size}>{size}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      
-                      {isShirt && (
-                        <Button
-                          variant="outlined"
-                          onClick={() => setIsCustomizing(!isCustomizing)}
-                          className={isCustomizing ? styles.customizeButtonActive : styles.customizeButtonInactive}
-                          sx={isCustomizing ? {
-                            backgroundColor: '#fff !important',
-                            border: '1px solid #c62828 !important',
-                            color: '#c62828 !important',
-                            '&:hover': { backgroundColor: '#fff5f5 !important', borderColor: '#b71c1c !important' },
-                          } : undefined}
-                        >
-                          {isCustomizing ? 'Cancel' : 'Customize'}
-                        </Button>
-                      )}
-                    </Box>
 
-                    {isCustomizing && (
-                      <Box className={styles.customMeasurementsBox}>
-                        <Typography variant="subtitle2" className={styles.customMeasurementsTitle}>
-                          Enter your exact measurements (cm)
-                        </Typography>
-                        <Grid container spacing={2}>
-                          {MEASUREMENT_FIELDS.map(({ field, label, placeholder }) => (
-                            <Grid size={{ xs: 6, sm: 3 }} key={field}>
-                              <TextField
-                                size="small"
-                                type="number"
-                                inputProps={{ min: measurementLimits[field].min, max: measurementLimits[field].max, step: '0.01' }}
-                                label={label}
-                                placeholder={placeholder}
-                                value={customMeasurements[field]}
-                                onChange={(e) => setCustomMeasurements({ ...customMeasurements, [field]: e.target.value })}
-                                fullWidth
-                                InputProps={{ className: styles.textFieldInput }}
-                              />
-                            </Grid>
-                          ))}
-                        </Grid>
-                      </Box>
-                    )}
-                    <Box className={styles.quantityBox}>
-                      <Typography variant="body1" className={styles.quantityLabel}>
-                        Quantity:
-                      </Typography>
-                      <Box className={styles.quantityControls}>
-                        <IconButton
-                          onClick={() => handleQuantityChange(-1)}
-                          disabled={quantity <= 1}
-                          className={styles.quantityButton}
-                        >
-                          <RemoveIcon />
-                        </IconButton>
-                        <Typography variant="body1" className={styles.quantityValue}>
-                          {quantity}
-                        </Typography>
-                        <IconButton
-                          onClick={() => handleQuantityChange(1)}
-                          disabled={quantity >= product.inventory}
-                          className={styles.quantityButton}
-                        >
-                          <AddIcon />
-                        </IconButton>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary" className={styles.inventoryStatus}>
-                        {product.inventory} available
-                      </Typography>
-                    </Box>
+              <Typography variant="h1" className={styles.title}>{product.name}</Typography>
+              {!!product.reviewCount && (
+                <a href="#reviews" className={styles.ratingLink}>
+                  <Rating value={product.rating ?? 0} precision={0.1} readOnly size="small" sx={{ color: BRAND.CHART_GOLD }} />
+                  <span>{(product.rating ?? 0).toFixed(1)} · {product.reviewCount} review{product.reviewCount === 1 ? '' : 's'}</span>
+                </a>
+              )}
+
+              <Box className={styles.priceRow}>
+                <span className={styles.price}>{formatPrice(price)}</span>
+                {discount > 0 && (
+                  <>
+                    <span className={styles.originalPrice}>{formatPrice(originalPrice)}</span>
+                    <span className={styles.saving}>Save {discount}%</span>
                   </>
                 )}
-                
-                <Box className={styles.actionsContainer}>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    onClick={handleAddToCart}
-                    disabled={product.inventory === 0}
-                    startIcon={<ShoppingBagIcon />}
-                    className={styles.addToCartButton}
-                  >
-                    {product.inventory === 0 ? 'Out of Stock' : 'Add to Cart'}
-                  </Button>
-                  
+              </Box>
+              <Typography className={styles.taxNote}>Inclusive of all taxes</Typography>
+
+              <Typography className={styles.description}>{product.description}</Typography>
+
+              {isMadeToMeasure && (
+                <Box className={styles.craftNote}>
+                  <TailorIcon fontSize="small" />
+                  <Typography>
+                    <strong>Made to measure available.</strong> Send us your measurements and our tailors will make this
+                    piece for you{product.makingDays ? <> in about <strong>{product.makingDays} working days</strong> before it ships</> : null}.
+                  </Typography>
+                </Box>
+              )}
+
+              {product.color && (
+                <Box className={styles.optionBlock}>
+                  <Typography className={styles.optionLabel}>Colour: <span>{product.color}</span></Typography>
+                  <Tooltip title={product.color}>
+                    <span className={styles.colorSwatch} style={{ backgroundColor: getHex(product.color) }} aria-label={`Colour: ${product.color}`} />
+                  </Tooltip>
+                </Box>
+              )}
+
+              {!isOutOfStock && (
+                <>
+                  <Box className={styles.optionBlock}>
+                    <Box className={styles.optionHeader}>
+                      <Typography className={styles.optionLabel}>
+                        Size{selectedSize && !isCustomizing ? <>: <span>{selectedSize}</span></> : null}
+                      </Typography>
+                      {canTailor && (
+                        <button type="button" className={styles.linkButton} onClick={() => setIsCustomizing(!isCustomizing)}>
+                          <MeasureIcon fontSize="inherit" />
+                          {isCustomizing ? 'Choose a standard size' : isMadeToMeasure ? 'Made to measure' : 'Custom tailoring'}
+                        </button>
+                      )}
+                    </Box>
+                    <Box className={styles.sizeGrid} role="radiogroup" aria-label="Size">
+                      {sizes.map(size => (
+                        <button
+                          key={size}
+                          type="button"
+                          role="radio"
+                          aria-checked={selectedSize === size}
+                          disabled={isCustomizing}
+                          onClick={() => setSelectedSize(size)}
+                          className={`${styles.sizeChip} ${selectedSize === size && !isCustomizing ? styles.sizeChipActive : ''}`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </Box>
+                  </Box>
+
+                  {isCustomizing && (
+                    <Box className={styles.customBox}>
+                      <Typography className={styles.customTitle}>Your measurements (cm)</Typography>
+                      <Grid container spacing={1.5}>
+                        {tailoringFields.map(field => (
+                          <Grid size={{ xs: 6 }} key={field}>
+                            <TextField
+                              size="small"
+                              type="number"
+                              label={`${MEASUREMENT_LABELS[field]} (cm)`}
+                              placeholder={measurementExample(garmentType, field)}
+                              value={customMeasurements[field]}
+                              onChange={e => setCustomMeasurements({ ...customMeasurements, [field]: e.target.value })}
+                              slotProps={{ htmlInput: { min: measurementLimits[field].min, max: measurementLimits[field].max, step: '0.01' } }}
+                              helperText={`${measurementLimits[field].min}–${measurementLimits[field].max}`}
+                              fullWidth
+                            />
+                          </Grid>
+                        ))}
+                      </Grid>
+                      {isMadeToMeasure && product.makingDays && (
+                        <Typography className={styles.customNote}>
+                          Made to order: allow about {product.makingDays} working days for tailoring, then standard delivery.
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </>
+              )}
+
+              <Box className={styles.purchaseRow}>
+                {!isOutOfStock && (
+                  <Box className={styles.quantity} aria-label="Quantity">
+                    <IconButton size="small" onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1} aria-label="Decrease quantity">
+                      <RemoveIcon fontSize="small" />
+                    </IconButton>
+                    <span aria-live="polite">{quantity}</span>
+                    <IconButton size="small" onClick={() => handleQuantityChange(1)} disabled={quantity >= stock} aria-label="Increase quantity">
+                      <AddIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                )}
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  startIcon={<BagIcon />}
+                  className={styles.addButton}
+                >
+                  {isOutOfStock ? 'Sold out' : 'Add to cart'}
+                </Button>
+                <Tooltip title={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}>
                   <IconButton
                     onClick={() => toggleWishlist(product.id)}
-                    color={isInWishlist(product.id) ? 'error' : 'default'}
-                    aria-label={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
-                    className={styles.wishlistButton}
+                    aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                    className={`${styles.wishlistButton} ${wishlisted ? styles.wishlistActive : ''}`}
                   >
-                    <WishlistIcon />
+                    {wishlisted ? <WishlistFilledIcon /> : <WishlistIcon />}
                   </IconButton>
-                </Box>
-                
-                <Button
-                  variant="outlined"
-                  size="large"
-                  onClick={() => navigate('/cart')}
-                  fullWidth
-                  className={styles.viewCartButton}
-                >
-                  View Cart
-                </Button>
-              </Paper>
-              
-              {/* Additional Info */}
-              <Box className={styles.additionalInfo}>
-                <Typography variant="body2" color="text.secondary">
-                  SKU: {product.id}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Category: {product.category}
-                </Typography>
+                </Tooltip>
+              </Box>
+              {!isOutOfStock && stock <= 5 && <Typography className={styles.lowStock}>Only {stock} left — order soon</Typography>}
+
+              <Box className={styles.promises}>
+                {PROMISES.map(({ icon, title, desc }) => (
+                  <Box key={title} className={styles.promise}>
+                    {icon}
+                    <Box>
+                      <Typography className={styles.promiseTitle}>{title}</Typography>
+                      <Typography className={styles.promiseDesc}>{desc}</Typography>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+
+              <Box className={styles.accordions}>
+                <Accordion disableGutters elevation={0} className={styles.accordion}>
+                  <AccordionSummary expandIcon={<ExpandIcon />}>Details</AccordionSummary>
+                  <AccordionDetails>
+                    <Box component="dl" className={styles.details}>
+                      {product.brand && <><dt>Brand</dt><dd>{product.brand}</dd></>}
+                      <dt>Category</dt><dd>{product.category}</dd>
+                      {product.color && <><dt>Colour</dt><dd>{product.color}</dd></>}
+                      {product.isHandcrafted && <><dt>Craft</dt><dd>Handcrafted in our atelier</dd></>}
+                      {isMadeToMeasure && <><dt>Made to measure</dt><dd>{product.makingDays ? `Yes, about ${product.makingDays} working days` : 'Yes'}</dd></>}
+                      <dt>Availability</dt><dd>{isOutOfStock ? 'Sold out' : 'In stock'}</dd>
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
+                <Accordion disableGutters elevation={0} className={styles.accordion}>
+                  <AccordionSummary expandIcon={<ExpandIcon />}>Shipping &amp; returns</AccordionSummary>
+                  <AccordionDetails>
+                    <Box component="ul" className={styles.shippingList}>
+                      <li>Free shipping on orders over ₹{FREE_SHIPPING_THRESHOLD}</li>
+                      <li>Standard delivery in 5–7 business days</li>
+                      <li>Express delivery in 2–3 business days</li>
+                      <li>Easy returns within 30 days{isMadeToMeasure ? ' (standard sizes; made-to-measure pieces are altered free instead)' : ''}</li>
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
               </Box>
             </Box>
           </Grid>
         </Grid>
 
-        {/* Product Details Tabs */}
-        <Box className={styles.tabsContainer}>
-          <Paper elevation={2} className={styles.tabsPaper}>
-            <Tabs
-              value={tabValue}
-              onChange={handleTabChange}
-              variant="fullWidth"
-              className={styles.tabsList}
-            >
-              <Tab label="Description" />
-              <Tab label="Details" />
-              <Tab label="Reviews" />
-              <Tab label="Shipping" />
-            </Tabs>
-            
-            <Box className={styles.tabPanelContent}>
-              <TabPanel value={tabValue} index={0}>
-                <Typography variant="body1" paragraph className={styles.tabText}>
-                  {product.description}
-                </Typography>
-                <Typography variant="body1" paragraph className={styles.tabText}>
-                  Experience the perfect blend of luxury and functionality with this premium product. 
-                  Crafted with attention to detail and using only the finest materials, this piece 
-                  exemplifies excellence in design and quality.
-                </Typography>
-              </TabPanel>
-              
-              <TabPanel value={tabValue} index={1}>
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="body2" color="text.secondary">Product ID:</Typography>
-                    <Typography variant="body1" paragraph>{product.id}</Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="body2" color="text.secondary">Category:</Typography>
-                    <Typography variant="body1" paragraph>{product.category}</Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="body2" color="text.secondary">Availability:</Typography>
-                    <Typography variant="body1" paragraph>
-                      {product.inventory > 0 ? 'In Stock' : 'Out of Stock'}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <Typography variant="body2" color="text.secondary">Shipping:</Typography>
-                    <Typography variant="body1" paragraph>Free over ₹500</Typography>
-                  </Grid>
-                </Grid>
-              </TabPanel>
-              
-              <TabPanel value={tabValue} index={2}>
-                <Typography variant="body1" paragraph>
-                  No reviews yet. Be the first to review this product!
-                </Typography>
-                <Button variant="outlined">Write a Review</Button>
-              </TabPanel>
-              
-              <TabPanel value={tabValue} index={3}>
-                <Typography variant="h6" gutterBottom>Shipping Information</Typography>
-                <Typography variant="body1" paragraph>
-                  • Free shipping on orders over ₹500<br/>
-                  • Standard shipping: 5-7 business days<br/>
-                  • Express shipping: 2-3 business days<br/>
-                  • International shipping available<br/>
-                  • 30-day return policy
-                </Typography>
-              </TabPanel>
-            </Box>
-          </Paper>
-        </Box>
+        <ProductReviews productId={product.id} />
 
-        {/* Related Products */}
         {relatedProducts.length > 0 && (
-          <Box className={styles.relatedProductsContainer}>
-            <Typography variant="h4" gutterBottom>
-              Related Products
-            </Typography>
-            <Grid container spacing={3}>
-              {relatedProducts.map((relatedProduct) => (
-                <Grid size={{ xs: 12, sm: 6, md: 3 }} key={relatedProduct.id}>
-                  <Card className={styles.relatedProductCard}>
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={relatedProduct.imageUrl}
-                      alt={relatedProduct.name}
-                    />
-                    <CardContent>
-                      <Typography variant="h6">{relatedProduct.name}</Typography>
-                      <Typography variant="h6" color="primary">
-                        ₹{(() => {
-                          const price = typeof relatedProduct.price === 'string' ? parseFloat(relatedProduct.price) : relatedProduct.price;
-                          return isNaN(price) || !isFinite(price) ? '0.00' : price.toFixed(2);
-                        })()}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
+          <Box component="section" className={styles.related}>
+            <Box className={styles.relatedHeader}>
+              <Box>
+                <span className={styles.relatedEyebrow}>You may also like</span>
+                <Typography variant="h2" className={styles.relatedTitle}>Top picks for you</Typography>
+              </Box>
+              <Box className={styles.relatedNav}>
+                <IconButton aria-label="Scroll left" onClick={() => scrollRail(-1)} className={styles.relatedNavButton}><PrevIcon fontSize="small" /></IconButton>
+                <IconButton aria-label="Scroll right" onClick={() => scrollRail(1)} className={styles.relatedNavButton}><NextIcon fontSize="small" /></IconButton>
+              </Box>
+            </Box>
+            <Box ref={railRef} className={styles.rail}>
+              {relatedProducts.map(related => (
+                <Box key={related.id} className={styles.railItem}>
+                  <ProductCard
+                    product={related}
+                    onAddToCart={addItem}
+                    onToggleWishlist={toggleWishlist}
+                    isInWishlist={isInWishlist(related.id)}
+                  />
+                </Box>
               ))}
-            </Grid>
+            </Box>
           </Box>
         )}
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 });
 

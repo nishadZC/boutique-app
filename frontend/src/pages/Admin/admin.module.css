@@ -1,0 +1,25 @@
+/* Shared admin-area styles */
+.pageHeader { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.eyebrow { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-dark); }
+.title { font-size: clamp(1.7rem, 2.6vw, 2.2rem) !important; font-weight: 600 !important; margin: 4px 0 0 !important; line-height: 1.1 !important; }
+.subtitle { color: #6f6a62; font-size: 0.9rem !important; margin-top: 4px !important; }
+
+.card { background: #fff; border: 1px solid #ebe7e0; border-radius: 10px; padding: 20px; }
+.cardTitle { font-size: 0.78rem !important; font-weight: 600 !important; letter-spacing: 0.14em !important; text-transform: uppercase; color: #3d3a35; margin-bottom: 14px !important; }
+.cardHeader { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+.cardHeader .cardTitle { margin: 0 !important; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
+.toolbar :global(.MuiTextField-root), .toolbar :global(.MuiFormControl-root) { background: #fff; }
+
+.table { background: #fff; border: 1px solid #ebe7e0; border-radius: 10px; overflow: hidden; }
+.table :global(.MuiTableCell-head) { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #6f6a62; background: #faf9f6; }
+.table :global(.MuiTableCell-root) { border-color: #f0ede7; }
+.rowLink { cursor: pointer; }
+.rowLink:hover { background: #fbfaf7; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; color: #3d3a35; }
+.muted { color: #8a857d; font-size: 0.8rem; }
+.thumb { width: 44px; height: 55px; object-fit: cover; background: #f1eee9; border-radius: 4px; mix-blend-mode: multiply; display: block; }
+.empty { padding: 48px 16px; text-align: center; color: #8a857d; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+.kpiRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 18px; }

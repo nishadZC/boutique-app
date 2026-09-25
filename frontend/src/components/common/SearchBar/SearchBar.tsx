@@ -6,10 +6,11 @@ import styles from './SearchBar.module.css';
 interface SearchBarProps {
   onSearch: (query: string) => void;
   placeholder?: string;
+  initialQuery?: string;
 }
 
-const SearchBar = memo<SearchBarProps>(function SearchBar({ onSearch, placeholder = 'Search luxury products...' }) {
-  const [query, setQuery] = useState('');
+const SearchBar = memo<SearchBarProps>(function SearchBar({ onSearch, placeholder = 'Search luxury products...', initialQuery = '' }) {
+  const [query, setQuery] = useState(initialQuery);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);

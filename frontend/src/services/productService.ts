@@ -12,99 +12,44 @@ const getImageUrl = (product: any): string => {
   return 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg';
 };
 
+const ALL_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', 'One Size'];
+
+/** Maps a product-service row (snake_case) to the storefront Product. */
+const toProduct = (product: any): Product => ({
+  id: product.id,
+  name: product.name,
+  description: product.description,
+  price: parseFloat(product.price),
+  originalPrice: product.compare_price ? parseFloat(product.compare_price) : undefined,
+  imageUrl: getImageUrl(product),
+  category: product.category || product.category_id,
+  brand: product.brand,
+  inventory: product.inventory_quantity || product.inventory || 0,
+  rating: Number(product.rating) || 0,
+  reviewCount: Number(product.review_count) || 0,
+  color: product.base_colour || '',
+  sizes: ALL_SIZES,
+  isNew: !!product.is_featured,
+  isHandcrafted: !!product.is_handcrafted,
+  madeToMeasure: !!product.made_to_measure,
+  makingDays: product.making_days ?? null,
+  discountPercentage: product.discountPercentage,
+  createdAt: product.created_at,
+  updatedAt: product.updated_at,
+  images: product.images || [],
+});
+
 export const productService = {
   getAll: async (): Promise<Product[]> => {
-    console.log('[ProductService] Fetching products from:', import.meta.env.VITE_API_URL || '/api');
-    try {
-      const response = await apiClient.get('/products?limit=100');
-      const apiResponse = response.data;
-      
-      // Transform API response to match frontend types
-      if (apiResponse.success && apiResponse.data?.products) {
-        console.log('[ProductService] Using wrapped response format');
-        return apiResponse.data.products.map((product: any) => {
-          return {
-            id: product.id,
-            name: product.name,
-            description: product.description,
-            price: parseFloat(product.price),
-            originalPrice: product.compare_price ? parseFloat(product.compare_price) : undefined,
-            imageUrl: product.image_url,
-            category: product.category,
-            brand: product.brand,
-            inventory: product.inventory_quantity || 0,
-            rating: product.rating || 4.5,
-            reviewCount: product.reviewCount || Math.floor(Math.random() * 50) + 10,
-            color: product.base_colour || '',
-            sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', 'One Size'],
-            isNew: product.is_featured,
-            discountPercentage: product.discountPercentage,
-            createdAt: product.created_at,
-            updatedAt: product.updated_at,
-          };
-        });
-      }
-      
-      // Fallback for direct array response
-      console.log('[ProductService] Using fallback array format');
-      return Array.isArray(apiResponse) ? apiResponse.map((product: any) => ({
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        price: parseFloat(product.price),
-        originalPrice: product.originalPrice ? parseFloat(product.originalPrice) : undefined,
-        imageUrl: getImageUrl(product),
-        category: product.category || product.category_id,
-        brand: product.brand,
-        inventory: product.inventory_quantity || product.inventory || 0,
-        rating: product.rating,
-        reviewCount: product.reviewCount,
-        color: product.base_colour || '',
-        sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', 'One Size'],
-        isNew: product.new_arrival,
-        discountPercentage: product.discountPercentage,
-        createdAt: product.created_at,
-        updatedAt: product.updated_at,
-      })) : [];
-    } catch (error: any) {
-      console.error('[ProductService] Error fetching products:', error);
-      if (error.response) {
-        console.error('[ProductService] Response error:', error.response.status, error.response.data);
-      }
-      throw error;
-    }
+    const response = await apiClient.get('/products?limit=100');
+    const apiResponse = response.data;
+    if (apiResponse.success && apiResponse.data?.products) return apiResponse.data.products.map(toProduct);
+    return Array.isArray(apiResponse) ? apiResponse.map(toProduct) : [];
   },
 
   getById: async (id: string): Promise<Product> => {
-    try {
-      const response = await apiClient.get(`/products/${id}`);
-      const product = response.data.data || response.data;
-      
-      // Transform API response to match frontend types
-      return {
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        price: parseFloat(product.price),
-        originalPrice: product.originalPrice ? parseFloat(product.originalPrice) : undefined,
-        imageUrl: getImageUrl(product),
-        category: product.category || product.category_id,
-        brand: product.brand,
-        inventory: product.inventory_quantity || product.inventory || 0,
-        rating: product.rating,
-        reviewCount: product.reviewCount,
-        color: product.base_colour || '',
-        sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', 'One Size'],
-        isNew: product.new_arrival,
-        discountPercentage: product.discountPercentage,
-        createdAt: product.created_at,
-        updatedAt: product.updated_at,
-        images: product.images || [],
-      };
-    } catch (error: any) {
-      console.error('[ProductService] Error fetching product:', error);
-      throw error;
-    }
+    const response = await apiClient.get(`/products/${id}`);
+    return toProduct(response.data.data || response.data);
   },
 
   getByCategory: async (category: string): Promise<Product[]> => {

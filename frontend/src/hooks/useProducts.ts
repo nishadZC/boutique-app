@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Product } from '../types';
 import { productService } from '../services/productService';
 import { useCart } from '../contexts/CartContext';
@@ -6,13 +7,23 @@ import { useWishlist } from '../contexts/WishlistContext';
 import { FilterOptions } from '../components/common/FilterPanel/FilterPanel';
 import { ITEMS_PER_PAGE } from '../constants/config';
 
+const SORT_OPTIONS = ['featured', 'price-low', 'price-high', 'name', 'newest'];
+
 export function useProducts() {
+  // ?category=, ?q=, ?sort= and ?handcrafted=1 let the header, footer and home page link
+  // straight into a filtered view.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlCategory = searchParams.get('category') ?? '';
+  const urlQuery = searchParams.get('q') ?? '';
+  const urlHandcrafted = searchParams.get('handcrafted') === '1';
+  const urlSort = SORT_OPTIONS.includes(searchParams.get('sort') ?? '') ? searchParams.get('sort')! : 'featured';
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('featured');
   const [activeFilters, setActiveFilters] = useState<FilterOptions>({
-    priceRange: [0, 99999], category: '', brand: [], size: [], color: [], rating: 0, inStock: false,
+    priceRange: [0, 99999], category: '', brand: [], size: [], color: [], rating: 0, inStock: false, handcrafted: false,
   });
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -20,6 +31,14 @@ export function useProducts() {
 
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
+
+  useEffect(() => {
+    setActiveFilters(prev => ({ priceRange: [0, prev.priceRange[1]], category: urlCategory, brand: [], size: [], color: [], rating: 0, inStock: false, handcrafted: urlHandcrafted }));
+    setSearchQuery(urlQuery);
+    setSortBy(urlSort);
+    setPage(1);
+    setResetKey(k => k + 1);
+  }, [urlCategory, urlQuery, urlSort, urlHandcrafted]);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +55,7 @@ export function useProducts() {
     if (activeFilters.inStock) filtered = filtered.filter(p => (p.inventory_quantity ?? p.inventory ?? 0) > 0);
     if (activeFilters.priceRange[0] > 0 || activeFilters.priceRange[1] < 99999)
       filtered = filtered.filter(p => p.price >= activeFilters.priceRange[0] && p.price <= activeFilters.priceRange[1]);
+    if (activeFilters.handcrafted) filtered = filtered.filter(p => p.isHandcrafted);
     if (activeFilters.category) filtered = filtered.filter(p => p.category === activeFilters.category);
     if (activeFilters.brand.length) filtered = filtered.filter(p => p.brand && activeFilters.brand.includes(p.brand));
     if (activeFilters.size.length) filtered = filtered.filter(p => p.sizes?.some(s => activeFilters.size.includes(s)));
@@ -72,12 +92,13 @@ export function useProducts() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
   const handleClearFilters = useCallback(() => {
-    setActiveFilters({ priceRange: [0, maxPrice], category: '', brand: [], size: [], color: [], rating: 0, inStock: false });
+    setActiveFilters({ priceRange: [0, maxPrice], category: '', brand: [], size: [], color: [], rating: 0, inStock: false, handcrafted: false });
     setSearchQuery('');
     setSortBy('featured');
     setPage(1);
     setResetKey(k => k + 1);
-  }, [maxPrice]);
+    setSearchParams({}, { replace: true });
+  }, [maxPrice, setSearchParams]);
   const handleAddToCart  = useCallback((product: Product, size?: string) => addItem(product, size), [addItem]);
   const handleToggleWishlist = useCallback((id: string) => toggleWishlist(id), [toggleWishlist]);
 

@@ -15,13 +15,4 @@ export const orderService = {
     return response.data.data || response.data;
   },
 
-  getOrderById: async (id: string): Promise<Order> => {
-    const response = await apiClient.get(`/orders/${id}`);
-    return response.data.data || response.data;
-  },
-
-  updateOrderStatus: async (id: string, status: string): Promise<Order> => {
-    const response = await apiClient.patch(`/orders/${id}/status`, { status });
-    return response.data.data || response.data;
-  },
 };

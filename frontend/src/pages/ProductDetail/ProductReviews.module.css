@@ -1,0 +1,20 @@
+.reviews { margin-top: clamp(48px, 7vw, 80px); padding-top: clamp(32px, 4vw, 44px); border-top: 1px solid #ebe6de; }
+.title { font-size: clamp(1.6rem, 2.8vw, 2.1rem) !important; font-weight: 600 !important; margin-bottom: 20px !important; }
+.empty { color: #6f6a62; }
+.layout { display: grid; grid-template-columns: 260px 1fr; gap: clamp(24px, 4vw, 56px); align-items: start; }
+@media (max-width: 799px) { .layout { grid-template-columns: 1fr; } }
+.summary { display: flex; flex-direction: column; gap: 4px; }
+.average { font-size: 2.8rem !important; font-weight: 600 !important; line-height: 1 !important; font-variant-numeric: tabular-nums; }
+.count { font-size: 0.84rem !important; color: #6f6a62; margin-bottom: 12px !important; }
+.bars { display: grid; gap: 6px; }
+.barRow { display: grid; grid-template-columns: 32px 1fr 28px; align-items: center; gap: 8px; font-size: 0.8rem; color: #3d3a35; }
+.barTrack { height: 8px; background: #eee9e1; border-radius: 4px; overflow: hidden; }
+.barFill { display: block; height: 100%; background: #a8770f; border-radius: 4px; }
+.barCount { text-align: right; color: #8a857d; font-variant-numeric: tabular-nums; }
+.list { display: grid; }
+.review { padding: 16px 0; border-top: 1px solid #f0ebe3; }
+.review:first-child { border-top: 0; padding-top: 0; }
+.reviewHeader { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.reviewTitle { font-weight: 600 !important; font-size: 0.95rem !important; }
+.reviewBody { margin-top: 6px !important; color: #3d3a35; font-size: 0.92rem !important; line-height: 1.65 !important; white-space: pre-line; }
+.reviewMeta { margin-top: 8px !important; font-size: 0.76rem !important; color: #8a857d; }

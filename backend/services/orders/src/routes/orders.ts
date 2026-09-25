@@ -1,225 +1,142 @@
+// Customer order routes (gateway: /api/orders).
 import express from 'express';
-import axios from 'axios';
-import jwt from 'jsonwebtoken';
-import { query } from '../database/connection';
-import { Order, CreateOrderRequest, ServiceResponse } from '../types';
-import { boutiqueTotalOrders, boutiqueTotalRevenue } from '../metrics';
+import Joi from 'joi';
+import { getPool, query } from '../database/connection';
+import { boutiqueTotalOrders } from '../metrics';
+import { requireAdmin, requireInternal, requireUser } from '../middleware/auth';
+import { getProducts } from '../clients/productClient';
+import {
+  OrderError, changeOrderStatus, changePaymentStatus, formatOrder, getOrderItems, recordEvent, withProducts,
+} from '../services/orderService';
+import { PAYMENT_STATUSES } from '../lifecycle';
+import { priceOrder } from '../pricing';
 
 const router = express.Router();
-const PRODUCTS_SERVICE_URL = process.env.PRODUCTS_SERVICE_URL || 'http://localhost:3003';
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-function getUserIdFromRequest(req: express.Request): string | null {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return null;
+export const MAX_QUANTITY_PER_ITEM = 10;
+
+export const createOrderSchema = Joi.object({
+  items: Joi.array().items(Joi.object({
+    productId: Joi.string().guid().required(),
+    quantity: Joi.number().integer().min(1).max(MAX_QUANTITY_PER_ITEM).required(),
+    selectedSize: Joi.string().trim().max(200).allow('', null),
+  })).min(1).max(50).required(),
+  shippingAddress: Joi.object({
+    address: Joi.string().trim().min(5).max(500).required(),
+  }).required(),
+});
+
+const sendError = (res: express.Response, error: unknown, fallback: string) => {
+  if (error instanceof OrderError) return res.status(error.status).json({ success: false, error: error.message });
+  console.error(fallback, error);
+  return res.status(500).json({ success: false, error: fallback });
+};
+
+router.post('/', requireUser, async (req, res) => {
+  const { value, error } = createOrderSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+  if (error) return res.status(400).json({ success: false, error: error.details.map(d => d.message.replace(/"/g, '')).join('; ') });
+
+  let products;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string };
-    return decoded.userId ?? null;
-  } catch {
-    return null;
+    products = await getProducts(value.items.map((i: any) => i.productId));
+  } catch (err) {
+    console.error('Product lookup failed during checkout:', err);
+    return res.status(502).json({ success: false, error: 'Could not verify products, please try again' });
   }
-}
 
-router.post('/', async (req, res) => {
-  try {
-    const userId = getUserIdFromRequest(req);
-    if (!userId) {
-      return res.status(401).json({ success: false, error: 'Not logged in' });
-    }
-
-    const { items, shippingAddress } = req.body as CreateOrderRequest;
-
-    let totalAmount = 0;
-    const orderItems: any[] = [];
-
-    for (const item of items) {
-      const productResponse = await axios.get(`${PRODUCTS_SERVICE_URL}/${item.productId}`);
-      const product = productResponse.data.data;
-
-      totalAmount += product.price * item.quantity;
-
-      orderItems.push({
-        product_id: item.productId,
-        quantity: item.quantity,
-        price: product.price,
-        size: item.selectedSize
+  // Prices always come from the catalogue, never from the client.
+  const requested = new Map<string, number>();
+  for (const item of value.items) requested.set(item.productId, (requested.get(item.productId) ?? 0) + item.quantity);
+  for (const [productId, quantity] of requested) {
+    const product = products.get(productId);
+    if (!product || !product.isActive) return res.status(409).json({ success: false, error: 'An item in your cart is no longer available' });
+    if (product.inventoryQuantity < quantity) {
+      return res.status(409).json({
+        success: false,
+        error: product.inventoryQuantity === 0
+          ? `${product.name} is out of stock`
+          : `Only ${product.inventoryQuantity} of ${product.name} left in stock`,
       });
     }
+  }
+  const lines = value.items.map((item: any) => ({ ...item, price: products.get(item.productId)!.price }));
+  const pricing = priceOrder(lines);
 
-    const result = await query(`
-      INSERT INTO orders (user_id, total_amount, status, shipping_address, payment_status, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      RETURNING *
-    `, [userId, totalAmount, 'pending', JSON.stringify(shippingAddress), 'pending']);
-
-    const order = result.rows[0];
-
-    const insertedItems: any[] = [];
-    for (const item of orderItems) {
-      const itemResult = await query(`
-        INSERT INTO order_items (order_id, product_id, quantity, price, size)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id
-      `, [order.id, item.product_id, item.quantity, item.price, item.size]);
-      insertedItems.push({ ...item, id: itemResult.rows[0].id });
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const created = await client.query(
+      `INSERT INTO orders (user_id, total_amount, subtotal_amount, shipping_amount, tax_amount, status, shipping_address, payment_status)
+       VALUES ($1, $2, $3, $4, $5, 'pending', $6, 'pending') RETURNING *`,
+      [req.auth!.userId, pricing.total, pricing.subtotal, pricing.shipping, pricing.tax, JSON.stringify(value.shippingAddress)]);
+    const order = created.rows[0];
+    for (const line of lines) {
+      await client.query(
+        'INSERT INTO order_items (order_id, product_id, quantity, price, size) VALUES ($1, $2, $3, $4, $5)',
+        [order.id, line.productId, line.quantity, line.price, line.selectedSize || null]);
     }
+    await recordEvent(client, order.id, 'created', null, 'pending', req.auth!.email ?? req.auth!.userId);
+    await client.query('COMMIT');
+    boutiqueTotalOrders.inc(1);
 
-    boutiqueTotalOrders.inc(1); // Increment Prometheus metric
-    boutiqueTotalRevenue.inc(totalAmount); // Add order total to Revenue metric
-
-    const response: ServiceResponse<Order> = {
-      success: true,
-      data: {
-        id: order.id,
-        userId: order.user_id,
-        items: insertedItems.map(item => ({
-          id: item.id,
-          orderId: order.id,
-          productId: item.product_id,
-          quantity: item.quantity,
-          price: item.price,
-          size: item.size
-        })),
-        totalAmount: order.total_amount,
-        status: order.status,
-        shippingAddress: shippingAddress,
-        paymentStatus: order.payment_status,
-        createdAt: order.created_at,
-        updatedAt: order.updated_at
-      }
-    };
-
-    res.status(201).json(response);
-  } catch (error) {
-    console.error('Create order error:', error);
-    res.status(500).json({ success: false, error: 'Failed to create order' });
+    const items = (await getOrderItems([order.id])).get(order.id) ?? [];
+    return res.status(201).json({ success: true, data: { ...formatOrder(order), items } });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    return sendError(res, err, 'Failed to create order');
+  } finally {
+    client.release();
   }
 });
 
-router.get('/my-orders', async (req, res) => {
+router.get('/my-orders', requireUser, async (req, res) => {
   try {
-    const userId = getUserIdFromRequest(req);
-    if (!userId) {
-      return res.status(401).json({ success: false, error: 'Not logged in' });
-    }
+    const result = await query('SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 200', [req.auth!.userId]);
+    const orderIds = result.rows.map((o: any) => o.id);
+    const itemsByOrder = await getOrderItems(orderIds);
+    const events = orderIds.length
+      ? await query(
+        `SELECT order_id, to_value, created_at FROM order_events
+         WHERE order_id = ANY($1::uuid[]) AND type IN ('created', 'status') ORDER BY created_at`, [orderIds])
+      : { rows: [] };
 
-    const result = await query(`
-      SELECT o.*,
-             JSON_AGG(
-               JSON_BUILD_OBJECT(
-                 'id', oi.id,
-                 'productId', oi.product_id,
-                 'quantity', oi.quantity,
-                 'price', oi.price,
-                 'size', oi.size
-               )
-             ) as items
-      FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi.order_id
-      WHERE o.user_id = $1
-      GROUP BY o.id, o.user_id, o.total_amount, o.status, o.shipping_address, o.payment_status, o.created_at, o.updated_at
-      ORDER BY o.created_at DESC
-    `, [userId]);
-
-    const ordersWithProducts = await Promise.all(result.rows.map(async (order: any) => {
-      // If there are no items (JSON_AGG can return [null]), handle it
-      let items = order.items || [];
-      if (items.length === 1 && items[0].id === null) items = [];
-
-      const itemsWithProducts = await Promise.all(items.map(async (item: any) => {
-        try {
-          const productResponse = await axios.get(`${PRODUCTS_SERVICE_URL}/${item.productId}`);
-          const productData = productResponse.data.data;
-          return {
-            ...item,
-            product: {
-              ...productData,
-              imageUrl: productData.image_url || '/product-images/placeholder.jpg'
-            }
-          };
-        } catch (error) {
-          console.error(`Failed to fetch product ${item.productId} for order ${order.id}`);
-          return {
-            ...item,
-            product: { name: 'Unknown Product', imageUrl: '', price: item.price }
-          };
-        }
-      }));
-
-      let parsedAddress = order.shipping_address;
-      if (typeof parsedAddress === 'string' && parsedAddress.trim().startsWith('{')) {
-        try { parsedAddress = JSON.parse(parsedAddress); } catch (e) { /* ignore */ }
-      }
-
-      return {
-        id: order.id,
-        userId: order.user_id,
-        status: order.status,
-        shippingAddress: parsedAddress,
-        paymentStatus: order.payment_status,
-        totalAmount: order.total_amount,
-        createdAt: order.created_at,
-        updatedAt: order.updated_at,
-        items: itemsWithProducts
-      };
+    const orders = await Promise.all(result.rows.map(async (row: any) => {
+      const order = formatOrder(row);
+      const timeline = events.rows
+        .filter((e: any) => e.order_id === row.id)
+        .map((e: any) => ({ status: e.to_value === 'processing' ? 'confirmed' : e.to_value, at: e.created_at }));
+      return { ...order, items: await withProducts(itemsByOrder.get(row.id) ?? []), timeline };
     }));
-
-    const response: ServiceResponse<Order[]> = {
-      success: true,
-      data: ordersWithProducts
-    };
-
-    res.json(response);
-  } catch (error) {
-    console.error('Get orders error:', error);
-    res.status(500).json({ success: false, error: 'Failed to get orders' });
+    return res.json({ success: true, data: orders });
+  } catch (err) {
+    return sendError(res, err, 'Failed to get orders');
   }
 });
 
-router.patch('/:id/status', async (req, res) => {
+// Kept for compatibility; fulfilment normally goes through /admin/orders/:id/status.
+router.patch('/:id/status', requireAdmin, async (req, res) => {
+  const { error } = Joi.string().guid().validate(req.params.id);
+  if (error) return res.status(404).json({ success: false, error: 'Order not found' });
   try {
-    const { status } = req.body;
-    const { id } = req.params;
-
-    await query('UPDATE orders SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, id]);
-
-    const result = await query('SELECT * FROM orders WHERE id = $1', [id]);
-
-    const response: ServiceResponse<Order> = {
-      success: true,
-      data: result.rows[0]
-    };
-
-    res.json(response);
-  } catch (error) {
-    console.error('Update order status error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update order status' });
+    const result = await changeOrderStatus(req.params.id, String(req.body?.status ?? ''), req.auth!.email ?? req.auth!.userId, String(req.body?.note ?? '').slice(0, 500));
+    return res.json({ success: true, data: result.order, refundRequired: result.refundRequired });
+  } catch (err) {
+    return sendError(res, err, 'Failed to update order status');
   }
 });
 
-router.patch('/:id/payment-status', async (req, res) => {
+// Called by the payment service after verifying a Razorpay signature.
+router.patch('/:id/payment-status', requireInternal, async (req, res) => {
+  const { error } = Joi.string().guid().validate(req.params.id);
+  if (error) return res.status(404).json({ success: false, error: 'Order not found' });
+  const { paymentStatus, paymentId } = req.body ?? {};
+  if (!PAYMENT_STATUSES.includes(paymentStatus)) return res.status(400).json({ success: false, error: 'Invalid payment status' });
   try {
-    const { paymentStatus } = req.body;
-    const { id } = req.params;
-
-    if (!['pending', 'paid', 'failed', 'refunded'].includes(paymentStatus)) {
-      return res.status(400).json({ success: false, error: 'Invalid payment status' });
-    }
-
-    const result = await query(
-      'UPDATE orders SET payment_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
-      [paymentStatus, id]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ success: false, error: 'Order not found' });
-    }
-
-    return res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
-    console.error('Update payment status error:', error);
-    return res.status(500).json({ success: false, error: 'Failed to update payment status' });
+    const order = await changePaymentStatus(req.params.id, paymentStatus, 'payment-service', { paymentId: typeof paymentId === 'string' ? paymentId : undefined });
+    return res.json({ success: true, data: order });
+  } catch (err) {
+    return sendError(res, err, 'Failed to update payment status');
   }
 });
 
-export { router as orderRoutes };
+export { router as orderRoutes, sendError };

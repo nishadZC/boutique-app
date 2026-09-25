@@ -14,6 +14,8 @@ export interface FilterOptions {
   color: string[];
   rating: number;
   inStock: boolean;
+  /** Only pieces made by hand in the atelier. */
+  handcrafted: boolean;
 }
 
 interface FilterPanelProps {
@@ -23,11 +25,13 @@ interface FilterPanelProps {
   sizes: string[];
   colors: string[];
   maxPrice: number;
+  initialCategory?: string;
+  initialHandcrafted?: boolean;
 }
 
-const FilterPanel = memo<FilterPanelProps>(function FilterPanel({ onFilterChange, categories, brands, sizes, colors, maxPrice }) {
+const FilterPanel = memo<FilterPanelProps>(function FilterPanel({ onFilterChange, categories, brands, sizes, colors, maxPrice, initialCategory = '', initialHandcrafted = false }) {
   const [filters, setFilters] = useState<FilterOptions>({
-    priceRange: [0, maxPrice], category: '', brand: [], size: [], color: [], rating: 0, inStock: false,
+    priceRange: [0, maxPrice], category: initialCategory, brand: [], size: [], color: [], rating: 0, inStock: false, handcrafted: initialHandcrafted,
   });
 
   const update = useCallback((patch: Partial<FilterOptions>) => {
@@ -48,12 +52,12 @@ const FilterPanel = memo<FilterPanelProps>(function FilterPanel({ onFilterChange
   }, [onFilterChange]);
 
   const clearFilters = useCallback(() => {
-    const cleared: FilterOptions = { priceRange: [0, maxPrice], category: '', brand: [], size: [], color: [], rating: 0, inStock: false };
+    const cleared: FilterOptions = { priceRange: [0, maxPrice], category: '', brand: [], size: [], color: [], rating: 0, inStock: false, handcrafted: false };
     setFilters(cleared);
     onFilterChange(cleared);
   }, [maxPrice, onFilterChange]);
 
-  const activeCount = [filters.category, filters.brand.length, filters.size.length, filters.color.length, filters.rating, filters.inStock].filter(Boolean).length
+  const activeCount = [filters.category, filters.brand.length, filters.size.length, filters.color.length, filters.rating, filters.inStock, filters.handcrafted].filter(Boolean).length
     + (filters.priceRange[0] > 0 || filters.priceRange[1] < maxPrice ? 1 : 0);
 
   return (
@@ -124,6 +128,7 @@ const FilterPanel = memo<FilterPanelProps>(function FilterPanel({ onFilterChange
 
         <Box sx={{ mt: 2 }}>
           <FormControlLabel control={<Checkbox checked={filters.inStock} onChange={() => update({ inStock: !filters.inStock })} size="small" />} label="In Stock Only" />
+          <FormControlLabel control={<Checkbox checked={filters.handcrafted} onChange={() => update({ handcrafted: !filters.handcrafted })} size="small" />} label="Handcrafted only" />
         </Box>
       </CardContent>
     </Card>

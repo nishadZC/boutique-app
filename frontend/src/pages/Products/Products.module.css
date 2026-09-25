@@ -6,13 +6,13 @@
   margin-bottom: 32px;
 }
 .styleBtn {
-  background: linear-gradient(135deg, #d4af37 0%, #f4e5a0 50%, #d4af37 100%) !important;
+  background: linear-gradient(135deg, var(--gold) 0%, #f4e5a0 50%, var(--gold) 100%) !important;
   color: #000 !important;
   font-weight: 700 !important;
   margin-left: auto !important;
-  box-shadow: 0 4px 14px rgba(212,175,55,0.4) !important;
+  box-shadow: 0 4px 14px rgba(200,164,110,0.4) !important;
 }
 .styleBtn:hover {
-  background: linear-gradient(135deg, #b8941f 0%, #d4af37 100%) !important;
-  box-shadow: 0 6px 20px rgba(212,175,55,0.6) !important;
+  background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 100%) !important;
+  box-shadow: 0 6px 20px rgba(200,164,110,0.6) !important;
 }

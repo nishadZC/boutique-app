@@ -1,169 +1,65 @@
-/* Orders.module.css */
+.page { background: #faf8f5; padding-bottom: clamp(56px, 8vw, 96px); min-height: 60vh; }
+.centered { display: grid; place-items: center; min-height: 50vh; text-align: center; padding: 48px 16px; }
+.breadcrumbs { padding: 22px 0 10px; font-size: 0.8rem; }
+.breadcrumbs a { color: #8a857d; text-decoration: none; }
+.title { font-size: clamp(2rem, 3.4vw, 2.7rem) !important; font-weight: 600 !important; margin: 0 0 24px !important; }
 
-.container {
-  padding-top: 2rem;
-  padding-bottom: 2rem;
-}
+.empty { text-align: center; padding: 64px 16px; background: #fff; border: 1px solid #ebe6de; }
+.emptyIcon { font-size: 44px !important; color: var(--gold-dark); margin-bottom: 8px; }
 
-.authContainer {
-  padding-top: 4rem;
-  padding-bottom: 4rem;
-  text-align: center;
-}
-
-.loadingContainer {
-  padding-top: 2rem;
-  padding-bottom: 2rem;
-}
-
-.breadcrumbs {
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-}
-
-.emptyStatePaper {
-  padding: 3rem;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
-}
-
-.emptyStateAvatar {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 1.5rem auto;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-.emptyStateIcon {
-  font-size: 40px;
-  color: #6c757d;
-}
-
-.emptyStateText {
-  margin-bottom: 2rem;
-}
-
-.emptyStateButton {
-  padding-left: 2rem;
-  padding-right: 2rem;
-  background: linear-gradient(45deg, #2196F3 30%, #21CBF3 90%);
-  box-shadow: 0 3px 5px 2px rgba(33, 203, 243, .3);
-  transition: transform 0.2s ease-in-out;
-}
-
-.emptyStateButton:hover {
-  transform: translateY(-2px);
-}
-
-.orderCard {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  overflow: hidden;
-}
-
-.orderCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
-}
-
-.cardContent {
-  padding: 1.5rem;
-}
-
-.orderHeader {
+.card { background: #fff; border: 1px solid #ebe6de; margin-bottom: 18px; }
+.cardUnpaid { background: #fdfcfa; }
+.cardHeader {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1.5rem;
-}
-
-.orderHeaderActions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.accordion {
-  margin-bottom: 1rem;
-  background: transparent !important;
-  box-shadow: none !important;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-}
-
-.accordionSummaryBox {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  margin-right: 1rem;
-}
-
-.listItem {
-  padding: 1rem;
-  margin-bottom: 0.5rem;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  background-color: transparent;
-  transition: all 0.2s ease;
-}
-.listItem:hover {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-.listItemIcon {
-  margin-right: 1.5rem;
-  min-width: auto;
-  flex: 0 0 128px;
-}
-
-.itemImage {
-  display: block;
-  width: 128px;
-  height: 128px;
-  border-radius: 12px;
-  object-fit: cover;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  transition: transform 0.3s ease;
-}
-
-.itemImage:hover {
-  transform: scale(1.05);
-}
-
-.itemPrice {
-  min-width: 80px;
-  text-align: right;
-  font-weight: 600;
-}
-
-.orderActionsBox {
-  display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1rem;
+  gap: 12px 24px;
+  padding: 16px 22px;
+  border-bottom: 1px solid #f0ebe3;
+  background: #f7f4ef;
 }
+.meta { display: flex; flex-wrap: wrap; gap: 12px 36px; }
+.meta > div { display: flex; flex-direction: column; }
+.metaLabel { font-size: 0.64rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #8a857d; }
+.metaValue { font-size: 0.92rem; font-weight: 500; color: #1a1a1a; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; }
 
-.orderActionsButtons {
+.notice { margin: 16px 22px 0; }
+.tracking { padding: 18px 22px 4px; }
+.trackingText { font-size: 0.9rem !important; color: #3d3a35; margin-bottom: 14px !important; }
+.stepper :global(.MuiStepIcon-root.Mui-active),
+.stepper :global(.MuiStepIcon-root.Mui-completed) { color: #a8770f; }
+.stepper :global(.MuiStepLabel-label) { font-size: 0.78rem; }
+.stepTime { font-size: 0.68rem; color: #8a857d; display: block; }
+
+.items { padding: 6px 22px; }
+.item { display: grid; grid-template-columns: 64px 1fr auto; gap: 16px; align-items: center; padding: 14px 0; }
+.item + .item { border-top: 1px solid #f3efe8; }
+.itemImage { display: block; width: 64px; height: 80px; background: #f1eee9; overflow: hidden; }
+.itemImage img { width: 100%; height: 100%; object-fit: cover; mix-blend-mode: multiply; display: block; }
+.itemInfo { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.itemName { color: #1a1a1a !important; text-decoration: none !important; font-weight: 500; font-size: 0.95rem; }
+.itemName:hover { color: var(--gold-dark) !important; }
+.itemMeta { font-size: 0.8rem !important; color: #8a857d; }
+.itemPrice { font-weight: 500 !important; font-variant-numeric: tabular-nums; }
+.rateButton { margin-top: 4px !important; padding: 2px 8px !important; font-size: 0.74rem !important; color: #6b4e09 !important; }
+.rated { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 0.76rem; color: #8a857d; }
+
+.cardFooter {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  border-top: 1px solid #f0ebe3;
 }
+.shipTo { font-size: 0.82rem !important; color: #6f6a62; max-width: 70%; }
 
 @media (max-width: 599px) {
-  .listItemIcon {
-    flex-basis: 96px;
-    margin-right: 1rem;
-  }
-
-  .itemImage {
-    width: 96px;
-    height: 96px;
-  }
+  .stepper :global(.MuiStepLabel-label) { font-size: 0.66rem; }
+  .shipTo { max-width: 100%; }
+  .item { grid-template-columns: 56px 1fr; }
+  .itemPrice { grid-column: 2; }
 }

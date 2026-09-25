@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" font-family="Helvetica, Arial, sans-serif">
+  <rect width="1024" height="1024" fill="#f4efe6"/>
+  <text x="512" y="70" text-anchor="middle" font-size="34" font-weight="700" letter-spacing="1" fill="#1a1a1a">SIZE GUIDE: BLAZERS, SUITS &amp; COATS</text>
+  <line x1="80" y1="94" x2="944" y2="94" stroke="#1a1a1a" stroke-width="1.5"/>
+  <text x="512" y="140" text-anchor="middle" font-size="20" font-weight="700" fill="#1a1a1a">JACKET SIZE CHART</text>
+  <text x="512" y="164" text-anchor="middle" font-size="14" fill="#555">SIZE = CHEST IN INCHES &#183; OTHER MEASUREMENTS IN CM</text>
+  <!-- jacket silhouette -->
+  <g transform="translate(150,360)" stroke="#333" stroke-width="2.5" fill="none">
+    <path d="M-20 -130 L-60 -115 L-80 -110 L-95 60 L-72 62 L-62 -40 L-58 80 L58 80 L62 -40 L72 62 L95 60 L80 -110 L60 -115 L20 -130 L0 -60 Z" fill="#ffffff"/>
+    <line x1="0" y1="-60" x2="0" y2="80"/>
+    <line x1="-80" y1="-140" x2="80" y2="-140" stroke-dasharray="3,3"/>
+    <text x="0" y="-150" text-anchor="middle" font-size="12" fill="#333" stroke="none">SHOULDER</text>
+    <line x1="-60" y1="-40" x2="60" y2="-40" stroke-dasharray="3,3"/>
+    <text x="0" y="-46" text-anchor="middle" font-size="11" fill="#333" stroke="none">CHEST</text>
+    <line x1="110" y1="-125" x2="110" y2="80" stroke-dasharray="3,3"/>
+    <text x="120" y="-20" font-size="11" fill="#333" stroke="none" transform="rotate(90 120 -20)">LENGTH</text>
+    <text x="-115" y="90" text-anchor="middle" font-size="11" fill="#333" stroke="none">SLEEVE</text>
+  </g>
+  <g transform="translate(300,220)">
+    <rect x="0" y="0" width="644" height="46" fill="#232323"/>
+    <text x="40" y="30" font-size="15" font-weight="700" fill="#fff">SIZE</text>
+    <text x="150" y="30" font-size="15" font-weight="700" fill="#fff">CHEST (in)</text>
+    <text x="300" y="30" font-size="15" font-weight="700" fill="#fff">SHOULDER</text>
+    <text x="440" y="30" font-size="15" font-weight="700" fill="#fff">SLEEVE</text>
+    <text x="560" y="30" font-size="15" font-weight="700" fill="#fff">LENGTH</text>
+    <g font-size="15" fill="#1a1a1a">
+      <rect x="0" y="46" width="644" height="46" fill="#ffffff"/>
+      <text x="40" y="75">36</text><text x="150" y="75">36 - 37</text><text x="300" y="75">43</text><text x="440" y="75">62</text><text x="560" y="75">72</text>
+      <rect x="0" y="92" width="644" height="46" fill="#efe9dc"/>
+      <text x="40" y="121">38</text><text x="150" y="121">38 - 39</text><text x="300" y="121">44</text><text x="440" y="121">63</text><text x="560" y="121">73</text>
+      <rect x="0" y="138" width="644" height="46" fill="#ffffff"/>
+      <text x="40" y="167">40</text><text x="150" y="167">40 - 41</text><text x="300" y="167">45.5</text><text x="440" y="167">64</text><text x="560" y="167">74</text>
+      <rect x="0" y="184" width="644" height="46" fill="#efe9dc"/>
+      <text x="40" y="213">42</text><text x="150" y="213">42 - 43</text><text x="300" y="213">47</text><text x="440" y="213">65</text><text x="560" y="213">76</text>
+      <rect x="0" y="230" width="644" height="46" fill="#ffffff"/>
+      <text x="40" y="259">44</text><text x="150" y="259">44 - 45</text><text x="300" y="259">48.5</text><text x="440" y="259">66</text><text x="560" y="259">77</text>
+      <rect x="0" y="276" width="644" height="46" fill="#efe9dc"/>
+      <text x="40" y="305">46</text><text x="150" y="305">46 - 47</text><text x="300" y="305">50</text><text x="440" y="305">67</text><text x="560" y="305">78</text>
+    </g>
+    <rect x="0" y="0" width="644" height="322" fill="none" stroke="#cfc6b0" stroke-width="1"/>
+  </g>
+  <text x="150" y="620" font-size="16" font-weight="700" fill="#1a1a1a">FIT NOTES:</text>
+  <text x="150" y="646" font-size="14" fill="#333">Lengths are for blazers and suit jackets. Overcoats run about 30 cm longer;</text>
+  <text x="150" y="668" font-size="14" fill="#333">order your usual jacket size &#8212; coats are cut to layer over tailoring.</text>
+  <text x="150" y="712" font-size="16" font-weight="700" fill="#1a1a1a">HOW TO MEASURE</text>
+  <text x="150" y="738" font-size="14" fill="#333">1. Chest &#8212; around the fullest part of the chest, under the arms.</text>
+  <text x="150" y="762" font-size="14" fill="#333">2. Shoulder &#8212; straight across the back, from shoulder point to shoulder point.</text>
+  <text x="150" y="786" font-size="14" fill="#333">3. Sleeve &#8212; from the shoulder point down to the wrist bone.</text>
+  <text x="150" y="810" font-size="14" fill="#333">4. Length &#8212; from the base of the collar at the back down to the hem.</text>
+  <text x="150" y="854" font-size="16" font-weight="700" fill="#1a1a1a">MADE TO MEASURE</text>
+  <text x="150" y="880" font-size="14" fill="#333">Pieces offered made to measure are tailored to your measurements in cm; the</text>
+  <text x="150" y="902" font-size="14" fill="#333">making time is shown on each product.</text>
+</svg>

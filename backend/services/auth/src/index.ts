@@ -21,6 +21,9 @@ const PORT = process.env.PORT || 3002;
 const startServer = async () => {
   try {
     await connectDB();
+
+    const { ensureBootstrapAdmin } = require('./bootstrap');
+    await ensureBootstrapAdmin(require('./database/connection').query);
     
     // Initialize the total users metric
     const { boutiqueTotalUsers } = require('./metrics');

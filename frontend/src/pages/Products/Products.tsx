@@ -24,7 +24,7 @@ const Products = memo(function Products() {
 
   const {
     loading, pagedProducts, filteredProducts, pageCount, page,
-    viewMode, setViewMode, resetKey, sortBy,
+    viewMode, setViewMode, resetKey, sortBy, activeFilters, searchQuery,
     categories, brands, sizes, colors, maxPrice,
     isInWishlist, handleSearch, handleSortChange, handleFilterChange,
     handlePageChange, handleClearFilters, handleAddToCart, handleToggleWishlist,
@@ -38,19 +38,21 @@ const Products = memo(function Products() {
         <Grid container spacing={4}>
           {/* Sidebar — desktop */}
           <Box sx={{ display: { xs: 'none', md: 'block' }, width: 280, flexShrink: 0 }}>
-            <FilterPanel key={resetKey} onFilterChange={handleFilterChange} categories={categories} brands={brands} sizes={sizes} colors={colors} maxPrice={maxPrice} />
+            <FilterPanel key={resetKey} initialCategory={activeFilters.category} initialHandcrafted={activeFilters.handcrafted} onFilterChange={handleFilterChange} categories={categories} brands={brands} sizes={sizes} colors={colors} maxPrice={maxPrice} />
           </Box>
 
           {/* Main content */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ mb: 4 }}>
-              <Typography variant="h3" component="h1" gutterBottom>All Products</Typography>
+              <Typography variant="h3" component="h1" gutterBottom>
+                {searchQuery ? `Results for “${searchQuery}”` : activeFilters.category || (activeFilters.handcrafted ? 'Handcrafted' : null) || (sortBy === 'newest' ? 'New In' : 'All Products')}
+              </Typography>
               <Typography variant="h6" color="text.secondary">{filteredProducts.length} {filteredProducts.length === 1 ? 'Product' : 'Products'} Found</Typography>
             </Box>
 
             <Box className={styles.controls}>
               <Box sx={{ flexGrow: 1, minWidth: 240 }}>
-                <SearchBar onSearch={handleSearch} placeholder="Search luxury products…" />
+                <SearchBar key={resetKey} initialQuery={searchQuery} onSearch={handleSearch} placeholder="Search luxury products…" />
               </Box>
               <FormControl sx={{ minWidth: 150 }}>
                 <InputLabel>Sort By</InputLabel>
@@ -105,7 +107,7 @@ const Products = memo(function Products() {
           </Box>
         </Box>
         <Box sx={{ p: 2 }}>
-          <FilterPanel key={resetKey} onFilterChange={handleFilterChange} categories={categories} brands={brands} sizes={sizes} colors={colors} maxPrice={maxPrice} />
+          <FilterPanel key={resetKey} initialCategory={activeFilters.category} initialHandcrafted={activeFilters.handcrafted} onFilterChange={handleFilterChange} categories={categories} brands={brands} sizes={sizes} colors={colors} maxPrice={maxPrice} />
         </Box>
       </Drawer>
 

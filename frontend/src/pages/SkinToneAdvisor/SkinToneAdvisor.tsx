@@ -8,7 +8,7 @@ import {
   ArrowForward as ArrowIcon, Refresh as RefreshIcon, ShoppingBag as BagIcon,
   CheckroomOutlined as OutfitIcon, ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
-import { LIGHT_COLORS, getHex } from 'constants/colors';
+import { BRAND, LIGHT_COLORS, getHex } from 'constants/colors';
 import RecommendedProductsGrid from './components/RecommendedProductsGrid';
 import OutfitCard from './components/OutfitCard';
 import OutfitConfigDialog from './components/OutfitConfigDialog';
@@ -72,7 +72,7 @@ const SkinToneAdvisor: React.FC = memo(() => {
             />
 
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" sx={{ color: '#d4af37', fontFamily: '"Playfair Display", serif' }}>
+              <Typography variant="h6" sx={{ color: BRAND.GOLD, fontFamily: 'var(--font-display)' }}>
                 {result.skinTone.name} Skin Tone
               </Typography>
 

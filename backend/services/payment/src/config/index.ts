@@ -13,4 +13,5 @@ export const config = {
   razorpayKeyId: required('RAZORPAY_KEY_ID'),
   razorpayKeySecret: required('RAZORPAY_KEY_SECRET'),
   ordersServiceUrl: process.env.ORDERS_SERVICE_URL || 'http://localhost:3005',
+  internalApiToken: required('INTERNAL_API_TOKEN'),
 };

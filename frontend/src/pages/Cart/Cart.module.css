@@ -6,7 +6,7 @@
 
 .emptyCartIcon {
   font-size: 80px;
-  color: #d4af37;
+  color: var(--gold);
   margin-bottom: 24px;
 }
 
@@ -16,7 +16,7 @@
 
 .emptyCartButton {
   padding: 12px 32px;
-  background: linear-gradient(135deg, #d4af37 0%, #a67c00 100%);
+  background: linear-gradient(135deg, var(--gold) 0%, #a67c00 100%);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -25,7 +25,7 @@
 
 .emptyCartButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+  box-shadow: 0 4px 12px rgba(200, 164, 110, 0.4);
 }
 
 .cartContainer {
@@ -179,7 +179,7 @@
 
 .totalAmount {
   font-weight: 700;
-  color: #d4af37;
+  color: var(--gold);
 }
 
 .addressFormControl {

@@ -16,11 +16,15 @@ vi.mock('bcryptjs', () => ({
 vi.mock('jsonwebtoken', () => ({
   default: {
     sign: vi.fn((payload: { userId: string; type?: string }) =>
-      payload.type === 'refresh' ? `refresh-token-for-${payload.userId}` : `token-for-${payload.userId}`
+      payload.type === 'refresh' ? `refresh-token-for-${payload.userId}`
+        : payload.type === 'password_change' ? `pwchange-token-for-${payload.userId}`
+          : `token-for-${payload.userId}`
     ),
     verify: vi.fn((token: string) => {
       const refreshMatch = /^refresh-token-for-(.+)$/.exec(token);
       if (refreshMatch) return { userId: refreshMatch[1], type: 'refresh' };
+      const changeMatch = /^pwchange-token-for-(.+)$/.exec(token);
+      if (changeMatch) return { userId: changeMatch[1], type: 'password_change' };
       const match = /^token-for-(.+)$/.exec(token);
       if (match) return { userId: match[1] };
       throw new Error('invalid token');
@@ -87,9 +91,69 @@ describe('POST /register', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('User already exists');
   });
+
+  it.each(['not-an-email', 'jane@example', 'jane..doe@example.com', ''])(
+    'rejects the invalid email %j without touching the database',
+    async (email) => {
+      const res = await request(app).post('/register').send({
+        email, password: 'super-secret', firstName: 'Jane', lastName: 'Doe',
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Enter a valid email address');
+      expect(mockedQuery).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a password shorter than 8 characters', async () => {
+    const res = await request(app).post('/register').send({
+      email: sampleUser.email, password: 'short', firstName: 'Jane', lastName: 'Doe',
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/at least 8 characters/);
+  });
+
+  it('rejects a missing name', async () => {
+    const res = await request(app).post('/register').send({
+      email: sampleUser.email, password: 'super-secret', firstName: '  ', lastName: 'Doe',
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('First and last name are required');
+  });
+
+  it('stores the email trimmed and lowercased', async () => {
+    mockedQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [sampleUser] });
+
+    await request(app).post('/register').send({
+      email: '  Jane@Example.COM ', password: 'super-secret', firstName: 'Jane', lastName: 'Doe',
+    });
+
+    expect(mockedQuery.mock.calls[0][1]).toEqual(['jane@example.com']);
+    expect(mockedQuery.mock.calls[1][1]?.[0]).toBe('jane@example.com');
+  });
 });
 
 describe('POST /login', () => {
+  it('rejects a malformed email before looking anything up', async () => {
+    const res = await request(app).post('/login').send({ email: 'jane', password: 'whatever' });
+
+    expect(res.status).toBe(400);
+    expect(mockedQuery).not.toHaveBeenCalled();
+  });
+
+  it('matches the email case-insensitively', async () => {
+    mockedQuery.mockResolvedValueOnce({ rows: [] });
+
+    await request(app).post('/login').send({ email: 'Jane@Example.com', password: 'wrong' });
+
+    expect(mockedQuery.mock.calls[0][0]).toMatch(/LOWER\(email\) = \$1/);
+    expect(mockedQuery.mock.calls[0][1]).toEqual(['jane@example.com']);
+  });
+
   it('rejects an unknown email with a normal (non-demo) password', async () => {
     mockedQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -126,17 +190,127 @@ describe('POST /login', () => {
     expect(res.body.message).toBe('Login successful');
   });
 
-  it('creates a demo user on first demo login', async () => {
-    mockedQuery
-      .mockResolvedValueOnce({ rows: [] }) // no existing demo user
-      .mockResolvedValueOnce({ rows: [sampleUser] }); // inserted demo user
+  it('never signs in to an existing account with the password "demo"', async () => {
+    // Regression: demo mode used to issue a token for ANY existing user
+    // (including admins) when the password was "demo".
+    mockedQuery.mockResolvedValueOnce({ rows: [{ ...sampleUser, role: 'admin', password_hash: 'hashed-password' }] });
+    mockedCompare.mockResolvedValueOnce(false);
 
-    const res = await request(app)
-      .post('/login')
-      .send({ email: sampleUser.email, password: 'demo' });
+    const res = await request(app).post('/login').send({ email: sampleUser.email, password: 'demo' });
+
+    expect(res.status).toBe(401);
+    expect(res.body.token).toBeUndefined();
+  });
+
+  it('does not auto-create demo accounts unless DEMO_LOGIN_ENABLED is set', async () => {
+    mockedQuery.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app).post('/login').send({ email: 'new.person@example.com', password: 'demo' });
+
+    expect(res.status).toBe(401);
+    expect(mockedQuery).toHaveBeenCalledTimes(1);
+    expect(mockedQuery.mock.calls[0][0]).not.toMatch(/INSERT/);
+  });
+});
+
+describe('forced password change (bootstrap admin)', () => {
+  const pendingAdmin = { ...sampleUser, id: 'admin-1', role: 'admin', password_hash: 'hashed-password', must_change_password: true };
+  const changeToken = (userId: string) => `Bearer pwchange-token-for-${userId}`;
+
+  it('returns only a password-change token, never a session', async () => {
+    mockedQuery.mockResolvedValueOnce({ rows: [pendingAdmin] });
+    mockedCompare.mockResolvedValueOnce(true);
+
+    const res = await request(app).post('/login').send({ email: 'admin@luxatelier.in', password: 'initial-secret-123' });
 
     expect(res.status).toBe(200);
-    expect(res.body.message).toBe('Demo login successful');
+    expect(res.body.passwordChangeRequired).toBe(true);
+    expect(res.body.passwordChangeToken).toBe('pwchange-token-for-admin-1');
+    expect(res.body.token).toBeUndefined();
+    expect(res.body.refreshToken).toBeUndefined();
+  });
+
+  it('rejects the password-change token as an access token', async () => {
+    const res = await request(app).get('/me').set('Authorization', changeToken('admin-1'));
+    expect(res.status).toBe(401);
+    expect(mockedQuery).not.toHaveBeenCalled();
+  });
+
+  it('only accepts a password-change token', async () => {
+    const res = await request(app).post('/complete-password-change').set('Authorization', `Bearer token-for-admin-1`).send({ newPassword: 'a-brand-new-password' });
+    expect(res.status).toBe(401);
+  });
+
+  it('requires 12+ characters for admins', async () => {
+    mockedQuery.mockResolvedValueOnce({ rows: [pendingAdmin] });
+    const res = await request(app).post('/complete-password-change').set('Authorization', changeToken('admin-1')).send({ newPassword: 'short-pw1' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/at least 12/);
+  });
+
+  it('refuses to keep the initial password', async () => {
+    mockedQuery.mockResolvedValueOnce({ rows: [pendingAdmin] });
+    mockedCompare.mockResolvedValueOnce(true);
+    const res = await request(app).post('/complete-password-change').set('Authorization', changeToken('admin-1')).send({ newPassword: 'initial-secret-123' });
+    expect(res.status).toBe(400);
+  });
+
+  it('saves the new password, clears the flag and signs in', async () => {
+    mockedQuery
+      .mockResolvedValueOnce({ rows: [pendingAdmin] })
+      .mockResolvedValueOnce({ rows: [{ ...pendingAdmin, must_change_password: false }] });
+    mockedCompare.mockResolvedValueOnce(false);
+
+    const res = await request(app).post('/complete-password-change').set('Authorization', changeToken('admin-1')).send({ newPassword: 'a-brand-new-password' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.token).toBe('token-for-admin-1');
+    expect(res.body.user.role).toBe('admin');
+    expect(mockedQuery.mock.calls[1][0]).toMatch(/must_change_password = false/);
+  });
+
+  it('blocks token refresh while a reset is pending', async () => {
+    mockedQuery.mockResolvedValueOnce({ rows: [{ id: 'admin-1', role: 'admin', must_change_password: true }] });
+    const res = await request(app).post('/refresh').send({ refreshToken: 'refresh-token-for-admin-1' });
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('POST /change-password', () => {
+  const auth = { Authorization: `Bearer token-for-${sampleUser.id}` };
+
+  it('requires a signed-in user', async () => {
+    const res = await request(app).post('/change-password').send({ currentPassword: 'a', newPassword: 'longenough' });
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects a short new password', async () => {
+    const res = await request(app).post('/change-password').set(auth).send({ currentPassword: 'old-password', newPassword: 'short' });
+    expect(res.status).toBe(400);
+    expect(mockedQuery).not.toHaveBeenCalled();
+  });
+
+  it('rejects a wrong current password', async () => {
+    mockedQuery.mockResolvedValueOnce({ rows: [{ password_hash: 'hashed-password' }] });
+    mockedCompare.mockResolvedValueOnce(false);
+
+    const res = await request(app).post('/change-password').set(auth).send({ currentPassword: 'wrong', newPassword: 'brand-new-secret' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Current password is incorrect');
+  });
+
+  it('stores a new hash when the current password matches', async () => {
+    mockedQuery
+      .mockResolvedValueOnce({ rows: [{ password_hash: 'hashed-password' }] })
+      .mockResolvedValueOnce({ rows: [] });
+    mockedCompare.mockResolvedValueOnce(true);
+
+    const res = await request(app).post('/change-password').set(auth).send({ currentPassword: 'old-password', newPassword: 'brand-new-secret' });
+
+    expect(res.status).toBe(200);
+    expect(mockedQuery.mock.calls[1][0]).toMatch(/UPDATE users SET password_hash/);
+    expect(mockedQuery.mock.calls[1][1]).toEqual(['hashed-password', String(sampleUser.id)]);
   });
 });
 
@@ -144,6 +318,12 @@ describe('GET /me', () => {
   it('returns 401 when there is no bearer token', async () => {
     const res = await request(app).get('/me');
     expect(res.status).toBe(401);
+  });
+
+  it('rejects a refresh token used as an access token', async () => {
+    const res = await request(app).get('/me').set('Authorization', `Bearer refresh-token-for-${sampleUser.id}`);
+    expect(res.status).toBe(401);
+    expect(mockedQuery).not.toHaveBeenCalled();
   });
 
   it('returns the user for a valid bearer token', async () => {

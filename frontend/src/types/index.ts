@@ -15,6 +15,12 @@ export interface Product {
   color?: string;
   sizes?: string[];
   isNew?: boolean;
+  /** Made by hand in the atelier. */
+  isHandcrafted?: boolean;
+  /** Can be tailored to the customer's measurements. */
+  madeToMeasure?: boolean;
+  /** Working days to tailor a made-to-measure order. */
+  makingDays?: number | null;
   discountPercentage?: number;
   createdAt: string;
   updatedAt: string;
@@ -40,14 +46,24 @@ export interface User {
   updatedAt: string;
 }
 
+export type OrderStatus =
+  | 'pending' | 'confirmed' | 'packed' | 'shipped' | 'out_for_delivery' | 'delivered' | 'cancelled';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+
 export interface Order {
   id: string;
   userId: string;
   items: OrderItem[];
   totalAmount: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  shippingAddress: Address;
-  paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
+  subtotalAmount?: number;
+  shippingAmount?: number;
+  taxAmount?: number;
+  status: OrderStatus;
+  shippingAddress: Address | { address: string } | string;
+  paymentStatus: PaymentStatus;
+  paidAt?: string | null;
+  /** Status changes with timestamps, oldest first. */
+  timeline?: { status: OrderStatus; at: string }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -58,7 +74,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   size?: string;
-  product: Product;
+  product: Pick<Product, 'id' | 'name' | 'imageUrl' | 'category'> & { brand?: string };
 }
 
 export interface Address {
@@ -74,6 +90,15 @@ export interface AuthResponse {
   token: string;
   refreshToken: string;
 }
+
+/** Returned instead of a session when the account must choose a new password first. */
+export interface PasswordChangeRequired {
+  passwordChangeRequired: true;
+  passwordChangeToken: string;
+  user: { email: string; firstName?: string };
+}
+
+export type LoginResult = { passwordChangeRequired: false } | PasswordChangeRequired;
 
 export interface LoginCredentials {
   email: string;

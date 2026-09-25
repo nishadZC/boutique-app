@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { User } from '../types';
+import { AuthResponse, LoginResult, PasswordChangeRequired, User } from '../types';
 import { authService } from '../services/authService';
 import { userService } from '../services/userService';
 
@@ -45,8 +45,9 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 };
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: (credential: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  loginWithGoogle: (credential: string) => Promise<LoginResult>;
+  completePasswordChange: (passwordChangeToken: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: { firstName: string; lastName: string; phone?: string; address?: string }) => Promise<void>;
   clearError: () => void;
@@ -79,14 +80,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const startSession = (response: AuthResponse) => {
+    localStorage.setItem('accessToken', response.token);
+    localStorage.setItem('refreshToken', response.refreshToken);
+    localStorage.removeItem('boutique_cart');
+    dispatch({ type: 'LOGIN_SUCCESS', payload: response.user });
+  };
+
+  // A pending password change yields no session: the short-lived token stays in
+  // memory with the caller and is never written to storage.
+  const handleAuthResponse = (response: AuthResponse | PasswordChangeRequired): LoginResult => {
+    if ('passwordChangeRequired' in response && response.passwordChangeRequired) {
+      dispatch({ type: 'AUTH_INIT_COMPLETE' });
+      return response;
+    }
+    startSession(response as AuthResponse);
+    return { passwordChangeRequired: false };
+  };
+
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     try {
       dispatch({ type: 'LOGIN_START' });
-      const response = await authService.login({ email, password });
-      localStorage.setItem('accessToken', response.token);
-      localStorage.setItem('refreshToken', response.refreshToken);
-      localStorage.removeItem('boutique_cart');
-      dispatch({ type: 'LOGIN_SUCCESS', payload: response.user });
+      return handleAuthResponse(await authService.login({ email, password }));
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Login failed';
       dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
@@ -94,19 +109,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginWithGoogle = async (credential: string) => {
+  const loginWithGoogle = async (credential: string): Promise<LoginResult> => {
     try {
       dispatch({ type: 'LOGIN_START' });
-      const response = await authService.loginWithGoogle(credential);
-      localStorage.setItem('accessToken', response.token);
-      localStorage.setItem('refreshToken', response.refreshToken);
-      localStorage.removeItem('boutique_cart');
-      dispatch({ type: 'LOGIN_SUCCESS', payload: response.user });
+      return handleAuthResponse(await authService.loginWithGoogle(credential));
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Google sign-in failed';
       dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
       throw new Error(errorMessage);
     }
+  };
+
+  const completePasswordChange = async (passwordChangeToken: string, newPassword: string) => {
+    startSession(await authService.completePasswordChange(passwordChangeToken, newPassword));
   };
 
   const logout = async () => {
@@ -134,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, logout, updateProfile, clearError }}>
+    <AuthContext.Provider value={{ ...state, login, loginWithGoogle, completePasswordChange, logout, updateProfile, clearError }}>
       {children}
     </AuthContext.Provider>
   );

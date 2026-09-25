@@ -20,8 +20,9 @@ const loadRazorpay = (): Promise<void> => new Promise((resolve, reject) => {
 });
 
 export const paymentService = {
-  createPaymentOrder: async (amount: number, receipt: string) => {
-    const response = await apiClient.post('/payments/orders', { amount, receipt });
+  // The amount is taken from the stored order on the server.
+  createPaymentOrder: async (orderId: string) => {
+    const response = await apiClient.post('/payments/orders', { orderId });
     return response.data.data;
   },
 

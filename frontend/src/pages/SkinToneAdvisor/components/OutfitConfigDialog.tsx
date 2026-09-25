@@ -8,7 +8,10 @@ import { productService } from 'services/productService';
 import { Product } from 'types';
 import { getSizeOptions } from 'utils/productSizing';
 import { getProductImage, handleRecommendationImageError } from 'utils/imageHelpers';
-import { isValidMeasurement, MEASUREMENT_LIMITS, MeasurementField } from 'utils/measurements';
+import { getTailoringFields, isValidMeasurement, MEASUREMENT_LIMITS, MeasurementField } from 'utils/measurements';
+
+const SHIRT_FIELDS = getTailoringFields('shirt');
+import { BRAND } from '../../../constants/colors';
 
 interface OutfitConfigDialogProps {
   outfit: OutfitCombination | null;
@@ -68,8 +71,7 @@ const OutfitConfigDialog: React.FC<OutfitConfigDialogProps> = ({ outfit, index, 
       if (item.id === outfit.topwear.id && customizing) return false;
       return !sizes[item.id];
     })) return;
-    const measurementFields = Object.keys(measurements) as MeasurementField[];
-    if (customizing && measurementFields.some(field => !isValidMeasurement(field, measurements[field]))) return;
+    if (customizing && SHIRT_FIELDS.some(field => !isValidMeasurement(field, measurements[field as keyof typeof measurements]))) return;
 
     const shirtSize = customizing
       ? `Custom(S:${measurements.shoulder} C:${measurements.chest} Sl:${measurements.sleeve} N:${measurements.neck})`
@@ -134,12 +136,12 @@ const OutfitConfigDialog: React.FC<OutfitConfigDialogProps> = ({ outfit, index, 
             mb: 3,
             minWidth: 120,
             height: 40,
-            color: customizing ? '#c62828 !important' : '#d4af37 !important',
-            border: customizing ? '1px solid #c62828 !important' : '1px solid #d4af37 !important',
+            color: customizing ? '#c62828 !important' : `${BRAND.GOLD} !important`,
+            border: customizing ? '1px solid #c62828 !important' : `1px solid ${BRAND.GOLD} !important`,
             backgroundColor: '#fff !important',
             '&:hover': {
-              backgroundColor: customizing ? '#fff5f5 !important' : 'rgba(212, 175, 55, 0.08) !important',
-              borderColor: customizing ? '#b71c1c !important' : '#b8941f !important',
+              backgroundColor: customizing ? '#fff5f5 !important' : 'rgba(200, 164, 110, 0.08) !important',
+              borderColor: customizing ? '#b71c1c !important' : `${BRAND.GOLD_DARK} !important`,
             },
           }}
         >
@@ -186,14 +188,14 @@ const OutfitConfigDialog: React.FC<OutfitConfigDialogProps> = ({ outfit, index, 
               if (item.id === outfit.topwear.id && customizing) return false;
               return !sizes[item.id];
             }) ||
-            (customizing && (Object.keys(measurements) as MeasurementField[]).some(field => !isValidMeasurement(field, measurements[field])))
+            (customizing && SHIRT_FIELDS.some(field => !isValidMeasurement(field, measurements[field as keyof typeof measurements])))
           }
           startIcon={<BagIcon />}
           sx={{
-            background: '#d4af37', color: '#111', fontWeight: 600, py: 1.5,
+            background: BRAND.GOLD, color: '#111', fontWeight: 600, py: 1.5,
             borderRadius: 2,
             boxShadow: 'none',
-            '&:hover': { background: '#b8941f', boxShadow: 'none' },
+            '&:hover': { background: BRAND.GOLD_DARK, boxShadow: 'none' },
             '&.Mui-disabled': { background: '#e0e0e0', color: '#9e9e9e' }
           }}
         >
