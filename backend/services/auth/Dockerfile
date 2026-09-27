@@ -1,13 +1,13 @@
 # Auth Service Dockerfile
 FROM node:26-alpine3.24 AS builder
 
-RUN apk update && apk upgrade --no-cache
+RUN apk upgrade --no-cache
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-RUN npm install
+RUN npm install --no-audit --no-fund
 
 # Copy only the application source (explicit allowlist, not COPY . .)
 COPY tsconfig.json ./
@@ -16,26 +16,21 @@ COPY src ./src
 # Build TypeScript
 RUN npm run build
 
+RUN npm prune --omit=dev
+
 # Production stage
 FROM node:26-alpine3.24
 
-RUN apk update && apk upgrade --no-cache
+RUN apk upgrade --no-cache
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 WORKDIR /app
 
-# Copy package files and install production dependencies only and clean npm cache
-COPY package*.json ./
-RUN npm install --omit=dev && npm cache clean --force
-
-# Copy built application
+# Copy the built application and production dependencies from the builder.
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
-# Create non-root group & user
-RUN apk add --no-cache shadow
-RUN groupadd -r -g 1001 nodejs
-RUN useradd -r -u 1001 -g nodejs nodejs
-
-USER nodejs
+USER node
 
 EXPOSE 3002
 

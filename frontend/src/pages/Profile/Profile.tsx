@@ -184,7 +184,12 @@ const Profile: React.FC = memo(() => {
               {orders?.slice(0, 3).map(o => (
                 <Box key={o.id} component={RouterLink} to={ROUTES.ORDERS} className={styles.orderRow}>
                   <Box className={styles.orderThumbs}>
-                    {o.items.slice(0, 3).map(i => i.product?.imageUrl && <img key={i.id} src={i.product.imageUrl} alt="" />)}
+                    {o.items.slice(0, 3).map(i => (
+                      <Box key={i.id} className={styles.orderThumb}>
+                        {i.product?.imageUrl && <img src={i.product.imageUrl} alt="" />}
+                      </Box>
+                    ))}
+                    {o.items.length > 3 && <Box className={`${styles.orderThumb} ${styles.orderThumbMore}`}>+{o.items.length - 3}</Box>}
                   </Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography className={styles.orderTitle}>#{o.id.slice(0, 8).toUpperCase()} · {o.items.length} item{o.items.length === 1 ? '' : 's'}</Typography>

@@ -65,3 +65,36 @@ export function canChangePayment(from: string, to: string): boolean {
 export function label(status: string): string {
   return status.replace(/_/g, ' ');
 }
+
+// ---- Customer cancellations and returns ----
+
+export const REQUEST_TYPES = ['cancel', 'return', 'refund'] as const;
+export type RequestType = typeof REQUEST_TYPES[number];
+export const REQUEST_STATUSES = ['pending', 'refunded', 'rejected', 'closed'] as const;
+export type RequestStatus = typeof REQUEST_STATUSES[number];
+
+/** Days after delivery within which a customer can ask for a return or refund. */
+export const RETURN_WINDOW_DAYS = 7;
+
+/** A customer may cancel their own order any time before it is delivered. */
+export function canCustomerCancel(status: string): { ok: true } | { ok: false; reason: string } {
+  const current = normalise(status);
+  if (current === 'cancelled') return { ok: false, reason: 'This order is already cancelled' };
+  if (current === 'delivered') return { ok: false, reason: 'Delivered orders cannot be cancelled; request a return instead' };
+  return { ok: true };
+}
+
+/** A delivered, paid order may be returned or refunded within the return window. */
+export function canRequestReturn(
+  status: string, paymentStatus: string, deliveredAt: Date | null, now = new Date(),
+): { ok: true } | { ok: false; reason: string } {
+  if (normalise(status) !== 'delivered') return { ok: false, reason: 'Returns open once the order is delivered' };
+  if (paymentStatus === 'refunded') return { ok: false, reason: 'This order has already been refunded' };
+  if (paymentStatus !== 'paid') return { ok: false, reason: 'Only paid orders can be returned' };
+  if (deliveredAt) {
+    const closes = new Date(deliveredAt);
+    closes.setDate(closes.getDate() + RETURN_WINDOW_DAYS);
+    if (now > closes) return { ok: false, reason: `Returns close ${RETURN_WINDOW_DAYS} days after delivery` };
+  }
+  return { ok: true };
+}

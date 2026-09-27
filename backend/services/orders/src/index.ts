@@ -41,21 +41,6 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    // Initialize metrics
-    const { boutiqueTotalOrders, boutiqueTotalRevenue } = require('./metrics');
-    const { query } = require('./database/connection');
-    try {
-      const ordersResult = await query('SELECT count(*) FROM orders');
-      boutiqueTotalOrders.set(parseInt(ordersResult.rows[0].count, 10));
-      
-      // Revenue counts paid orders only.
-      const revenueResult = await query("SELECT sum(total_amount) FROM orders WHERE payment_status = 'paid'");
-      const revenue = revenueResult.rows[0].sum ? parseFloat(revenueResult.rows[0].sum) : 0;
-      boutiqueTotalRevenue.set(revenue);
-    } catch (e) {
-      console.error('Failed to initialize order metrics:', e);
-    }
-
     app.listen(PORT, () => {
       console.log(`Orders service running on port ${PORT}`);
     });

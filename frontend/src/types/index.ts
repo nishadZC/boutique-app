@@ -64,8 +64,27 @@ export interface Order {
   paidAt?: string | null;
   /** Status changes with timestamps, oldest first. */
   timeline?: { status: OrderStatus; at: string }[];
+  /** Cancellation and return/refund requests, newest first. */
+  requests?: OrderRequest[];
   createdAt: string;
   updatedAt: string;
+}
+
+export type OrderRequestType = 'cancel' | 'return' | 'refund';
+/** pending: awaiting an admin; closed: cancelled before payment, nothing to refund. */
+export type OrderRequestStatus = 'pending' | 'refunded' | 'rejected' | 'closed';
+
+export interface OrderRequest {
+  id: string;
+  type: OrderRequestType;
+  reason: string;
+  details: string;
+  status: OrderRequestStatus;
+  resolutionNote: string;
+  refundId: string | null;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
 }
 
 export interface OrderItem {

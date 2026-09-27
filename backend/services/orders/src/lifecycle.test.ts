@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canChangePayment, canTransition, nextStatus } from './lifecycle';
+import { RETURN_WINDOW_DAYS, canChangePayment, canCustomerCancel, canRequestReturn, canTransition, nextStatus } from './lifecycle';
 
 describe('fulfilment transitions', () => {
   it.each([
@@ -64,5 +64,24 @@ describe('payment transitions', () => {
     ['pending', 'refunded', false],
   ])('%s -> %s is %s', (from, to, allowed) => {
     expect(canChangePayment(from, to)).toBe(allowed);
+  });
+});
+
+describe('customer cancellations and returns', () => {
+  it('lets a customer cancel until the order is delivered', () => {
+    for (const status of ['pending', 'confirmed', 'packed', 'processing', 'shipped', 'out_for_delivery']) {
+      expect(canCustomerCancel(status).ok).toBe(true);
+    }
+    expect(canCustomerCancel('delivered').ok).toBe(false);
+    expect(canCustomerCancel('cancelled').ok).toBe(false);
+  });
+
+  it('opens returns only for delivered, paid orders inside the window', () => {
+    const delivered = new Date('2026-01-01T10:00:00Z');
+    expect(canRequestReturn('delivered', 'paid', delivered, new Date('2026-01-05T10:00:00Z')).ok).toBe(true);
+    expect(canRequestReturn('delivered', 'paid', delivered, new Date(`2026-01-${10 + RETURN_WINDOW_DAYS}T10:00:00Z`)).ok).toBe(false);
+    expect(canRequestReturn('shipped', 'paid', delivered).ok).toBe(false);
+    expect(canRequestReturn('delivered', 'refunded', delivered).ok).toBe(false);
+    expect(canRequestReturn('delivered', 'pending', delivered).ok).toBe(false);
   });
 });

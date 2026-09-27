@@ -81,7 +81,7 @@ INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_or
 SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649081/boutique/formal-mens/formal_shirts_12274.jpg', 'Navy Blue Formal Shirt - Main Image', true, 1
 FROM products p WHERE p.sku = 'FSHIRT-11162';
 INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
-SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649078/boutique/formal-mens/formal_shirts_11110.jpg', 'Slim Fit White Shirt - Main Image', true, 1
+SELECT p.id, 'https://images.unsplash.com/photo-1621072156002-e2fccdc0b176?w=1200&q=80&auto=format&fit=crop', 'Slim Fit White Shirt - Main Image', true, 1
 FROM products p WHERE p.sku = 'FSHIRT-12220';
 INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
 SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649085/boutique/formal-mens/formal_shirts_14762.jpg', 'Blue Striped Formal Shirt - Main Image', true, 1
@@ -123,16 +123,16 @@ INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_or
 SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649108/boutique/formal-mens/formal_shoes_37795.jpg', 'Sea Green Dress Shirt - Main Image', true, 1
 FROM products p WHERE p.sku = 'FSHIRT-15118';
 INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
-SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649082/boutique/formal-mens/formal_shirts_12289.jpg', 'Charcoal Grey Formal Trousers - Main Image', true, 1
+SELECT p.id, 'https://images.unsplash.com/photo-1631052065979-40ebfc981ec3?w=1200&q=80&auto=format&fit=crop', 'Charcoal Grey Formal Trousers - Main Image', true, 1
 FROM products p WHERE p.sku = 'FTROUSER-16381';
 INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
 SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649080/boutique/formal-mens/formal_shirts_12220.jpg', 'Black Slim Fit Trousers - Main Image', true, 1
 FROM products p WHERE p.sku = 'FTROUSER-17557';
 INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
-SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649092/boutique/formal-mens/formal_trousers_16381.jpg', 'Navy Blue Formal Pants - Main Image', true, 1
+SELECT p.id, 'https://images.unsplash.com/photo-1604695573706-53170668f6a6?w=1200&q=80&auto=format&fit=crop', 'Navy Blue Formal Pants - Main Image', true, 1
 FROM products p WHERE p.sku = 'FTROUSER-17563';
 INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
-SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649077/boutique/formal-mens/formal_shirts_10260.jpg', 'Grey Wool Blend Trousers - Main Image', true, 1
+SELECT p.id, 'https://images.unsplash.com/photo-1604822106141-d9dccd171fad?w=1200&q=80&auto=format&fit=crop', 'Grey Wool Blend Trousers - Main Image', true, 1
 FROM products p WHERE p.sku = 'FTROUSER-22140';
 INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
 SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649089/boutique/formal-mens/formal_shirts_15111.jpg', 'Brown Formal Trousers - Main Image', true, 1
@@ -162,10 +162,10 @@ INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_or
 SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649087/boutique/formal-mens/formal_shirts_15058.jpg', 'Dark Brown Derby Shoes - Main Image', true, 1
 FROM products p WHERE p.sku = 'FSHOE-8885';
 INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
-SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649112/boutique/formal-mens/formal_shoes_40449.jpg', 'Chestnut Leather Brogues - Main Image', true, 1
+SELECT p.id, 'https://images.unsplash.com/photo-1777987601431-8d27d2039cc4?w=1200&q=80&auto=format&fit=crop', 'Chestnut Leather Brogues - Main Image', true, 1
 FROM products p WHERE p.sku = 'FSHOE-8891';
 INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
-SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649086/boutique/formal-mens/formal_shirts_15054.jpg', 'Black Formal Lace-Up Shoes - Main Image', true, 1
+SELECT p.id, 'https://images.unsplash.com/photo-1777987601426-c05a82045862?w=1200&q=80&auto=format&fit=crop', 'Black Formal Lace-Up Shoes - Main Image', true, 1
 FROM products p WHERE p.sku = 'FSHOE-8954';
 INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
 SELECT p.id, 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787649104/boutique/formal-mens/formal_shoes_33692.jpg', 'Brown Chelsea Boots - Main Image', true, 1

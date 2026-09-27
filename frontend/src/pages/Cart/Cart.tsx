@@ -37,6 +37,7 @@ const Cart: React.FC = memo(() => {
     fallbackImage,
     addressFields,
     setAddressFields,
+    addressComplete,
     phone,
     setPhone,
     savedAddresses,
@@ -334,6 +335,11 @@ const Cart: React.FC = memo(() => {
                   }}
                 />
                 {addressError && <Typography variant="caption" color="error">{addressError}</Typography>}
+                {!addressError && !addressComplete && (
+                  <Typography variant="caption" color="text.secondary">
+                    Fill in all address fields to proceed to checkout.
+                  </Typography>
+                )}
               </Box>
 
               <Box className={styles.checkoutButtonBox}>
@@ -342,7 +348,7 @@ const Cart: React.FC = memo(() => {
                   fullWidth
                   size="large"
                   onClick={handleCheckout}
-                  disabled={isCheckingOut || selectedCartItems.length === 0 || !!phoneError || !addressFields.street.trim()}
+                  disabled={isCheckingOut || selectedCartItems.length === 0 || !!phoneError || !addressComplete}
                   className={styles.checkoutButton}
                 >
                   Proceed to Checkout

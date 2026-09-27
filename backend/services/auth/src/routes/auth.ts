@@ -4,7 +4,6 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import { query } from '../database/connection';
-import { boutiqueTotalUsers } from '../metrics';
 import { isValidEmail, normalizeEmail, PASSWORD_MIN_LENGTH } from '../validation';
 import { getJwtSecret, readAuth, requireUser } from '../middleware/auth';
 import { ADMIN_PASSWORD_MIN_LENGTH } from '../bootstrap';
@@ -105,7 +104,6 @@ router.post('/register', async (req, res) => {
     );
 
     const user = result.rows[0];
-    boutiqueTotalUsers.inc(1); // Increment Prometheus metric
 
     res.status(201).json({
       user: {
@@ -150,7 +148,6 @@ router.post('/login', async (req, res) => {
           [email, hashedPassword, 'Demo', 'User', 'customer']
         );
         const user = newUser.rows[0];
-        boutiqueTotalUsers.inc(1); // Increment Prometheus metric
         return res.status(201).json({
           user: {
             id: user.id,
@@ -224,7 +221,6 @@ router.post('/google', async (req, res) => {
         [googleEmail, passwordHash, firstName, lastName, 'customer']
       );
       user = newUser.rows[0];
-      boutiqueTotalUsers.inc(1);
     }
 
 

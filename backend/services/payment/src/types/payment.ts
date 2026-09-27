@@ -17,3 +17,6 @@ export interface UpdatePaymentStatusRequest {
   orderId?: string;
   paymentStatus?: 'failed';
 }
+export interface RefundOrderRequest {
+  note?: string;
+}

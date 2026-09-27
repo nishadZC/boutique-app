@@ -20,13 +20,28 @@ dotenv.config();
 
 const app = express();
 const PORT: number = Number(process.env.GATEWAY_PORT) || 3001;
+const allowedOrigins = new Set(
+  (process.env.CORS_ORIGINS || 'http://localhost:3000')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean),
+);
 
 app.use(
   helmet({
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
   })
 );
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Origin is not allowed by CORS'));
+  },
+  credentials: true,
+}));
 
 setupMetrics(app, { serviceName: 'gateway', serviceVersion: '1.0.0' });
 

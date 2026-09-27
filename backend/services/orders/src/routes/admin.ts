@@ -6,7 +6,9 @@ import { query } from '../database/connection';
 import { requireAdmin } from '../middleware/auth';
 import { getProducts } from '../clients/productClient';
 import { ORDER_STATUSES, PAYMENT_STATUSES, nextStatus } from '../lifecycle';
-import { changeOrderStatus, changePaymentStatus, formatOrder, getEvents, getOrderItems, withProducts } from '../services/orderService';
+import {
+  changeOrderStatus, changePaymentStatus, formatOrder, getEvents, getOrderItems, getRequests, rejectRequest, withProducts,
+} from '../services/orderService';
 import { sendError } from './orders';
 
 const router = express.Router();
@@ -16,7 +18,7 @@ const actorOf = (req: express.Request) => req.auth?.email ?? req.auth?.userId ??
 const guid = Joi.string().guid();
 
 const listSchema = Joi.object({
-  status: Joi.string().valid(...ORDER_STATUSES, 'awaiting_fulfilment', 'in_transit'),
+  status: Joi.string().valid(...ORDER_STATUSES, 'awaiting_fulfilment', 'in_transit', 'refund_requests'),
   paymentStatus: Joi.string().valid(...PAYMENT_STATUSES),
   search: Joi.string().trim().max(64).allow(''),
   userId: guid,
@@ -34,6 +36,7 @@ router.get('/orders', async (req, res) => {
   const params: any[] = [];
   const add = (sql: (n: string) => string, v: unknown) => { params.push(v); conditions.push(sql(`$${params.length}`)); };
   if (value.status === 'awaiting_fulfilment') conditions.push("o.status IN ('confirmed', 'packed', 'processing') AND o.payment_status = 'paid'");
+  else if (value.status === 'refund_requests') conditions.push("EXISTS (SELECT 1 FROM order_requests r WHERE r.order_id = o.id AND r.status = 'pending')");
   else if (value.status === 'in_transit') conditions.push("o.status IN ('shipped', 'out_for_delivery')");
   else if (value.status === 'confirmed') conditions.push("o.status IN ('confirmed', 'processing')");
   else if (value.status) add(n => `o.status = ${n}`, value.status);
@@ -47,7 +50,8 @@ router.get('/orders', async (req, res) => {
   try {
     const [rows, count] = await Promise.all([
       query(
-        `SELECT o.*, (SELECT COALESCE(SUM(quantity), 0) FROM order_items oi WHERE oi.order_id = o.id) AS item_count
+        `SELECT o.*, (SELECT COALESCE(SUM(quantity), 0) FROM order_items oi WHERE oi.order_id = o.id) AS item_count,
+                (SELECT r.type FROM order_requests r WHERE r.order_id = o.id AND r.status = 'pending' LIMIT 1) AS open_request
          FROM orders o ${where} ORDER BY o.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, value.limit, (value.page - 1) * value.limit]),
       query(`SELECT COUNT(*) AS total FROM orders o ${where}`, params),
@@ -59,6 +63,7 @@ router.get('/orders', async (req, res) => {
         orders: rows.rows.map((r: any) => ({
           ...formatOrder(r),
           itemCount: Number(r.item_count),
+          openRequest: r.open_request ?? null,
           nextStatus: nextStatus(r.status, r.payment_status),
         })),
         pagination: { page: value.page, limit: value.limit, total, totalPages: Math.ceil(total / value.limit) },
@@ -75,9 +80,10 @@ router.get('/orders/:id', async (req, res) => {
     const result = await query('SELECT * FROM orders WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Order not found' });
     const row = result.rows[0];
-    const [items, events] = await Promise.all([
+    const [items, events, requests] = await Promise.all([
       withProducts((await getOrderItems([row.id])).get(row.id) ?? []),
       getEvents(row.id),
+      getRequests([row.id]),
     ]);
     return res.json({
       success: true,
@@ -87,6 +93,7 @@ router.get('/orders/:id', async (req, res) => {
         razorpayPaymentId: row.razorpay_payment_id,
         items,
         events,
+        requests: requests.get(row.id) ?? [],
         nextStatus: nextStatus(row.status, row.payment_status),
       },
     });
@@ -125,6 +132,21 @@ router.post('/orders/:id/refund', async (req, res) => {
   }
 });
 
+// Turns down a customer's return/refund request (approving it is a refund through the payment service).
+router.post('/orders/:id/requests/:requestId/reject', async (req, res) => {
+  if (guid.validate(req.params.id).error || guid.validate(req.params.requestId).error) {
+    return res.status(404).json({ success: false, error: 'Request not found' });
+  }
+  const note = String(req.body?.note ?? '').trim().slice(0, 500);
+  if (!note) return res.status(400).json({ success: false, error: 'Tell the customer why the request was rejected' });
+  try {
+    const order = await rejectRequest(req.params.id, req.params.requestId, actorOf(req), note);
+    return res.json({ success: true, data: order, message: 'Request rejected' });
+  } catch (err) {
+    return sendError(res, err, 'Failed to reject request');
+  }
+});
+
 /** Orders placed and paid spend for a set of customers (customers page). */
 router.get('/customers/summary', async (req, res) => {
   const ids = String(req.query.userIds ?? '').split(',').filter(id => !guid.validate(id).error).slice(0, 100);
@@ -151,7 +173,7 @@ router.get('/kpis', async (req, res) => {
   const days = value.days;
 
   try {
-    const [current, previous, byDay, pipeline, top] = await Promise.all([
+    const [current, previous, byDay, pipeline, top, openRequests] = await Promise.all([
       query(
         `SELECT COUNT(*) FILTER (WHERE payment_status = 'paid') AS paid_orders,
                 COALESCE(SUM(total_amount) FILTER (WHERE payment_status = 'paid'), 0) AS revenue,
@@ -181,6 +203,7 @@ router.get('/kpis', async (req, res) => {
          FROM order_items oi JOIN orders o ON o.id = oi.order_id
          WHERE o.payment_status = 'paid' AND o.created_at >= NOW() - ($1 || ' days')::interval
          GROUP BY oi.product_id ORDER BY units DESC, revenue DESC LIMIT 5`, [days]),
+      query("SELECT COUNT(*) AS count FROM order_requests WHERE status = 'pending'"),
     ]);
 
     const c = current.rows[0];
@@ -203,6 +226,7 @@ router.get('/kpis', async (req, res) => {
         averageOrderValue: paidOrders ? Math.round((revenue / paidOrders) * 100) / 100 : 0,
         conversionRate: Number(c.orders) ? Math.round((paidOrders / Number(c.orders)) * 1000) / 10 : 0,
         failedPayments: Number(c.failed_payments),
+        pendingRefundRequests: Number(openRequests.rows[0].count),
         payingCustomers: Number(c.customers),
         pipeline: {
           awaitingPayment: pipelineCounts.pending ?? 0,

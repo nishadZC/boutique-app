@@ -78,6 +78,19 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       };
     }
     
+    case 'REMOVE_ITEMS': {
+      const itemsToRemove = action.payload;
+      const newItems = state.items.filter(item => 
+        !itemsToRemove.some(toRemove => toRemove.id === item.id && toRemove.selectedSize === item.selectedSize)
+      );
+      return {
+        ...state,
+        items: newItems,
+        total: calculateTotal(newItems),
+        itemCount: calculateItemCount(newItems),
+      };
+    }
+    
     case 'UPDATE_QUANTITY': {
       const { id, selectedSize, quantity } = action.payload;
       
@@ -103,26 +116,13 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       };
     }
     
-    case 'REMOVE_ITEMS': {
-      const itemsToRemove = action.payload;
-      const newItems = state.items.filter(item =>
-        !itemsToRemove.some(toRemove => toRemove.id === item.id && toRemove.selectedSize === item.selectedSize)
-      );
-      return {
-        ...state,
-        items: newItems,
-        total: calculateTotal(newItems),
-        itemCount: calculateItemCount(newItems),
-      };
-    }
-
     case 'CLEAR_CART':
       return {
         items: [],
         total: 0,
         itemCount: 0,
       };
-
+    
     default:
       return state;
   }
@@ -150,7 +150,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialState);
   const { openLoginModal } = useAuthModal();
-  const { isAuthenticated, user, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const { showToast } = useToast();
 
   React.useEffect(() => {

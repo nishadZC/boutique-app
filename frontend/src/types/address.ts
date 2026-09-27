@@ -23,6 +23,9 @@ export const emptyAddress: AddressFields = {
   country: 'India',
 };
 
+export const isAddressComplete = (address: AddressFields): boolean =>
+  (Object.keys(emptyAddress) as (keyof AddressFields)[]).every(field => !!address[field]?.trim());
+
 export const formatAddress = (address: AddressFields): string =>
   [address.houseNumber, address.street, address.city, address.state, address.postalCode, address.country]
     .filter(Boolean)

@@ -11,6 +11,30 @@ export const createRazorpayOrder = async (amount: number, currency: string, rece
   return response.data;
 };
 
+export interface RazorpayRefund {
+  id: string;
+  amount: number;
+  status: string;
+}
+
+/** Refunds already issued against a payment, so a retried refund never pays out twice. */
+export const listRazorpayRefunds = async (paymentId: string): Promise<RazorpayRefund[]> => {
+  const response = await axios.get(
+    `https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}/refunds`,
+    { auth: { username: config.razorpayKeyId, password: config.razorpayKeySecret }, timeout: 10000 }
+  );
+  return response.data.items ?? [];
+};
+
+export const createRazorpayRefund = async (paymentId: string, amount: number, orderId: string): Promise<RazorpayRefund> => {
+  const response = await axios.post(
+    `https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}/refund`,
+    { amount: Math.round(amount * 100), speed: 'normal', notes: { orderId } },
+    { auth: { username: config.razorpayKeyId, password: config.razorpayKeySecret }, timeout: 15000 }
+  );
+  return response.data;
+};
+
 // ---- Orders service (internal API, authenticated with INTERNAL_API_TOKEN) ----
 
 const internal = () => ({ headers: { 'x-internal-token': config.internalApiToken }, timeout: 5000 });
@@ -22,6 +46,7 @@ export interface OrderForPayment {
   status: string;
   paymentStatus: string;
   razorpayOrderId: string | null;
+  razorpayPaymentId?: string | null;
 }
 
 export const getOrder = async (orderId: string): Promise<OrderForPayment | null> => {
@@ -41,10 +66,12 @@ export const bindRazorpayOrder = async (orderId: string, razorpayOrderId: string
 export const updateOrderPaymentStatus = async (
   orderId: string,
   paymentStatus: string,
-  paymentId?: string
+  paymentId?: string,
+  refund?: { refundId: string; note?: string; actor?: string },
 ): Promise<void> => {
   await axios.patch(`${config.ordersServiceUrl}/${orderId}/payment-status`, {
     paymentStatus,
     ...(paymentId ? { paymentId } : {}),
+    ...(refund ?? {}),
   }, internal());
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Grid, Button, Dialog, DialogTitle, DialogContent, CardMedia, FormControl, InputLabel, Select, MenuItem, TextField } from '@mui/material';
-import { ShoppingBag as BagIcon } from '@mui/icons-material';
+import { Box, Typography, Button, Dialog, IconButton, FormControl, InputLabel, Select, MenuItem, TextField } from '@mui/material';
+import { Close as CloseIcon, ShoppingBag as BagIcon, Straighten as TapeIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from 'contexts/CartContext';
 import { OutfitCombination, ProductItem } from 'services/skinToneService';
@@ -9,9 +9,18 @@ import { Product } from 'types';
 import { getSizeOptions } from 'utils/productSizing';
 import { getProductImage, handleRecommendationImageError } from 'utils/imageHelpers';
 import { getTailoringFields, isValidMeasurement, MEASUREMENT_LIMITS, MeasurementField } from 'utils/measurements';
+import styles from './OutfitConfigDialog.module.css';
 
 const SHIRT_FIELDS = getTailoringFields('shirt');
-import { BRAND } from '../../../constants/colors';
+const EMPTY_MEASUREMENTS = { shoulder: '', chest: '', sleeve: '', neck: '' };
+const MEASUREMENT_INPUTS = [
+  { field: 'shoulder', label: 'Shoulder (cm)', placeholder: '20-70' },
+  { field: 'chest', label: 'Chest (cm)', placeholder: '50-180' },
+  { field: 'sleeve', label: 'Sleeve (cm)', placeholder: '20-100' },
+  { field: 'neck', label: 'Neck (cm)', placeholder: '20-70' },
+] as const;
+
+const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
 interface OutfitConfigDialogProps {
   outfit: OutfitCombination | null;
@@ -29,7 +38,8 @@ const OutfitConfigDialog: React.FC<OutfitConfigDialogProps> = ({ outfit, index, 
 
   const [sizes, setSizes] = useState<Record<string, string>>({});
   const [customizing, setCustomizing] = useState(false);
-  const [measurements, setMeasurements] = useState({ shoulder: '', chest: '', sleeve: '', neck: '' });
+  const [measurements, setMeasurements] = useState(EMPTY_MEASUREMENTS);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     if (open && outfit) {
@@ -37,7 +47,8 @@ const OutfitConfigDialog: React.FC<OutfitConfigDialogProps> = ({ outfit, index, 
         [outfit.topwear, outfit.pants, outfit.shoes].map(item => [item.id, ''])
       ));
       setCustomizing(false);
-      setMeasurements({ shoulder: '', chest: '', sleeve: '', neck: '' });
+      setMeasurements(EMPTY_MEASUREMENTS);
+      setAdding(false);
     }
   }, [open, outfit]);
 
@@ -48,160 +59,158 @@ const OutfitConfigDialog: React.FC<OutfitConfigDialogProps> = ({ outfit, index, 
     { item: outfit.pants, label: 'Trousers' },
     { item: outfit.shoes, label: 'Shoes' },
   ];
+  const total = outfitItems.reduce((sum, { item }) => sum + Number(item.price || 0), 0);
 
-  // The recommendation API doesn't return stock info (ProductItem has no
-  // inventory field), so the real product is looked up before adding to
-  // cart. Falls back to 1 only if that lookup fails.
-  const toCartProduct = (item: ProductItem, inventory = 1): Product => ({
+  const missingSize = outfitItems.some(({ item }) => {
+    if (item.id === outfit.topwear.id && customizing) return false;
+    return !sizes[item.id];
+  });
+  const invalidMeasurements = customizing
+    && SHIRT_FIELDS.some(field => !isValidMeasurement(field, measurements[field as keyof typeof measurements]));
+
+  // The recommendation API only returns a slim ProductItem, so the real
+  // product is looked up and added to the cart - the same object a product
+  // card would add. This stand-in is used only if that lookup fails.
+  const fallbackProduct = (item: ProductItem): Product => ({
     id: item.id,
     name: item.name,
-    description: `Premium ${item.category} from Lux Atelier`,
+    description: '',
     price: Number(item.price || 0),
     originalPrice: Number(item.compare_price || item.price || 0),
     imageUrl: getProductImage(item),
     category: item.category,
     brand: item.brand,
-    inventory,
+    inventory: 1,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
 
   const addCompleteOutfit = async () => {
-    if (outfitItems.some(({ item }) => {
-      if (item.id === outfit.topwear.id && customizing) return false;
-      return !sizes[item.id];
-    })) return;
-    if (customizing && SHIRT_FIELDS.some(field => !isValidMeasurement(field, measurements[field as keyof typeof measurements]))) return;
+    if (missingSize || invalidMeasurements || adding) return;
+    setAdding(true);
 
     const shirtSize = customizing
       ? `Custom(S:${measurements.shoulder} C:${measurements.chest} Sl:${measurements.sleeve} N:${measurements.neck})`
       : sizes[outfit.topwear.id];
 
-    const [topwearProduct, pantsProduct, shoesProduct] = await Promise.all(
-      [outfit.topwear, outfit.pants, outfit.shoes].map(item =>
-        productService.getById(item.id).catch(() => null)
-      )
-    );
+    try {
+      const products = await Promise.all(
+        outfitItems.map(({ item }) => productService.getById(item.id).catch(() => fallbackProduct(item)))
+      );
+      const selectedSizes = [shirtSize, sizes[outfit.pants.id], sizes[outfit.shoes.id]];
 
-    const addedShirt = addItem(toCartProduct(outfit.topwear, topwearProduct?.inventory), shirtSize, false);
-    const addedPants = addItem(toCartProduct(outfit.pants, pantsProduct?.inventory), sizes[outfit.pants.id], false);
-    const addedShoes = addItem(toCartProduct(outfit.shoes, shoesProduct?.inventory), sizes[outfit.shoes.id], false);
-
-    if (addedShirt && addedPants && addedShoes) {
-      onClose();
-      navigate('/cart');
+      // Stop at the first refusal (e.g. signed out) so the sign-in prompt shows once.
+      const addedAll = products.every((product, i) => addItem(product, selectedSizes[i], false));
+      if (addedAll) {
+        onClose();
+        navigate('/cart');
+      }
+    } finally {
+      setAdding(false);
     }
   };
 
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 600 }}>Configure Outfit {index + 1}</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Select a size for every item before adding the complete combination.
-        </Typography>
-        {outfitItems.map(({ item, label }) => (
-          <Box key={item.id} sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2.5 }}>
-            <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1, p: 0.5 }}>
-              <CardMedia
-                component="img"
-                image={getProductImage(item)}
-                alt={item.name}
-                onError={handleRecommendationImageError}
-                sx={{ width: 60, height: 60, borderRadius: 0.5, objectFit: 'cover', objectPosition: 'top' }}
-              />
-            </Box>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
-              <Typography variant="body2" noWrap sx={{ fontWeight: 500, color: '#111' }}>{item.name}</Typography>
-            </Box>
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>{label} size</InputLabel>
-              <Select
-                value={sizes[item.id] ?? ''}
-                label={`${label} size`}
-                onChange={event => setSizes({ ...sizes, [item.id]: event.target.value as string })}
-              >
-                {getSizeOptions(item).map(size => <MenuItem value={size} key={size}>{size}</MenuItem>)}
-              </Select>
-            </FormControl>
-          </Box>
-        ))}
+  const menuProps = { PaperProps: { className: styles.menuPaper } };
 
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={() => setCustomizing(!customizing)}
-          sx={{
-            mb: 3,
-            minWidth: 120,
-            height: 40,
-            color: customizing ? '#c62828 !important' : `${BRAND.GOLD} !important`,
-            border: customizing ? '1px solid #c62828 !important' : `1px solid ${BRAND.GOLD} !important`,
-            backgroundColor: '#fff !important',
-            '&:hover': {
-              backgroundColor: customizing ? '#fff5f5 !important' : 'rgba(200, 164, 110, 0.08) !important',
-              borderColor: customizing ? '#b71c1c !important' : `${BRAND.GOLD_DARK} !important`,
-            },
-          }}
-        >
-          {customizing ? 'Cancel' : 'Customize'}
-        </Button>
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      className={styles.root}
+      PaperProps={{ className: styles.paper, 'aria-labelledby': 'outfit-config-title' } as object}
+    >
+      <Box className={styles.header}>
+        <Box>
+          <Typography variant="overline" className={styles.eyebrow}>Look {String(index + 1).padStart(2, '0')}</Typography>
+          <Typography id="outfit-config-title" component="h2" className={styles.title}>Choose your sizes</Typography>
+        </Box>
+        <IconButton aria-label="Close" onClick={onClose} className={styles.close}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Box>
+
+      <Box className={styles.body}>
+        <Typography className={styles.intro}>
+          Select a size for every piece to add the complete look to your cart.
+        </Typography>
+
+        <Box component="ul" className={styles.items}>
+          {outfitItems.map(({ item, label }) => {
+            const isCustomShirt = customizing && item.id === outfit.topwear.id;
+            return (
+              <li key={item.id} className={styles.item}>
+                <Box className={styles.thumb}>
+                  <img src={getProductImage(item)} alt={item.name} onError={handleRecommendationImageError} />
+                </Box>
+                <Box className={styles.itemText}>
+                  <Typography className={styles.itemRole}>{label}</Typography>
+                  <Typography className={styles.itemName}>{item.name}</Typography>
+                  <Typography className={styles.itemPrice}>{inr(Number(item.price || 0))}</Typography>
+                </Box>
+                {isCustomShirt ? (
+                  <Typography className={styles.customTag}>Made to measure</Typography>
+                ) : (
+                  <FormControl size="small" className={styles.select}>
+                    <InputLabel>Size</InputLabel>
+                    <Select
+                      value={sizes[item.id] ?? ''}
+                      label="Size"
+                      onChange={event => setSizes({ ...sizes, [item.id]: event.target.value as string })}
+                      MenuProps={menuProps}
+                    >
+                      {getSizeOptions(item).map(size => <MenuItem value={size} key={size}>{size}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                )}
+              </li>
+            );
+          })}
+        </Box>
+
+        <button type="button" onClick={() => setCustomizing(!customizing)} className={styles.textBtn}>
+          <TapeIcon fontSize="inherit" />
+          {customizing ? 'Use standard shirt size' : 'Tailor the shirt to my measurements'}
+        </button>
 
         {customizing && (
-          <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(0,0,0,0.02)', borderRadius: 2, border: '1px solid #eee' }}>
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-              Enter your exact measurements (cm)
-            </Typography>
-            <Grid container spacing={2}>
-              {[
-                { field: 'shoulder', label: 'Shoulder (cm)', placeholder: '20-70' },
-                { field: 'chest', label: 'Chest (cm)', placeholder: '50-180' },
-                { field: 'sleeve', label: 'Sleeve (cm)', placeholder: '20-100' },
-                { field: 'neck', label: 'Neck (cm)', placeholder: '20-70' }
-              ].map(({ field, label, placeholder }) => (
-                <Grid size={{ xs: 6 }} key={field}>
-                  <TextField
-                    size="small"
-                    fullWidth
-                    type="number"
-                    inputProps={{ min: MEASUREMENT_LIMITS[field as MeasurementField].min, max: MEASUREMENT_LIMITS[field as MeasurementField].max, step: '0.01' }}
-                    label={label}
-                    placeholder={placeholder}
-                    value={measurements[field as keyof typeof measurements]}
-                    onChange={event => setMeasurements({ ...measurements, [field]: event.target.value })}
-                    sx={{ bgcolor: '#fff' }}
-                  />
-                </Grid>
+          <Box className={styles.measurements}>
+            <Typography className={styles.measureTitle}>Your measurements (cm)</Typography>
+            <Box className={styles.measureGrid}>
+              {MEASUREMENT_INPUTS.map(({ field, label, placeholder }) => (
+                <TextField
+                  key={field}
+                  size="small"
+                  fullWidth
+                  type="number"
+                  inputProps={{ min: MEASUREMENT_LIMITS[field as MeasurementField].min, max: MEASUREMENT_LIMITS[field as MeasurementField].max, step: '0.01' }}
+                  label={label}
+                  placeholder={placeholder}
+                  value={measurements[field]}
+                  onChange={event => setMeasurements({ ...measurements, [field]: event.target.value })}
+                  className={styles.field}
+                />
               ))}
-            </Grid>
+            </Box>
           </Box>
         )}
+      </Box>
 
+      <Box className={styles.footer}>
+        <Box>
+          <Typography className={styles.totalLabel}>Complete look</Typography>
+          <Typography className={styles.totalValue}>{inr(total)}</Typography>
+        </Box>
         <Button
-          fullWidth
-          variant="contained"
-          size="large"
           onClick={addCompleteOutfit}
-          disabled={
-            outfitItems.some(({ item }) => {
-              if (item.id === outfit.topwear.id && customizing) return false;
-              return !sizes[item.id];
-            }) ||
-            (customizing && SHIRT_FIELDS.some(field => !isValidMeasurement(field, measurements[field as keyof typeof measurements])))
-          }
+          disabled={missingSize || invalidMeasurements || adding}
           startIcon={<BagIcon />}
-          sx={{
-            background: BRAND.GOLD, color: '#111', fontWeight: 600, py: 1.5,
-            borderRadius: 2,
-            boxShadow: 'none',
-            '&:hover': { background: BRAND.GOLD_DARK, boxShadow: 'none' },
-            '&.Mui-disabled': { background: '#e0e0e0', color: '#9e9e9e' }
-          }}
+          className={styles.addBtn}
         >
-          Add to Cart
+          {adding ? 'Adding…' : 'Add look to cart'}
         </Button>
-      </DialogContent>
+      </Box>
     </Dialog>
   );
 };

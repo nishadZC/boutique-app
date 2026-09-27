@@ -17,7 +17,7 @@ export const getItemPrice = (item: PricedCartItem): number =>
 
 export const calculateCartTotals = (items: PricedCartItem[]): CartTotals => {
   const subtotal = items.reduce((sum, item) => sum + getItemPrice(item) * item.quantity, 0);
-  const shipping = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const shipping = subtotal === 0 || subtotal > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
 
   return { subtotal, shipping, tax, total: subtotal + shipping + tax };

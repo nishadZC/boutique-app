@@ -24,16 +24,6 @@ const startServer = async () => {
 
     const { ensureBootstrapAdmin } = require('./bootstrap');
     await ensureBootstrapAdmin(require('./database/connection').query);
-    
-    // Initialize the total users metric
-    const { boutiqueTotalUsers } = require('./metrics');
-    const { query } = require('./database/connection');
-    try {
-      const result = await query('SELECT count(*) FROM users');
-      boutiqueTotalUsers.set(parseInt(result.rows[0].count, 10));
-    } catch (e) {
-      console.error('Failed to initialize boutique_total_users metric:', e);
-    }
 
     app.listen(PORT, () => {
       console.log(`Auth service running on port ${PORT}`);

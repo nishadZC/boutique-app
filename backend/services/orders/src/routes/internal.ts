@@ -15,14 +15,14 @@ router.get('/orders/:id', async (req, res) => {
   if (guid.validate(req.params.id).error) return res.status(404).json({ success: false, error: 'Order not found' });
   try {
     const result = await query(
-      'SELECT id, user_id, total_amount, status, payment_status, razorpay_order_id FROM orders WHERE id = $1', [req.params.id]);
+      'SELECT id, user_id, total_amount, status, payment_status, razorpay_order_id, razorpay_payment_id FROM orders WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Order not found' });
     const o = result.rows[0];
     return res.json({
       success: true,
       data: {
         id: o.id, userId: o.user_id, totalAmount: Number(o.total_amount), status: o.status,
-        paymentStatus: o.payment_status, razorpayOrderId: o.razorpay_order_id,
+        paymentStatus: o.payment_status, razorpayOrderId: o.razorpay_order_id, razorpayPaymentId: o.razorpay_payment_id,
       },
     });
   } catch (err) {

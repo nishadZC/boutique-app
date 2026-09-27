@@ -9,7 +9,11 @@
     "start": "node dist/index.js",
     "test": "vitest run"
   },
-  "keywords": ["auth", "microservice", "boutique"],
+  "keywords": [
+    "auth",
+    "microservice",
+    "boutique"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -35,5 +39,10 @@
     "ts-node": "^10.9.1",
     "supertest": "^7.0.0",
     "vitest": "^2.1.8"
+  },
+  "overrides": {
+    "brace-expansion": "^5.0.9",
+    "ip-address": "^10.3.1",
+    "tar": "^7.5.21"
   }
 }

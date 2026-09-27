@@ -25,5 +25,10 @@
     "supertest": "^7.3.0",
     "typescript": "^5.2.2",
     "vitest": "^2.1.9"
+  },
+  "overrides": {
+    "brace-expansion": "^5.0.9",
+    "ip-address": "^10.3.1",
+    "tar": "^7.5.21"
   }
 }

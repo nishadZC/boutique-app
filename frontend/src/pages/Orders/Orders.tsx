@@ -3,7 +3,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import {
   Alert, Box, Breadcrumbs, Button, CircularProgress, Container, Link, Rating, Step, StepLabel, Stepper, Typography,
 } from '@mui/material';
-import { ReceiptLongOutlined, ShoppingBagOutlined, StarBorderRounded } from '@mui/icons-material';
+import { AssignmentReturnOutlined, CancelOutlined, ReceiptLongOutlined, ShoppingBagOutlined, StarBorderRounded } from '@mui/icons-material';
 import { useOrders } from '../../hooks/useOrders';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAuthModal } from '../../contexts/AuthModalContext';
@@ -14,6 +14,8 @@ import { OrderStatusBadge, PaymentStatusBadge } from '../../components/common/St
 import { ROUTES } from '../../constants/routes';
 import { orderDelivery } from '../../utils/delivery';
 import ReviewDialog from './ReviewDialog';
+import OrderRequestDialog, { RequestKind } from './OrderRequestDialog';
+import { REQUEST_TYPE_LABEL, RETURN_WINDOW_DAYS } from '../../constants/orderRequests';
 import styles from './Orders.module.css';
 
 const money = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
@@ -22,14 +24,65 @@ const date = (iso: string, withTime = false) => new Date(iso).toLocaleDateString
   : { day: 'numeric', month: 'long', year: 'numeric' });
 const address = (a: Order['shippingAddress']) => (typeof a === 'string' ? a : (a as { address?: string })?.address ?? '');
 
-/** What the customer needs to know about an order that has not been paid for. */
+const deliveredAt = (order: Order) => order.timeline?.find(t => t.status === 'delivered')?.at;
+
+/** Delivered, paid, inside the return window, and nothing already open or refunded. */
+const canRequestReturn = (order: Order) => {
+  if (order.status !== 'delivered' || order.paymentStatus !== 'paid') return false;
+  if (order.requests?.some(r => r.type !== 'cancel' && (r.status === 'pending' || r.status === 'refunded'))) return false;
+  const at = deliveredAt(order) ?? order.updatedAt;
+  return Date.now() <= new Date(at).getTime() + RETURN_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+};
+
+const canCancel = (order: Order) => order.status !== 'cancelled' && order.status !== 'delivered' && order.paymentStatus !== 'refunded';
+
+/** What the customer needs to know about an order that has not been paid for, or was cancelled. */
 function PaymentNotice({ order }: { order: Order }) {
-  if (order.status === 'cancelled') return <Alert severity="info" className={styles.notice}>{ORDER_STATUS.cancelled.customerText}{order.paymentStatus === 'refunded' ? ' Your payment has been refunded.' : ''}</Alert>;
+  if (order.status === 'cancelled') {
+    const cancel = order.requests?.find(r => r.type === 'cancel');
+    const refund = order.paymentStatus === 'refunded'
+      ? ' Your payment has been refunded; it usually reaches your account in 5–7 working days.'
+      : order.paymentStatus === 'paid' ? ` Your refund of ${money(order.totalAmount)} is being processed.` : '';
+    return (
+      <Alert severity={order.paymentStatus === 'refunded' ? 'success' : 'info'} className={styles.notice}>
+        {ORDER_STATUS.cancelled.customerText}{refund}{cancel ? ` Reason: ${cancel.reason}.` : ''}
+      </Alert>
+    );
+  }
   if (order.paymentStatus === 'failed') {
     return <Alert severity="error" className={styles.notice}>Payment failed, so this order was not placed and you were not charged. Items are still available to buy again.</Alert>;
   }
   if (order.paymentStatus === 'pending') {
     return <Alert severity="warning" className={styles.notice}>Awaiting payment. This order will be confirmed once payment succeeds; you have not been charged.</Alert>;
+  }
+  return null;
+}
+
+/** Progress of a return/refund request on a delivered order. */
+function RequestNotice({ order }: { order: Order }) {
+  const request = order.requests?.find(r => r.type !== 'cancel');
+  if (!request) {
+    return order.paymentStatus === 'refunded'
+      ? <Alert severity="success" className={styles.notice}>This order has been refunded.</Alert>
+      : null;
+  }
+  const kind = REQUEST_TYPE_LABEL[request.type].toLowerCase();
+  if (request.status === 'pending') {
+    return <Alert severity="info" className={styles.notice}>Your {kind} request ({request.reason}) was submitted on {date(request.createdAt)} and is being reviewed.</Alert>;
+  }
+  if (request.status === 'refunded') {
+    return (
+      <Alert severity="success" className={styles.notice}>
+        Your {kind} was approved and {money(order.totalAmount)} has been refunded; it usually reaches your account in 5–7 working days.
+      </Alert>
+    );
+  }
+  if (request.status === 'rejected') {
+    return (
+      <Alert severity="warning" className={styles.notice}>
+        Your {kind} request was not approved{request.resolutionNote ? `: ${request.resolutionNote}` : '.'}
+      </Alert>
+    );
   }
   return null;
 }
@@ -58,7 +111,8 @@ const Orders: React.FC = memo(() => {
   const { isAuthenticated } = useAuth();
   const { openLoginModal } = useAuthModal();
   const { showToast } = useToast();
-  const { orders, loading, error, handleDownloadInvoice, myRatings, recordRating } = useOrders();
+  const { orders, loading, error, handleDownloadInvoice, myRatings, recordRating, submitRequest } = useOrders();
+  const [requestTarget, setRequestTarget] = useState<{ order: Order; kind: RequestKind } | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{ orderId: string; productId: string; productName: string; imageUrl: string } | null>(null);
 
   if (!isAuthenticated) {
@@ -108,7 +162,9 @@ const Orders: React.FC = memo(() => {
                 </Box>
               </Box>
 
-              {paid && order.status !== 'cancelled' ? <Tracking order={order} /> : <PaymentNotice order={order} />}
+              {paid && order.status !== 'cancelled'
+                ? <><Tracking order={order} /><RequestNotice order={order} /></>
+                : <PaymentNotice order={order} />}
 
               <Box className={styles.items}>
                 {order.items.map(item => {
@@ -142,16 +198,35 @@ const Orders: React.FC = memo(() => {
 
               <Box className={styles.cardFooter}>
                 <Typography className={styles.shipTo}>{address(order.shippingAddress) && <>Ship to: {address(order.shippingAddress)}</>}</Typography>
-                {hasInvoice(order.paymentStatus) && (
-                  <Button variant="outlined" size="small" startIcon={<ReceiptLongOutlined />} onClick={() => handleDownloadInvoice(order)}>
-                    Download invoice
-                  </Button>
-                )}
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {canCancel(order) && (
+                    <Button variant="text" size="small" color="error" startIcon={<CancelOutlined />} onClick={() => setRequestTarget({ order, kind: 'cancel' })}>
+                      Cancel order
+                    </Button>
+                  )}
+                  {canRequestReturn(order) && (
+                    <Button variant="outlined" size="small" startIcon={<AssignmentReturnOutlined />} onClick={() => setRequestTarget({ order, kind: 'return' })}>
+                      Return or refund
+                    </Button>
+                  )}
+                  {hasInvoice(order.paymentStatus) && (
+                    <Button variant="outlined" size="small" startIcon={<ReceiptLongOutlined />} onClick={() => handleDownloadInvoice(order)}>
+                      Download invoice
+                    </Button>
+                  )}
+                </Box>
               </Box>
             </Box>
           );
         })}
       </Container>
+
+      <OrderRequestDialog
+        order={requestTarget?.order ?? null}
+        kind={requestTarget?.kind ?? 'cancel'}
+        onClose={() => setRequestTarget(null)}
+        onSubmit={(request, reason, details) => submitRequest(requestTarget!.order, request, reason, details)}
+      />
 
       <ReviewDialog
         target={reviewTarget}

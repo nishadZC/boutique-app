@@ -10,6 +10,7 @@ import { getPhoneError, normalizePhone } from '../utils/validation';
 
 interface CheckoutOptions {
   address: string;
+  addressComplete: boolean;
   phone: string;
   setAddressError: (message: string) => void;
   onAddressSaved: () => void;
@@ -22,7 +23,7 @@ interface RazorpayResponse {
   razorpay_signature: string;
 }
 
-export const useCheckout = ({ address, phone, setAddressError, onAddressSaved, checkoutItems }: CheckoutOptions) => {
+export const useCheckout = ({ address, addressComplete, phone, setAddressError, onAddressSaved, checkoutItems }: CheckoutOptions) => {
   const { removeItems } = useCart();
   const { user, updateProfile } = useAuth();
   const { showToast } = useToast();
@@ -31,9 +32,9 @@ export const useCheckout = ({ address, phone, setAddressError, onAddressSaved, c
   const { total: finalTotal } = calculateCartTotals(checkoutItems);
 
   const handleCheckout = async (): Promise<void> => {
-    if (!address.trim()) {
-      setAddressError('Please enter a shipping address before proceeding to checkout.');
-      showToast('Please enter a shipping address before checkout.', 'warning');
+    if (!addressComplete) {
+      setAddressError('Please fill in all address fields before proceeding to checkout.');
+      showToast('Please complete all address fields before checkout.', 'warning');
       return;
     }
     const phoneError = getPhoneError(phone);

@@ -57,10 +57,27 @@ export const CSS_COLORS: Record<string, string> = {
   'Yellow': '#FFEB3B',
   'Gold': '#FFD700',
   'Turquoise Blue': '#00CED1',
+  'Off White': '#F8F4EC',
+  'Light Tan': '#E1C699',
+  'Orange': '#E8772E',
+  'Rust': '#B7410E',
+  'Bronze': '#A97142',
+  'Red': '#C62828',
+  'Maroon': '#6D1A2A',
+  'Mauve': '#9E7A8F',
+  'Royal Blue': '#2F4FBF',
+  'Deep Blue': '#1A2F6B',
+  'Deep Teal': '#0B4F55',
+  'Forest Green': '#228B22',
+  'Lime Green': '#7CB342',
+  'Dark Grey': '#4B4F56',
+  'Medium Brown': '#8A5A35',
+  'Dark Brown': '#5C3A21',
+  'Deep Brown': '#4A2C1A',
 };
 
 export const getHex = (name: string): string => CSS_COLORS[name] || '#888';
 
 export const LIGHT_COLORS = new Set([
-  'White', 'Cream', 'Beige', 'Peach', 'Lavender', 'Light Blue', 'Pink', 'Mustard', 'Ivory',
+  'White', 'Cream', 'Beige', 'Peach', 'Lavender', 'Light Blue', 'Pink', 'Mustard', 'Ivory', 'Off White', 'Light Tan',
 ]);

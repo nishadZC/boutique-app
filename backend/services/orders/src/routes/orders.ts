@@ -2,11 +2,11 @@
 import express from 'express';
 import Joi from 'joi';
 import { getPool, query } from '../database/connection';
-import { boutiqueTotalOrders } from '../metrics';
 import { requireAdmin, requireInternal, requireUser } from '../middleware/auth';
 import { getProducts } from '../clients/productClient';
 import {
-  OrderError, changeOrderStatus, changePaymentStatus, formatOrder, getOrderItems, recordEvent, withProducts,
+  OrderError, changeOrderStatus, changePaymentStatus, customerCancel, formatOrder, getOrderItems, getRequests, recordEvent,
+  requestReturn, withProducts,
 } from '../services/orderService';
 import { PAYMENT_STATUSES } from '../lifecycle';
 import { priceOrder } from '../pricing';
@@ -77,7 +77,6 @@ router.post('/', requireUser, async (req, res) => {
     }
     await recordEvent(client, order.id, 'created', null, 'pending', req.auth!.email ?? req.auth!.userId);
     await client.query('COMMIT');
-    boutiqueTotalOrders.inc(1);
 
     const items = (await getOrderItems([order.id])).get(order.id) ?? [];
     return res.status(201).json({ success: true, data: { ...formatOrder(order), items } });
@@ -93,7 +92,7 @@ router.get('/my-orders', requireUser, async (req, res) => {
   try {
     const result = await query('SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 200', [req.auth!.userId]);
     const orderIds = result.rows.map((o: any) => o.id);
-    const itemsByOrder = await getOrderItems(orderIds);
+    const [itemsByOrder, requestsByOrder] = await Promise.all([getOrderItems(orderIds), getRequests(orderIds)]);
     const events = orderIds.length
       ? await query(
         `SELECT order_id, to_value, created_at FROM order_events
@@ -105,11 +104,48 @@ router.get('/my-orders', requireUser, async (req, res) => {
       const timeline = events.rows
         .filter((e: any) => e.order_id === row.id)
         .map((e: any) => ({ status: e.to_value === 'processing' ? 'confirmed' : e.to_value, at: e.created_at }));
-      return { ...order, items: await withProducts(itemsByOrder.get(row.id) ?? []), timeline };
+      const requests = requestsByOrder.get(row.id) ?? [];
+      return { ...order, items: await withProducts(itemsByOrder.get(row.id) ?? []), timeline, requests };
     }));
     return res.json({ success: true, data: orders });
   } catch (err) {
     return sendError(res, err, 'Failed to get orders');
+  }
+});
+
+const requestSchema = Joi.object({
+  reason: Joi.string().trim().min(3).max(100).required(),
+  details: Joi.string().trim().max(1000).allow(''),
+});
+const returnSchema = requestSchema.keys({ type: Joi.string().valid('return', 'refund').required() });
+
+// The customer cancels their own order before it is delivered.
+router.post('/:id/cancel', requireUser, async (req, res) => {
+  if (Joi.string().guid().validate(req.params.id).error) return res.status(404).json({ success: false, error: 'Order not found' });
+  const { value, error } = requestSchema.validate(req.body, { stripUnknown: true });
+  if (error) return res.status(400).json({ success: false, error: 'Tell us why you are cancelling' });
+  try {
+    const order = await customerCancel(req.params.id, req.auth!.userId, req.auth!.email ?? req.auth!.userId, value.reason, value.details ?? '');
+    return res.json({
+      success: true,
+      data: order,
+      message: order.paymentStatus === 'paid' ? 'Order cancelled. Your refund will be processed shortly.' : 'Order cancelled.',
+    });
+  } catch (err) {
+    return sendError(res, err, 'Failed to cancel order');
+  }
+});
+
+// The customer asks to return, or be refunded for, a delivered order.
+router.post('/:id/return', requireUser, async (req, res) => {
+  if (Joi.string().guid().validate(req.params.id).error) return res.status(404).json({ success: false, error: 'Order not found' });
+  const { value, error } = returnSchema.validate(req.body, { stripUnknown: true });
+  if (error) return res.status(400).json({ success: false, error: 'Choose return or refund and tell us why' });
+  try {
+    const order = await requestReturn(req.params.id, req.auth!.userId, req.auth!.email ?? req.auth!.userId, value.type, value.reason, value.details ?? '');
+    return res.status(201).json({ success: true, data: order, message: 'Request submitted. We will review it shortly.' });
+  } catch (err) {
+    return sendError(res, err, 'Failed to submit request');
   }
 });
 
@@ -129,10 +165,15 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
 router.patch('/:id/payment-status', requireInternal, async (req, res) => {
   const { error } = Joi.string().guid().validate(req.params.id);
   if (error) return res.status(404).json({ success: false, error: 'Order not found' });
-  const { paymentStatus, paymentId } = req.body ?? {};
+  const { paymentStatus, paymentId, refundId, note, actor } = req.body ?? {};
   if (!PAYMENT_STATUSES.includes(paymentStatus)) return res.status(400).json({ success: false, error: 'Invalid payment status' });
   try {
-    const order = await changePaymentStatus(req.params.id, paymentStatus, 'payment-service', { paymentId: typeof paymentId === 'string' ? paymentId : undefined });
+    const text = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : undefined);
+    const order = await changePaymentStatus(req.params.id, paymentStatus, text(actor, 255) ?? 'payment-service', {
+      paymentId: text(paymentId, 100),
+      refundId: text(refundId, 100),
+      note: text(note, 500),
+    });
     return res.json({ success: true, data: order });
   } catch (err) {
     return sendError(res, err, 'Failed to update payment status');
