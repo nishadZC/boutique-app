@@ -7,9 +7,9 @@ export const SHOP_CATEGORIES: readonly { label: string; category: string; tileIm
   { label: 'Suits',    category: 'Suits & Waistcoats', tileImage: '/images/categories/suits.jpg' },
   { label: 'Blazers',  category: 'Blazers' },
   { label: 'Coats',    category: 'Coats & Overcoats', tileImage: '/images/categories/coats.jpg' },
-  { label: 'Shirts',   category: 'Formal Shirts' },
-  { label: 'Trousers', category: 'Trousers & Pants' },
-  { label: 'Shoes',    category: 'Formal Shoes' },
+  { label: 'Shirts',   category: 'Formal Shirts', tileImage: '/images/categories/shirts.jpg' },
+  { label: 'Trousers', category: 'Trousers & Pants', tileImage: '/images/categories/trousers.jpg' },
+  { label: 'Shoes',    category: 'Formal Shoes', tileImage: '/images/categories/shoes.jpg' },
 ];
 
 export const productsUrl = (params: { category?: string; q?: string; sort?: string; handcrafted?: boolean } = {}): string => {

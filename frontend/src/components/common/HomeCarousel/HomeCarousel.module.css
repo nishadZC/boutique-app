@@ -24,6 +24,19 @@
   z-index: 1;
 }
 
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  pointer-events: none;
+}
+.videoReady { opacity: 1; }
+
 .slideOverlay {
   position: absolute;
   inset: 0;
@@ -120,20 +133,15 @@
   position: relative;
   overflow: hidden;
 }
-.counterLine::after {
-  content: '';
+.counterFill {
   position: absolute;
   inset: 0;
   background: var(--gold);
   transform-origin: left;
-  animation: progress 6s linear forwards;
+  transform: scaleX(0);
+  will-change: transform;
 }
-.carousel:hover .counterLine::after { animation-play-state: paused; }
-@keyframes progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
-.arrows { display: flex; gap: 6px; }
-.arrow { color: #fff !important; }
-.arrow:hover { background: rgba(255,255,255,0.12) !important; }
 
 @media (max-width: 599px) {
   .slideOverlay { background: linear-gradient(180deg, rgba(10,10,10,0.35) 0%, rgba(10,10,10,0.85) 100%); }
@@ -143,5 +151,5 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .slide { transition: opacity 0.3s ease; transform: none; }
-  .counterLine::after { animation: none; transform: scaleX(1); }
+  .video { transition: none; }
 }

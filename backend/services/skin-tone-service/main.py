@@ -7,15 +7,16 @@ Endpoint: POST /detect-skin-tone
   - Returns: { skinTone: { hex, name }, recommendedColors: [...] }
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import CONTENT_TYPE_LATEST
 from pydantic import BaseModel
 from typing import List
 import io
 
 from skin_tone_analyzer import analyze_skin_tone_from_bytes
 from color_rules import get_color_recommendations
+from metrics import metrics_middleware, metrics_response
 
 app = FastAPI(
     title="Skin Tone Detection Service",
@@ -23,7 +24,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
-Instrumentator().instrument(app).expose(app)
+app.middleware("http")(metrics_middleware)
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(content=metrics_response(), media_type=CONTENT_TYPE_LATEST)
+
 
 app.add_middleware(
     CORSMiddleware,

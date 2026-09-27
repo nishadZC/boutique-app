@@ -15,9 +15,9 @@ describe('calculateCartTotals', () => {
   it('returns zeroed totals for an empty cart', () => {
     expect(calculateCartTotals([])).toEqual({
       subtotal: 0,
-      shipping: 15,
+      shipping: 0,
       tax: 0,
-      total: 15,
+      total: 0,
     });
   });
 

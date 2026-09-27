@@ -43,9 +43,33 @@ export function useOrders() {
     }
   }, [user, showToast]);
 
+  const reloadOrders = useCallback(async () => {
+    setOrders(await orderService.getUserOrders());
+  }, []);
+
+  /** Cancel before delivery, or ask for a return/refund after it. Returns true on success. */
+  const submitRequest = useCallback(async (
+    order: Order,
+    request: { kind: 'cancel' } | { kind: 'return'; type: 'return' | 'refund' },
+    reason: string,
+    details: string,
+  ): Promise<boolean> => {
+    try {
+      const message = request.kind === 'cancel'
+        ? await orderService.cancelOrder(order.id, reason, details)
+        : await orderService.requestReturn(order.id, request.type, reason, details);
+      showToast(message, 'success');
+      await reloadOrders().catch(() => undefined);
+      return true;
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Could not submit your request. Please try again.', 'error');
+      return false;
+    }
+  }, [reloadOrders, showToast]);
+
   const recordRating = useCallback((orderId: string, productId: string, rating: number) => {
     setMyRatings(prev => ({ ...prev, [orderId]: { ...(prev[orderId] ?? {}), [productId]: rating } }));
   }, []);
 
-  return { user, orders, loading, error, navigate, handleDownloadInvoice, myRatings, recordRating };
+  return { user, orders, loading, error, navigate, handleDownloadInvoice, myRatings, recordRating, submitRequest };
 }

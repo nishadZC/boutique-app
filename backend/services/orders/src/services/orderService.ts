@@ -3,9 +3,8 @@
 // (e.g. a payment callback racing an admin action) cannot double-apply.
 import type { PoolClient } from 'pg';
 import { getPool, query } from '../database/connection';
-import { canChangePayment, canTransition, label } from '../lifecycle';
+import { canChangePayment, canCustomerCancel, canRequestReturn, canTransition, label } from '../lifecycle';
 import { commitStock, getProducts } from '../clients/productClient';
-import { boutiqueTotalRevenue } from '../metrics';
 
 export class OrderError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -44,6 +43,35 @@ export function formatOrder(row: any) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+export function formatRequest(row: any) {
+  return {
+    id: row.id,
+    type: row.type,
+    reason: row.reason,
+    details: row.details ?? '',
+    status: row.status,
+    resolutionNote: row.resolution_note ?? '',
+    refundId: row.refund_id,
+    resolvedBy: row.resolved_by,
+    resolvedAt: row.resolved_at,
+    createdAt: row.created_at,
+  };
+}
+
+/** Cancellation/return requests per order, newest first. */
+export async function getRequests(orderIds: string[]) {
+  const byOrder = new Map<string, ReturnType<typeof formatRequest>[]>();
+  if (orderIds.length === 0) return byOrder;
+  const result = await query(
+    'SELECT * FROM order_requests WHERE order_id = ANY($1::uuid[]) ORDER BY created_at DESC', [orderIds]);
+  for (const r of result.rows) {
+    const list = byOrder.get(r.order_id) ?? [];
+    list.push(formatRequest(r));
+    byOrder.set(r.order_id, list);
+  }
+  return byOrder;
 }
 
 export async function recordEvent(
@@ -130,7 +158,9 @@ async function syncStock(orderId: string, direction: 'sale' | 'restock') {
   }
 }
 
-export async function changePaymentStatus(orderId: string, to: string, actor: string, opts: { paymentId?: string; note?: string } = {}) {
+export async function changePaymentStatus(
+  orderId: string, to: string, actor: string, opts: { paymentId?: string; refundId?: string; note?: string } = {},
+) {
   const outcome = await withLockedOrder(orderId, async (client, order) => {
     const from = order.payment_status;
     if (from === to) return { order, changed: false };
@@ -149,7 +179,14 @@ export async function changePaymentStatus(orderId: string, to: string, actor: st
     }
     params.push(orderId);
     const updated = await client.query(`UPDATE orders SET ${updates.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
-    await recordEvent(client, orderId, 'payment_status', from, to, actor, opts.note ?? '');
+    await recordEvent(client, orderId, 'payment_status', from, to, actor, opts.note ?? (opts.refundId ? `Razorpay refund ${opts.refundId}` : ''));
+    if (to === 'refunded') {
+      // A refund settles whatever the customer asked for (cancellation or return).
+      await client.query(
+        `UPDATE order_requests SET status = 'refunded', refund_id = $1, resolution_note = $2, resolved_by = $3, resolved_at = CURRENT_TIMESTAMP
+         WHERE order_id = $4 AND status = 'pending'`,
+        [opts.refundId ?? null, opts.note ?? '', actor, orderId]);
+    }
     if (updated.rows[0].status !== order.status) {
       await recordEvent(client, orderId, 'status', order.status, updated.rows[0].status, actor);
     }
@@ -157,8 +194,6 @@ export async function changePaymentStatus(orderId: string, to: string, actor: st
   });
 
   if (outcome.changed) {
-    if (to === 'paid') boutiqueTotalRevenue.inc(Number(outcome.order.total_amount));
-    if (to === 'refunded') boutiqueTotalRevenue.dec(Number(outcome.order.total_amount));
     if (to === 'paid' && !outcome.order.stock_committed) await syncStock(orderId, 'sale');
     if (to === 'refunded' && outcome.order.stock_committed) await syncStock(orderId, 'restock');
   }
@@ -183,4 +218,67 @@ export async function changeOrderStatus(orderId: string, to: string, actor: stri
     refundRequired: to === 'cancelled' && order.paymentStatus === 'paid',
     message: `Order marked ${label(to)}`,
   };
+}
+
+/** The customer cancels their own order before delivery; a paid order then waits for an admin refund. */
+export async function customerCancel(orderId: string, userId: string, actor: string, reason: string, details: string) {
+  const outcome = await withLockedOrder(orderId, async (client, order) => {
+    if (order.user_id !== userId) throw new OrderError(404, 'Order not found');
+    const check = canCustomerCancel(order.status);
+    if (!check.ok) throw new OrderError(409, check.reason);
+    const updated = await client.query(
+      "UPDATE orders SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *", [orderId]);
+    const needsRefund = order.payment_status === 'paid';
+    await client.query(
+      'INSERT INTO order_requests (order_id, type, reason, details, status, resolved_at) VALUES ($1, $2, $3, $4, $5, $6)',
+      [orderId, 'cancel', reason, details || null, needsRefund ? 'pending' : 'closed', needsRefund ? null : new Date()]);
+    await recordEvent(client, orderId, 'status', order.status, 'cancelled', actor, `Cancelled by customer: ${reason}`);
+    return updated.rows[0];
+  });
+
+  if (outcome.stock_committed) await syncStock(orderId, 'restock');
+  return formatOrder((await query('SELECT * FROM orders WHERE id = $1', [orderId])).rows[0]);
+}
+
+/** The customer asks to return (or be refunded for) a delivered order; an admin approves or rejects it. */
+export async function requestReturn(
+  orderId: string, userId: string, actor: string, type: 'return' | 'refund', reason: string, details: string,
+) {
+  await withLockedOrder(orderId, async (client, order) => {
+    if (order.user_id !== userId) throw new OrderError(404, 'Order not found');
+    const delivered = await client.query(
+      `SELECT created_at FROM order_events WHERE order_id = $1 AND type = 'status' AND to_value = 'delivered'
+       ORDER BY created_at DESC LIMIT 1`, [orderId]);
+    const deliveredAt = delivered.rows[0]?.created_at ?? order.updated_at;
+    const check = canRequestReturn(order.status, order.payment_status, deliveredAt ? new Date(deliveredAt) : null);
+    if (!check.ok) throw new OrderError(409, check.reason);
+    const open = await client.query("SELECT 1 FROM order_requests WHERE order_id = $1 AND status = 'pending'", [orderId]);
+    if (open.rows.length) throw new OrderError(409, 'A request for this order is already being reviewed');
+    await client.query(
+      'INSERT INTO order_requests (order_id, type, reason, details) VALUES ($1, $2, $3, $4)',
+      [orderId, type, reason, details || null]);
+    await recordEvent(client, orderId, `${type}_requested`, null, null, actor, reason);
+  });
+  return getOrderWithRequests(orderId);
+}
+
+/** An admin turns down a pending return/refund request. Cancellations are refunded, not rejected. */
+export async function rejectRequest(orderId: string, requestId: string, actor: string, note: string) {
+  await withLockedOrder(orderId, async (client) => {
+    const found = await client.query(
+      "SELECT * FROM order_requests WHERE id = $1 AND order_id = $2 AND status = 'pending'", [requestId, orderId]);
+    const request = found.rows[0];
+    if (!request) throw new OrderError(404, 'No pending request to reject');
+    if (request.type === 'cancel') throw new OrderError(409, 'The order is already cancelled; refund the customer instead');
+    await client.query(
+      `UPDATE order_requests SET status = 'rejected', resolution_note = $1, resolved_by = $2, resolved_at = CURRENT_TIMESTAMP
+       WHERE id = $3`, [note, actor, requestId]);
+    await recordEvent(client, orderId, 'request_rejected', null, request.type, actor, note);
+  });
+  return getOrderWithRequests(orderId);
+}
+
+async function getOrderWithRequests(orderId: string) {
+  const order = formatOrder((await query('SELECT * FROM orders WHERE id = $1', [orderId])).rows[0]);
+  return { ...order, requests: (await getRequests([orderId])).get(orderId) ?? [] };
 }

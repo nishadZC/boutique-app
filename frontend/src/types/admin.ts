@@ -1,4 +1,4 @@
-import { OrderStatus, PaymentStatus } from './index';
+import { OrderRequest, OrderRequestType, OrderStatus, PaymentStatus } from './index';
 
 export interface Pagination { page: number; limit: number; total: number; totalPages: number }
 
@@ -10,6 +10,8 @@ export interface AdminOrderSummary {
   totalAmount: number;
   itemCount: number;
   nextStatus: OrderStatus | null;
+  /** Type of a cancellation/return still waiting for an admin, if any. */
+  openRequest: OrderRequestType | null;
   paidAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -37,6 +39,7 @@ export interface AdminOrderDetail extends Omit<AdminOrderSummary, 'itemCount'> {
     product: { id: string; name: string; imageUrl: string; category: string; brand: string };
   }[];
   events: AdminOrderEvent[];
+  requests: OrderRequest[];
 }
 
 export interface Kpis {
@@ -50,6 +53,8 @@ export interface Kpis {
   averageOrderValue: number;
   conversionRate: number;
   failedPayments: number;
+  /** Cancellations and returns waiting for an admin to refund or reject. */
+  pendingRefundRequests: number;
   payingCustomers: number;
   pipeline: Record<'awaitingPayment' | 'confirmed' | 'packed' | 'shipped' | 'outForDelivery' | 'delivered' | 'cancelled', number>;
   revenueByDay: { date: string; revenue: number; orders: number }[];

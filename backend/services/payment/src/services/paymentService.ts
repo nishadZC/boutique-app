@@ -1,7 +1,9 @@
 import crypto from 'crypto';
-import { bindRazorpayOrder, createRazorpayOrder, getOrder, updateOrderPaymentStatus } from '../clients/paymentClient';
+import {
+  bindRazorpayOrder, createRazorpayOrder, createRazorpayRefund, getOrder, listRazorpayRefunds, updateOrderPaymentStatus,
+} from '../clients/paymentClient';
 import { config } from '../config';
-import { paymentOrdersCreated, paymentStatusUpdates, paymentsVerified } from '../metrics';
+import { paymentOrdersCreated, paymentStatusUpdates, paymentsRefunded, paymentsVerified } from '../metrics';
 
 export class PaymentError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -71,4 +73,31 @@ export const markPaymentFailed = async (orderId: string, userId: string): Promis
   if (!['pending', 'failed'].includes(order.paymentStatus)) return;
   await updateOrderPaymentStatus(orderId, 'failed');
   paymentStatusUpdates.inc({ status: 'failed' });
+};
+
+/**
+ * Refunds an order's full amount through Razorpay (an admin approving a
+ * cancellation or return), then marks it refunded. A refund already issued
+ * for the payment is reused, so retrying after a failure never pays out twice.
+ */
+export const refundOrder = async (
+  orderId: string,
+  actor: string,
+  note = '',
+): Promise<{ orderId: string; refundId: string; amount: number }> => {
+  const order = await getOrder(orderId);
+  if (!order) throw new PaymentError(404, 'Order not found');
+  if (order.paymentStatus === 'refunded') throw new PaymentError(409, 'This order has already been refunded');
+  if (order.paymentStatus !== 'paid') throw new PaymentError(409, 'Only paid orders can be refunded');
+  if (!order.razorpayPaymentId) throw new PaymentError(409, 'No Razorpay payment is recorded for this order; record the refund manually');
+
+  const previous = await listRazorpayRefunds(order.razorpayPaymentId);
+  const alreadyRefunded = previous.filter(r => r.status !== 'failed').reduce((sum, r) => sum + r.amount, 0);
+  const refund = alreadyRefunded >= Math.round(order.totalAmount * 100)
+    ? previous.find(r => r.status !== 'failed')!
+    : await createRazorpayRefund(order.razorpayPaymentId, order.totalAmount, order.id);
+
+  await updateOrderPaymentStatus(orderId, 'refunded', undefined, { refundId: refund.id, note: note || `Razorpay refund ${refund.id}`, actor });
+  paymentsRefunded.inc();
+  return { orderId, refundId: refund.id, amount: order.totalAmount };
 };

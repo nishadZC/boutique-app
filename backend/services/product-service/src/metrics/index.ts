@@ -8,7 +8,6 @@ export const httpRequestDuration = new Histogram({
   name: 'http_request_duration_seconds',
   help: 'Duration of HTTP requests in seconds',
   labelNames: ['method', 'route', 'status_code', 'service_name'],
-  buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
   registers: [register],
 });
 
@@ -22,7 +21,7 @@ export const httpRequestTotal = new Counter({
 export const httpRequestsInProgress = new Gauge({
   name: 'http_requests_in_progress',
   help: 'Number of HTTP requests in progress',
-  labelNames: ['method', 'route', 'service_name'],
+  labelNames: ['method', 'service_name'],
   registers: [register],
 });
 
@@ -77,32 +76,38 @@ export interface MetricsOptions {
   serviceVersion?: string;
 }
 
-export function metricsMiddleware(req: any, res: any, next: any) {
-  const start = Date.now();
-  const route = req.route?.path || req.path || 'unknown';
+// Health checks and the scrape itself would only add noise to the RED metrics.
+const UNINSTRUMENTED_PATHS = new Set(['/metrics', '/health']);
+
+// The matched route template (e.g. "/admin/orders/:id") keeps label cardinality bounded;
+// requests that matched no route are grouped together rather than labelled by path.
+const routeLabel = (req: any): string => (req.route ? `${req.baseUrl}${String(req.route.path)}` : 'unmatched');
+
+export const metricsMiddleware = (req: any, res: any, next: any): void => {
+  if (UNINSTRUMENTED_PATHS.has(req.path)) return next();
+
   const serviceName = req.app.get('serviceName') || 'unknown';
+  const inProgressLabels = { method: req.method, service_name: serviceName };
+  const endTimer = httpRequestDuration.startTimer();
+  httpRequestsInProgress.inc(inProgressLabels);
 
-  httpRequestsInProgress.inc({ method: req.method, route, service_name: serviceName }, 1);
-
-  res.on('finish', () => {
-    const duration = (Date.now() - start) / 1000;
-    const statusCode = res.statusCode.toString();
-
-    httpRequestDuration.observe(
-      { method: req.method, route, status_code: statusCode, service_name: serviceName },
-      duration
-    );
-
-    httpRequestTotal.inc(
-      { method: req.method, route, status_code: statusCode, service_name: serviceName },
-      1
-    );
-
-    httpRequestsInProgress.dec({ method: req.method, route, service_name: serviceName }, 1);
-  });
+  // 'close' without 'finish' means the client went away; still release the in-progress slot.
+  let done = false;
+  const complete = (finished: boolean) => {
+    if (done) return;
+    done = true;
+    httpRequestsInProgress.dec(inProgressLabels);
+    if (!finished) return;
+    // Resolved after routing so the label is the route template, not the raw URL.
+    const labels = { method: req.method, route: routeLabel(req), status_code: String(res.statusCode), service_name: serviceName };
+    endTimer(labels);
+    httpRequestTotal.inc(labels);
+  };
+  res.once('finish', () => complete(true));
+  res.once('close', () => complete(false));
 
   next();
-}
+};
 
 export function setupMetrics(app: any, options: MetricsOptions) {
   const { serviceName, serviceVersion = '1.0.0' } = options;

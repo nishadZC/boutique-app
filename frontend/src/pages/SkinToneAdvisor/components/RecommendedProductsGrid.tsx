@@ -37,13 +37,14 @@ const RecommendedProductsGrid: React.FC<RecommendedProductsGridProps> = ({ items
       {products === null
         ? items.map(item => (
           <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={item.id}>
-            <Skeleton variant="rounded" height={320} />
+            <Skeleton variant="rectangular" sx={{ aspectRatio: '4 / 5', height: 'auto', bgcolor: '#1f1d1b' }} />
           </Grid>
         ))
         : products.map(product => (
           <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={product.id}>
             <ProductCard
               product={product}
+              tone="dark"
               onAddToCart={(p, size) => addItem(p, size)}
               onToggleWishlist={toggleWishlist}
               isInWishlist={isInWishlist(product.id)}

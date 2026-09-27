@@ -11,6 +11,7 @@ import { ORDER_STATUS, PAYMENT_STATUS, TRACKING_STEPS } from '../../../constants
 import { useToast } from '../../../contexts/ToastContext';
 import { ROUTES } from '../../../constants/routes';
 import { orderDelivery } from '../../../utils/delivery';
+import { REQUEST_STATUS_LABEL, REQUEST_TYPE_LABEL } from '../../../constants/orderRequests';
 import { OrderStatus, PaymentStatus } from '../../../types';
 import { customerName, formatAddress, formatCurrency, formatDateTime, shortId } from '../format';
 import styles from '../admin.module.css';
@@ -24,6 +25,9 @@ function describeEvent(e: Detail['events'][number]) {
     case 'payment_status': return `Payment: ${PAYMENT_STATUS[e.fromValue as PaymentStatus]?.label ?? e.fromValue} → ${PAYMENT_STATUS[e.toValue as PaymentStatus]?.label ?? e.toValue}`;
     case 'stock_shortage': return 'Stock shortage when the order was paid';
     case 'stock_sync_failed': return 'Stock could not be updated automatically';
+    case 'return_requested': return 'Customer requested a return';
+    case 'refund_requested': return 'Customer requested a refund';
+    case 'request_rejected': return `${REQUEST_TYPE_LABEL[e.toValue as keyof typeof REQUEST_TYPE_LABEL] ?? 'Request'} request rejected`;
     default: return e.type;
   }
 }
@@ -36,8 +40,9 @@ const AdminOrderDetail = memo(function AdminOrderDetail() {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
-  const [dialog, setDialog] = useState<'cancel' | 'refund' | null>(null);
+  const [dialog, setDialog] = useState<'cancel' | 'refund' | 'razorpayRefund' | 'reject' | null>(null);
   const [refundNote, setRefundNote] = useState('');
+  const [rejectNote, setRejectNote] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -57,7 +62,7 @@ const AdminOrderDetail = memo(function AdminOrderDetail() {
     try {
       const result = await adminService.updateOrderStatus(id, status, note.trim() || undefined);
       showToast(result.message, 'success');
-      if (result.refundRequired) showToast('This order was paid: refund it in Razorpay, then record the refund here.', 'warning');
+      if (result.refundRequired) showToast('This order was paid: use “Refund” to return the money to the customer.', 'warning');
       setNote('');
       setDialog(null);
       await load();
@@ -83,6 +88,36 @@ const AdminOrderDetail = memo(function AdminOrderDetail() {
     }
   };
 
+  const issueRefund = async () => {
+    setBusy(true);
+    try {
+      const result = await adminService.refundOrder(id, { note: refundNote.trim() || undefined });
+      showToast(`Refunded ${formatCurrency(result.amount)} (Razorpay ${result.refundId})`, 'success');
+      setDialog(null);
+      setRefundNote('');
+      await load();
+    } catch (err) {
+      showToast(apiErrorMessage(err, 'The refund failed; check the payment in Razorpay before retrying'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const rejectRequest = async (requestId: string) => {
+    setBusy(true);
+    try {
+      await adminService.rejectRequest(id, requestId, rejectNote.trim());
+      showToast('Request rejected', 'success');
+      setDialog(null);
+      setRejectNote('');
+      await load();
+    } catch (err) {
+      showToast(apiErrorMessage(err, 'Could not reject the request'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!order) return <Box><Skeleton height={60} /><Skeleton variant="rounded" height={320} /></Box>;
 
@@ -90,6 +125,8 @@ const AdminOrderDetail = memo(function AdminOrderDetail() {
   const stockProblem = order.events.find(e => e.type === 'stock_shortage' || e.type === 'stock_sync_failed');
   const delivery = orderDelivery(order, order.events.find(e => e.type === 'status' && e.toValue === 'delivered')?.createdAt);
   const subtotal = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const pendingRequest = order.requests.find(r => r.status === 'pending');
+  const canRefund = order.paymentStatus === 'paid' && (order.status === 'cancelled' || order.status === 'delivered');
 
   return (
     <Box>
@@ -117,6 +154,49 @@ const AdminOrderDetail = memo(function AdminOrderDetail() {
         </Alert>
       )}
 
+      {order.requests.length > 0 && (
+        <Box className={styles.card} sx={{ mb: 2.5 }}>
+          <Typography className={styles.cardTitle}>Customer requests</Typography>
+          {pendingRequest && (
+            <Alert severity="warning" sx={{ mb: 1.5 }}>
+              <strong>{REQUEST_TYPE_LABEL[pendingRequest.type]} requested</strong> on {formatDateTime(pendingRequest.createdAt)}: {pendingRequest.reason}
+              {pendingRequest.details && <Box component="span" sx={{ display: 'block', mt: 0.5 }}>“{pendingRequest.details}”</Box>}
+              <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
+                {pendingRequest.type === 'cancel'
+                  ? `The customer cancelled a paid order. Refund ${formatCurrency(order.totalAmount)} to close it.`
+                  : `Approving refunds ${formatCurrency(order.totalAmount)} to the customer through Razorpay.`}
+              </Box>
+            </Alert>
+          )}
+          {pendingRequest && order.paymentStatus === 'paid' && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 1.5 }}>
+              <Button variant="contained" disabled={busy} onClick={() => setDialog('razorpayRefund')}>
+                {pendingRequest.type === 'cancel' ? 'Refund' : 'Approve & refund'} {formatCurrency(order.totalAmount)}
+              </Button>
+              {pendingRequest.type !== 'cancel' && (
+                <Button color="error" variant="outlined" disabled={busy} onClick={() => setDialog('reject')}>Reject</Button>
+              )}
+            </Box>
+          )}
+          {order.requests.filter(r => r !== pendingRequest).map(r => (
+            <Box key={r.id} sx={{ py: 1, borderTop: '1px solid #f0ede7' }}>
+              <Typography sx={{ fontSize: '0.9rem' }}>
+                {REQUEST_TYPE_LABEL[r.type]} · {r.reason} · <strong>{REQUEST_STATUS_LABEL[r.status]}</strong>
+              </Typography>
+              <Typography className={styles.muted}>
+                {[
+                  `Requested ${formatDateTime(r.createdAt)}`,
+                  r.resolvedAt && `resolved ${formatDateTime(r.resolvedAt)}`,
+                  r.resolvedBy && `by ${r.resolvedBy}`,
+                  r.refundId && `refund ${r.refundId}`,
+                  r.resolutionNote,
+                ].filter(Boolean).join(' · ')}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
+
       <Box className={styles.card} sx={{ mb: 2.5 }}>
         <Typography className={styles.cardTitle}>Fulfilment</Typography>
         {order.status === 'cancelled' ? (
@@ -142,8 +222,11 @@ const AdminOrderDetail = memo(function AdminOrderDetail() {
           {CANCELLABLE.includes(order.status) && (
             <Button color="error" variant="outlined" disabled={busy} onClick={() => setDialog('cancel')}>Cancel order</Button>
           )}
-          {order.paymentStatus === 'paid' && (order.status === 'cancelled' || order.status === 'delivered') && (
-            <Button variant="outlined" disabled={busy} onClick={() => setDialog('refund')}>Record refund</Button>
+          {canRefund && !pendingRequest && (
+            <Button variant="outlined" disabled={busy} onClick={() => setDialog('razorpayRefund')}>Refund {formatCurrency(order.totalAmount)}</Button>
+          )}
+          {canRefund && (
+            <Button size="small" disabled={busy} onClick={() => setDialog('refund')}>Record manual refund</Button>
           )}
         </Box>
       </Box>
@@ -211,7 +294,7 @@ const AdminOrderDetail = memo(function AdminOrderDetail() {
         <DialogContent>
           <DialogContentText>
             Any stock already deducted for this order goes back into inventory.
-            {order.paymentStatus === 'paid' && ' The customer has paid: refund them in the Razorpay dashboard, then use “Record refund”.'}
+            {order.paymentStatus === 'paid' && ' The customer has paid: use “Refund” afterwards to return their money.'}
           </DialogContentText>
           <TextField fullWidth size="small" label="Reason" value={note} onChange={e => setNote(e.target.value)} sx={{ mt: 2 }} slotProps={{ htmlInput: { maxLength: 500 } }} />
         </DialogContent>
@@ -222,15 +305,45 @@ const AdminOrderDetail = memo(function AdminOrderDetail() {
       </Dialog>
 
       <Dialog open={dialog === 'refund'} onClose={() => setDialog(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Record refund</DialogTitle>
+        <DialogTitle>Record manual refund</DialogTitle>
         <DialogContent>
-          <DialogContentText>Record a refund you have already issued in Razorpay. This does not move money.</DialogContentText>
+          <DialogContentText>Only for a refund you have already issued in the Razorpay dashboard. This does not move money.</DialogContentText>
           <TextField fullWidth required size="small" label="Razorpay refund reference" value={refundNote}
             onChange={e => setRefundNote(e.target.value)} sx={{ mt: 2 }} slotProps={{ htmlInput: { maxLength: 500 } }} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialog(null)}>Back</Button>
           <Button variant="contained" disabled={busy || !refundNote.trim()} onClick={recordRefund}>Record refund</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={dialog === 'razorpayRefund'} onClose={() => !busy && setDialog(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Refund {formatCurrency(order.totalAmount)}?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            The full order amount is refunded to the customer's original payment method through Razorpay.
+            The customer sees the refund on their Orders page. This cannot be undone.
+          </DialogContentText>
+          <TextField fullWidth size="small" label="Note (optional)" value={refundNote}
+            onChange={e => setRefundNote(e.target.value)} sx={{ mt: 2 }} slotProps={{ htmlInput: { maxLength: 500 } }} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialog(null)} disabled={busy}>Back</Button>
+          <Button variant="contained" disabled={busy} onClick={issueRefund}>{busy ? 'Refunding…' : 'Refund now'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={dialog === 'reject'} onClose={() => !busy && setDialog(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Reject {pendingRequest ? REQUEST_TYPE_LABEL[pendingRequest.type].toLowerCase() : ''} request?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>The customer sees this reason on their Orders page.</DialogContentText>
+          <TextField fullWidth required multiline minRows={2} size="small" label="Reason for rejecting" value={rejectNote}
+            onChange={e => setRejectNote(e.target.value)} sx={{ mt: 2 }} slotProps={{ htmlInput: { maxLength: 500 } }} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialog(null)} disabled={busy}>Back</Button>
+          <Button color="error" variant="contained" disabled={busy || !rejectNote.trim() || !pendingRequest}
+            onClick={() => pendingRequest && rejectRequest(pendingRequest.id)}>Reject request</Button>
         </DialogActions>
       </Dialog>
     </Box>

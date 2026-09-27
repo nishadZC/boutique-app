@@ -45,6 +45,10 @@ scrape_configs:
     static_configs:
       - targets: ['wishlist-service:3007']
 
+  - job_name: 'skin-tone-service'
+    static_configs:
+      - targets: ['skin-tone-service:5001']
+
 
   - job_name: 'node-exporter'
     static_configs:

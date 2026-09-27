@@ -9,6 +9,7 @@ import { adminService, apiErrorMessage } from '../../../services/adminService';
 import { AdminOrderSummary, CustomerContact, Pagination } from '../../../types/admin';
 import { OrderStatusBadge, PaymentStatusBadge } from '../../../components/common/StatusBadge/StatusBadge';
 import { ORDER_STATUS } from '../../../constants/orderStatus';
+import { REQUEST_TYPE_LABEL } from '../../../constants/orderRequests';
 import { useToast } from '../../../contexts/ToastContext';
 import { ROUTES } from '../../../constants/routes';
 import { customerName, formatCurrency, formatDateTime, shortId } from '../format';
@@ -18,6 +19,7 @@ const STATUS_FILTERS = [
   { value: '', label: 'All statuses' },
   { value: 'awaiting_fulfilment', label: 'Needs fulfilment' },
   { value: 'in_transit', label: 'In transit' },
+  { value: 'refund_requests', label: 'Refund requests' },
   ...(['pending', 'confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'] as const)
     .map(s => ({ value: s, label: ORDER_STATUS[s].label })),
 ];
@@ -163,7 +165,14 @@ const AdminOrders = memo(function AdminOrders() {
                 <TableCell align="right">{order.itemCount}</TableCell>
                 <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{formatCurrency(order.totalAmount)}</TableCell>
                 <TableCell><PaymentStatusBadge status={order.paymentStatus} /></TableCell>
-                <TableCell><OrderStatusBadge status={order.status} /></TableCell>
+                <TableCell>
+                  <OrderStatusBadge status={order.status} />
+                  {order.openRequest && (
+                    <Typography sx={{ fontSize: '0.75rem', color: '#9b1c1c', fontWeight: 600, mt: 0.5 }}>
+                      {REQUEST_TYPE_LABEL[order.openRequest]} requested
+                    </Typography>
+                  )}
+                </TableCell>
                 <TableCell align="right">
                   {order.nextStatus && (
                     <Button size="small" variant="outlined" disabled={busyId === order.id} onClick={e => advance(e, order)} sx={{ whiteSpace: 'nowrap', py: 0.5, px: 1.5 }}>

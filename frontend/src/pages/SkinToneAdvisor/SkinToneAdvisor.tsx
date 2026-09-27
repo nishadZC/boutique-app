@@ -1,14 +1,13 @@
 import React, { memo, useState } from 'react';
 import {
-  Container, Box, Button, Typography,
-  CircularProgress, Chip, Grid, Divider, Alert, Tooltip,
+  Container, Box, Button, Typography, CircularProgress, Alert,
 } from '@mui/material';
 import {
   Upload as UploadIcon,
   ArrowForward as ArrowIcon, Refresh as RefreshIcon, ShoppingBag as BagIcon,
   CheckroomOutlined as OutfitIcon, ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
-import { BRAND, LIGHT_COLORS, getHex } from 'constants/colors';
+import { getHex } from 'constants/colors';
 import RecommendedProductsGrid from './components/RecommendedProductsGrid';
 import OutfitCard from './components/OutfitCard';
 import OutfitConfigDialog from './components/OutfitConfigDialog';
@@ -48,161 +47,140 @@ const SkinToneAdvisor: React.FC = memo(() => {
   );
 
   if (step === 'results' && result) {
+    const confidence = Math.round(result.skinTone.confidence * 100);
+    const tabs = [
+      { id: 'outfits', label: 'Outfit Combinations', icon: <OutfitIcon fontSize="inherit" /> },
+      { id: 'individual', label: 'Individual Pieces', icon: <BagIcon fontSize="inherit" /> },
+    ] as const;
+
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box component="main" className={styles.page}>
         {fileInput}
 
-        <Box sx={{ mb: 1 }}>
-          <Typography variant="h3" component="h1" gutterBottom>
-            Your Style Recommendations
-          </Typography>
-          <Typography variant="h6" color="text.secondary">
-            Curated for your skin tone
-          </Typography>
-        </Box>
-
-        <Box sx={{ mt: 4 }}>
-          <Box className={styles.skinToneCard}>
-            <Box
-              className={styles.swatch}
-              style={{
-                background: result.skinTone.hex,
-                boxShadow: `0 0 24px ${result.skinTone.hex}60`,
-              }}
-            />
-
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" sx={{ color: BRAND.GOLD, fontFamily: 'var(--font-display)' }}>
-                {result.skinTone.name} Skin Tone
+        {/* ---------- Profile hero ---------- */}
+        <Box component="section" className={styles.hero}>
+          <Container maxWidth="lg" className={styles.heroInner}>
+            <Box className={styles.heroText}>
+              <Typography variant="overline" className={styles.eyebrow}>Style Advisor · Your profile</Typography>
+              <Typography variant="h1" className={styles.heroTitle}>
+                Your Style<br />Recommendations
               </Typography>
-
-              <Typography variant="body2" sx={{ color: '#666', mt: 0.5 }}>
-                Hex:{' '}
-                <span style={{ color: '#424242', fontWeight: 600 }}>
-                  {result.skinTone.hex}
-                </span>
-                &ensp;·&ensp;Confidence:{' '}
-                <span style={{ color: '#4caf50' }}>
-                  {Math.round(result.skinTone.confidence * 100)}%
-                </span>
+              <Typography className={styles.heroSubtitle}>
+                A palette and outfits chosen to flatter your complexion — every piece in stock and ready to wear.
               </Typography>
-
-              {!result.skinTone.faceDetected && (
-                <Typography variant="body2" sx={{ color: '#ff9800', mt: 0.5 }}>
-                  Face not clearly detected — results may be approximate
-                </Typography>
-              )}
             </Box>
 
-            <Button
-              size="small"
-              startIcon={<RefreshIcon />}
-              variant="outlined"
-              onClick={handleRetry}
-              className={styles.secondaryBtn}
-            >
-              Try Again
-            </Button>
+            <Box className={styles.profileCard}>
+              <Box className={styles.swatchRing}>
+                <Box className={styles.swatch} style={{ background: result.skinTone.hex }} />
+              </Box>
+              <Box className={styles.profileBody}>
+                <Typography className={styles.profileLabel}>Detected skin tone</Typography>
+                <Typography className={styles.profileName}>{result.skinTone.name}</Typography>
+                <Typography className={styles.profileHex}>{result.skinTone.hex.toUpperCase()}</Typography>
+
+                <Box className={styles.confidence}>
+                  <Box className={styles.confidenceRow}>
+                    <span>Confidence</span>
+                    <span className={styles.confidenceValue}>{confidence}%</span>
+                  </Box>
+                  <Box className={styles.confidenceTrack}>
+                    <Box className={styles.confidenceFill} style={{ width: `${confidence}%` }} />
+                  </Box>
+                </Box>
+
+                {!result.skinTone.faceDetected && (
+                  <Typography className={styles.profileWarning}>
+                    Face not clearly detected — results may be approximate.
+                  </Typography>
+                )}
+
+                <button type="button" onClick={handleRetry} className={styles.textBtn}>
+                  <RefreshIcon fontSize="inherit" /> Try another photo
+                </button>
+              </Box>
+            </Box>
+          </Container>
+        </Box>
+
+        <Container maxWidth="lg" className={styles.body}>
+          {/* ---------- Palette ---------- */}
+          <Box component="section" className={styles.section}>
+            <Box className={styles.sectionHead}>
+              <Typography variant="overline" className={styles.eyebrow}>Your palette</Typography>
+              <Typography variant="h2" className={styles.sectionTitle}>Colours that flatter you</Typography>
+            </Box>
+            <Box className={styles.palette}>
+              {result.recommendedColors.slice(0, 10).map((color) => (
+                <Box key={color} className={styles.paletteItem}>
+                  <Box className={styles.paletteSwatch} style={{ background: getHex(color) }} />
+                  <Typography className={styles.paletteName}>{color}</Typography>
+                </Box>
+              ))}
+            </Box>
           </Box>
 
-          <Typography variant="subtitle1" className={styles.colorPaletteTitle}>
-            Your Recommended Color Palette
-          </Typography>
-
-          <Box className={styles.colorsContainer}>
-            {result.recommendedColors.slice(0, 10).map((color) => (
-              <Tooltip key={color} title={color} arrow>
-                <Chip
-                  label={color}
-                  style={{
-                    background: getHex(color),
-                    color: LIGHT_COLORS.has(color) ? '#111' : '#fff',
-                  }}
-                  className={styles.colorChip}
-                />
-              </Tooltip>
-            ))}
-          </Box>
-
-          <Divider className={styles.divider} />
-
-          <Box className={styles.tabsContainer}>
-            {[
-              { id: 'outfits', label: 'Outfit Combinations', icon: <OutfitIcon sx={{ fontSize: 16 }} /> },
-              { id: 'individual', label: 'Individual Products', icon: <BagIcon sx={{ fontSize: 16 }} /> },
-            ].map((tab) => (
-              <Button
+          {/* ---------- Tabs ---------- */}
+          <Box className={styles.tabs} role="tablist" aria-label="Recommendation type">
+            {tabs.map((tab) => (
+              <button
                 key={tab.id}
-                size="small"
-                startIcon={tab.icon}
-                variant={outfitTab === tab.id ? 'contained' : 'outlined'}
-                onClick={() => setOutfitTab(tab.id as 'outfits' | 'individual')}
-                className={outfitTab === tab.id ? styles.tabActive : styles.tabInactive}
+                type="button"
+                role="tab"
+                aria-selected={outfitTab === tab.id}
+                onClick={() => setOutfitTab(tab.id)}
+                className={`${styles.tab} ${outfitTab === tab.id ? styles.tabActive : ''}`}
               >
+                {tab.icon}
                 {tab.label}
-              </Button>
+              </button>
             ))}
           </Box>
 
           {outfitTab === 'outfits' && (
-            <>
-              <Typography variant="body2" className={styles.outfitSubtitle}>
-                Complete formal outfit combinations curated for your skin tone
+            <Box component="section" className={styles.tabPanel}>
+              <Typography className={styles.tabIntro}>
+                Complete formal looks — shirt, trousers and shoes — built around your palette.
               </Typography>
 
               {result.outfits.length > 0 ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Box className={styles.outfitList}>
                   {result.outfits.map((outfit, i) => (
-                    <Box key={i}>
-                      <OutfitCard outfit={outfit} index={i} onSelect={() => setSelectedOutfitIndex(i)} />
-                      {i < result.outfits.length - 1 && <Divider sx={{ mt: 4 }} />}
-                    </Box>
+                    <OutfitCard key={i} outfit={outfit} index={i} onSelect={() => setSelectedOutfitIndex(i)} />
                   ))}
                 </Box>
               ) : (
                 <Alert severity="warning" className={styles.alertWarning}>
-                  No outfit combinations found. Try browsing the individual
-                  products below.
+                  No outfit combinations found. Try browsing the individual pieces instead.
                 </Alert>
               )}
-            </>
+            </Box>
           )}
 
           {outfitTab === 'individual' && (
-            <>
+            <Box component="section" className={styles.tabPanel}>
               {([
                 { label: 'Formal Shirts', items: result.recommendations.topwear, cat: 'Formal+Shirts' },
                 { label: 'Trousers & Pants', items: result.recommendations.pants, cat: 'Trousers+%26+Pants' },
                 { label: 'Formal Shoes', items: result.recommendations.shoes, cat: 'Formal+Shoes' },
               ] as const).map(({ label, items, cat }) =>
                 items.length > 0 ? (
-                  <Box key={label} sx={{ mb: 4 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                      <Typography variant="subtitle1" className={styles.categoryTitle}>
-                        {label}
-                      </Typography>
-
-                      <Button
-                        size="small"
-                        endIcon={<ArrowIcon />}
-                        onClick={() => navigate(`/products?category=${cat}`)}
-                        className={styles.viewAllBtn}
-                      >
-                        View All
-                      </Button>
+                  <Box key={label} className={styles.category}>
+                    <Box className={styles.categoryHead}>
+                      <Typography variant="overline" className={styles.categoryTitle}>{label}</Typography>
+                      <button type="button" onClick={() => navigate(`/products?category=${cat}`)} className={styles.textBtn}>
+                        View all <ArrowIcon fontSize="inherit" />
+                      </button>
                     </Box>
-
                     <RecommendedProductsGrid items={items.slice(0, 4)} />
                   </Box>
                 ) : null
               )}
-            </>
+            </Box>
           )}
 
-          <Box sx={{ textAlign: 'center', mt: 4 }}>
+          <Box className={styles.footerCta}>
             <Button
-              variant="contained"
-              size="large"
               endIcon={<ArrowIcon />}
               onClick={() => {
                 handleClose();
@@ -210,10 +188,10 @@ const SkinToneAdvisor: React.FC = memo(() => {
               }}
               className={styles.primaryBtn}
             >
-              Browse Full Collection
+              Browse the full collection
             </Button>
           </Box>
-        </Box>
+        </Container>
 
         <OutfitConfigDialog
           outfit={selectedOutfitIndex !== null ? result.outfits[selectedOutfitIndex] : null}
@@ -221,16 +199,18 @@ const SkinToneAdvisor: React.FC = memo(() => {
           open={selectedOutfitIndex !== null}
           onClose={() => setSelectedOutfitIndex(null)}
         />
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container component="main" maxWidth="lg" sx={{ py: 4 }}>
+    <Box component="main" className={styles.page}>
+    <Container maxWidth="lg" className={styles.body}>
       {fileInput}
 
-      <Box sx={{ mb: 1 }}>
-        <Typography variant="h3" component="h1" gutterBottom>
+      <Box className={styles.stepHeader}>
+        <Typography variant="overline" className={styles.eyebrow}>Style Advisor</Typography>
+        <Typography variant="h1" className={styles.heroTitle}>
           Find Your Style
         </Typography>
         <Box className={styles.breadcrumb}>
@@ -244,7 +224,7 @@ const SkinToneAdvisor: React.FC = memo(() => {
         </Box>
       </Box>
 
-      <Box sx={{ maxWidth: 560, mx: 'auto', mt: 4 }}>
+      <Box className={styles.stepPanel}>
           {step === 'choose' && (
             <Box className={styles.stepContainer}>
               {error && (
@@ -274,7 +254,7 @@ const SkinToneAdvisor: React.FC = memo(() => {
                 Select Photo
               </Button>
 
-              <Typography variant="caption" sx={{ display: 'block', color: '#555', mt: 2 }}>
+              <Typography variant="caption" className={styles.stepHint}>
                 JPG, PNG, WEBP supported · Maximum 10MB
               </Typography>
             </Box>
@@ -336,7 +316,7 @@ const SkinToneAdvisor: React.FC = memo(() => {
                 Analyzing your skin tone...
               </Typography>
 
-              <Typography variant="body2" sx={{ color: '#555' }}>
+              <Typography variant="body2" className={styles.stepSubtitle}>
                 Detecting face → Estimating skin tone → Finding matching
                 colors → Building outfit combinations
               </Typography>
@@ -344,6 +324,7 @@ const SkinToneAdvisor: React.FC = memo(() => {
           )}
       </Box>
     </Container>
+    </Box>
   );
 });
 

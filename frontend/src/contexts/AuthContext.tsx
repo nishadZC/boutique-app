@@ -89,36 +89,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // A pending password change yields no session: the short-lived token stays in
   // memory with the caller and is never written to storage.
-  const handleAuthResponse = (response: AuthResponse | PasswordChangeRequired): LoginResult => {
-    if ('passwordChangeRequired' in response && response.passwordChangeRequired) {
-      dispatch({ type: 'AUTH_INIT_COMPLETE' });
-      return response;
-    }
-    startSession(response as AuthResponse);
-    return { passwordChangeRequired: false };
-  };
-
-  const login = async (email: string, password: string): Promise<LoginResult> => {
+  const applyAuthResponse = async (
+    authCall: () => Promise<AuthResponse | PasswordChangeRequired>,
+    buildErrorMessage: (error: any) => string,
+  ): Promise<LoginResult> => {
     try {
       dispatch({ type: 'LOGIN_START' });
-      return handleAuthResponse(await authService.login({ email, password }));
+      const response = await authCall();
+      if ('passwordChangeRequired' in response && response.passwordChangeRequired) {
+        dispatch({ type: 'AUTH_INIT_COMPLETE' });
+        return response;
+      }
+      startSession(response as AuthResponse);
+      return { passwordChangeRequired: false };
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Login failed';
+      const errorMessage = buildErrorMessage(error);
       dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
       throw new Error(errorMessage);
     }
   };
 
-  const loginWithGoogle = async (credential: string): Promise<LoginResult> => {
-    try {
-      dispatch({ type: 'LOGIN_START' });
-      return handleAuthResponse(await authService.loginWithGoogle(credential));
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || 'Google sign-in failed';
-      dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
-      throw new Error(errorMessage);
-    }
-  };
+  const login = (email: string, password: string) =>
+    applyAuthResponse(
+      () => authService.login({ email, password }),
+      (error) => error.response?.data?.error || error.response?.data?.message || 'Login failed',
+    );
+
+  const loginWithGoogle = (credential: string) =>
+    applyAuthResponse(
+      () => authService.loginWithGoogle(credential),
+      (error) => error.response?.data?.error || 'Google sign-in failed',
+    );
 
   const completePasswordChange = async (passwordChangeToken: string, newPassword: string) => {
     startSession(await authService.completePasswordChange(passwordChangeToken, newPassword));

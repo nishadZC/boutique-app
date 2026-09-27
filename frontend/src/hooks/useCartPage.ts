@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useCheckout } from '../hooks/useCheckout';
 import { calculateCartTotals } from '../utils/cartPricing';
-import { addressFromString, formatAddress, AddressFields, SavedAddress } from '../types/address';
+import { addressFromString, formatAddress, isAddressComplete, AddressFields, SavedAddress } from '../types/address';
 import { normalizePhone } from '../utils/validation';
 
 export const useCartPage = () => {
@@ -42,6 +42,7 @@ export const useCartPage = () => {
   const [addressError, setAddressError] = useState('');
   
   const address = formatAddress(addressFields);
+  const addressComplete = isAddressComplete(addressFields);
   const savedAddressKey = user ? `savedAddresses:${user.id}` : '';
   const fallbackImage = 'https://res.cloudinary.com/bhqiin8y/image/upload/v1787585185/boutique/products/405dce7e-bed9-4d33-81c2-9a3045d65312.jpg';
 
@@ -77,6 +78,7 @@ export const useCartPage = () => {
 
   const { finalTotal, isCheckingOut, handleCheckout } = useCheckout({
     address,
+    addressComplete,
     phone,
     setAddressError,
     onAddressSaved: saveCurrentAddress,
@@ -145,6 +147,7 @@ export const useCartPage = () => {
     fallbackImage,
     addressFields,
     setAddressFields,
+    addressComplete,
     phone,
     setPhone,
     savedAddresses,

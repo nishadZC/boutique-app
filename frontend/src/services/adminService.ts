@@ -22,6 +22,11 @@ export const adminService = {
     return response.data as { data: AdminOrderSummary; refundRequired: boolean; message: string };
   },
   recordRefund: async (id: string, note: string) => data(await apiClient.post(`/orders/admin/orders/${id}/refund`, { note })),
+  /** Refunds the full order amount through Razorpay (approves a cancellation or return). */
+  refundOrder: async (id: string, body: { note?: string }) =>
+    data<{ orderId: string; refundId: string; amount: number }>(await apiClient.post(`/payments/admin/orders/${id}/refund`, body)),
+  rejectRequest: async (orderId: string, requestId: string, note: string) =>
+    data(await apiClient.post(`/orders/admin/orders/${orderId}/requests/${requestId}/reject`, { note })),
   customerOrderStats: async (userIds: string[]) =>
     userIds.length
       ? data<Record<string, CustomerOrderStats>>(await apiClient.get('/orders/admin/customers/summary', { params: { userIds: userIds.join(',') } }))

@@ -1,0 +1,129 @@
+.outfit {
+  font-variant-numeric: lining-nums;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: clamp(24px, 4vw, 56px);
+  padding: 40px 0;
+  border-top: 1px solid var(--ink-line);
+}
+.outfit:last-child { border-bottom: 1px solid var(--ink-line); }
+
+/* ---------- Summary column ---------- */
+.summary {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  position: sticky;
+  top: 112px;
+}
+.lookLabel {
+  color: var(--gold) !important;
+  font-size: 0.66rem !important;
+  line-height: 1 !important;
+}
+.lookNumber {
+  font-family: var(--font-display) !important;
+  font-size: 4.2rem !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  color: var(--cream);
+  margin: 6px 0 24px !important;
+}
+
+.pieces {
+  list-style: none;
+  margin: 0 0 28px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.piece {
+  display: grid;
+  grid-template-columns: 12px 72px 1fr;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.84rem;
+}
+.pieceDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(242, 237, 228, 0.25);
+}
+.pieceRole {
+  color: var(--muted-on-dark);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.pieceColor { color: var(--cream); }
+
+.totals {
+  padding: 18px 0;
+  border-top: 1px solid var(--ink-line);
+  margin-bottom: 20px;
+}
+.totalLabel {
+  color: var(--muted-on-dark);
+  font-size: 0.66rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.totalValue {
+  font-family: var(--font-display) !important;
+  font-size: 2rem !important;
+  color: var(--cream);
+  line-height: 1.2 !important;
+}
+.savings { color: var(--gold); font-size: 0.8rem !important; }
+
+.selectBtn {
+  align-self: flex-start;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+  padding: 14px 28px !important;
+  border-radius: 0 !important;
+  background: var(--gold) !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
+}
+.selectBtn:hover { background: var(--gold-light) !important; }
+
+/* ---------- Products ---------- */
+.products {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.skeleton {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 4 / 5;
+  background-color: #1f1d1b !important;
+}
+
+@media (max-width: 899px) {
+  .outfit { grid-template-columns: 1fr; padding: 32px 0; }
+  .summary {
+    position: static;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 24px;
+    align-items: end;
+  }
+  .lookLabel, .lookNumber { grid-column: 1; }
+  .lookNumber { margin-bottom: 0 !important; }
+  .pieces { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+  .totals, .selectBtn { grid-column: 1 / -1; }
+  .totals { margin: 20px 0 16px; }
+}
+@media (max-width: 599px) {
+  .products { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .summary { grid-template-columns: 1fr; }
+  .pieces { grid-column: 1; grid-row: auto; margin-top: 16px; }
+}

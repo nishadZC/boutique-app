@@ -60,9 +60,26 @@
 .orderRow { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid #f3efe8; text-decoration: none; color: inherit; }
 .orderRow:first-of-type { border-top: 0; }
 .orderRow:hover .orderTitle { color: var(--gold-dark); }
-.orderThumbs { display: flex; }
-.orderThumbs img { width: 40px; height: 50px; object-fit: cover; background: #f1eee9; mix-blend-mode: multiply; border: 2px solid #fff; margin-left: -10px; }
-.orderThumbs img:first-child { margin-left: 0; }
+/* Fixed-width strip (room for three thumbs + "+N") so every order's text starts at the same x. */
+.orderThumbs { display: flex; gap: 6px; flex-shrink: 0; width: 178px; }
+.orderThumb {
+  width: 40px;
+  height: 50px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #f1eee9;
+  box-shadow: inset 0 0 0 1px #ebe5dc;
+}
+.orderThumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.orderThumbMore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #8a857d;
+}
+@media (max-width: 599px) { .orderThumbs { width: auto; } }
 .orderTitle { font-size: 0.92rem !important; font-weight: 500 !important; }
 .orderMeta { font-size: 0.8rem !important; color: #8a857d; }
 .emptyRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }

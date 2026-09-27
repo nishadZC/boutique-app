@@ -59,6 +59,17 @@ const AdminDashboard = memo(function AdminDashboard() {
         </Alert>
       )}
 
+      {kpis && kpis.pendingRefundRequests > 0 && (
+        <Alert
+          severity="warning"
+          icon={<WarningAmberOutlined />}
+          sx={{ mb: 2 }}
+          action={<Button color="inherit" size="small" component={RouterLink} to={ordersLink({ status: 'refund_requests' })}>Review</Button>}
+        >
+          {kpis.pendingRefundRequests} cancellation or return request{kpis.pendingRefundRequests === 1 ? '' : 's'} waiting for a refund decision.
+        </Alert>
+      )}
+
       <Box className={styles.kpiRow}>
         {kpis ? (
           <>

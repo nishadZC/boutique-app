@@ -178,3 +178,22 @@ CREATE TABLE IF NOT EXISTS order_events (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_order_events_order ON order_events (order_id, created_at);
+
+-- Customer cancellations and return/refund requests, and how an admin resolved them.
+CREATE TABLE IF NOT EXISTS order_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    -- cancel (before delivery) | return | refund (after delivery)
+    type VARCHAR(20) NOT NULL,
+    reason VARCHAR(100) NOT NULL,
+    details TEXT,
+    -- pending (awaiting admin) | refunded | rejected | closed (cancelled before payment, nothing to refund)
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    resolution_note TEXT,
+    refund_id VARCHAR(100),
+    resolved_by VARCHAR(255),
+    resolved_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_order_requests_order ON order_requests (order_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_order_requests_one_open ON order_requests (order_id) WHERE status = 'pending';
