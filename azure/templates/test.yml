@@ -1,22 +1,16 @@
 parameters:
-  - name: dependsOn
-    type: string
-    default: ''
   - name: matrix
-    type: string
+    type: object
 
 jobs:
 - job: Test
-  ${{ if ne(parameters.dependsOn, '') }}:
-    dependsOn: ${{ parameters.dependsOn }}
   pool:
     vmImage: 'ubuntu-latest'
   strategy:
-    matrix: $[ ${{ parameters.matrix }} ]
+    matrix: ${{ parameters.matrix }}
 
   steps:
   - checkout: self
-    fetchDepth: 0
 
   - task: NodeTool@0
     displayName: 'Use Node.js 20 LTS'
@@ -48,5 +42,15 @@ jobs:
       # one shared lockfile) - `cd`-ing into a workspace and running `npm ci`
       # there behaves inconsistently across npm versions.
       npm ci -w "$(buildPath)" || npm install -w "$(buildPath)"
-      npm test -w "$(buildPath)"
+      # Also write JUnit XML so the results show up in the pipeline's Tests tab.
+      npm test -w "$(buildPath)" -- --reporter=default --reporter=junit --outputFile.junit="$(Build.SourcesDirectory)/test-results/$(service).xml"
     displayName: 'Run tests for $(service)'
+
+  - task: PublishTestResults@2
+    displayName: 'Publish test results for $(service)'
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '$(Build.SourcesDirectory)/test-results/*.xml'
+      testRunTitle: '$(service)'
+      failTaskOnMissingResultsFile: false

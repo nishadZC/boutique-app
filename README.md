@@ -203,7 +203,7 @@ boutique-app/
 ├── grafana/provisioning/      # datasources and six dashboards (JSON)
 ├── docker-compose.yml         # the whole stack on one machine (15 containers)
 ├── azure-pipelines.yml        # CI: CodeQuality → Test → BuildAndScan
-├── azure/                     # services.json (build matrix) + pipeline templates
+├── azure/                     # pipeline templates (code quality, test, build/push)
 └── package.json               # npm workspaces root and convenience scripts
 ```
 
@@ -810,7 +810,7 @@ CodeQuality ──> Test ──> BuildAndScan
 (SonarCloud)   (matrix)   (matrix: build → Trivy → push to dev ACR, then publish deploy-info)
 ```
 
-- **Matrix Builds**: `azure/templates/generate-matrix.yml` turns `azure/services.json` into a build matrix, so every service (the eight backend services and `frontend`) is tested, built and scanned in parallel. Add a new service by adding it to `services.json`. Change detection has been removed: every run builds **all** services.
+- **Matrix Builds**: the `services` parameter at the top of `azure-pipelines.yml` lists every service (the eight backend services and `frontend`); the Test and Build jobs use it as their matrix, so each service is tested, built and scanned in parallel. Add a new service by adding one entry there. Every run builds **all** services.
 - **CodeQuality**: SonarCloud static analysis (`SonarCloudPrepare@4` / `SonarCloudAnalyze@4`) over `frontend` and `backend`, excluding `node_modules`, `dist`, `build`, `coverage`.
 - **Test**: for each matrix entry, `npm ci -w <path>` then `npm test -w <path>` from the repo root on Node 20. Services without a `package.json` or without a real `test` script (skin-tone, gateway, wishlist) are skipped.
 - **Security Scanning**: **Trivy** scans each image for `CRITICAL,HIGH` vulnerabilities before it is pushed. It runs with `exitCode: '0'`, so findings are reported but **do not fail the build**.
@@ -1010,7 +1010,7 @@ resolve them over HTTP.
 1. Create `backend/services/<name>/` with `package.json`, `tsconfig.json`, `src/`, a `Dockerfile`
    (copy an existing one, keep the explicit `COPY` allowlist and `USER node`) and a README.
 2. Reuse `src/middleware/auth.ts` and `src/metrics/` from an existing service unchanged.
-3. Add it to `azure/services.json` so CI tests, builds, scans and pushes it.
+3. Add it to the `services` parameter in `azure-pipelines.yml` so CI tests, builds, scans and pushes it.
 4. Add it to `docker-compose.yml` and a scrape job to `prometheus/prometheus.yml`.
 5. If browsers call it, add a proxy route in `gateway/src/index.ts` and its prefix to
    `PROXY_PREFIXES` in `gateway/src/metrics/index.ts`.

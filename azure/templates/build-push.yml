@@ -1,39 +1,30 @@
 parameters:
-  - name: dependsOn
-    type: string
-    default: GenerateMatrix
   - name: matrix
-    type: string
+    type: object
   - name: pushImage
     type: boolean
     default: true
 
 jobs:
 - job: Build
-  dependsOn: ${{ parameters.dependsOn }}
   pool:
     vmImage: 'ubuntu-latest'
   strategy:
-    matrix: $[ ${{ parameters.matrix }} ]
+    matrix: ${{ parameters.matrix }}
   
   steps:
   - checkout: self
-    fetchDepth: 0
 
-  - task: AzureCLI@2
+  - script: |
+      set -e
+      docker build -f $(buildPath)/Dockerfile -t $(service):$(imageTag) -t $(service):latest $(buildPath)
     displayName: Build image locally
-    inputs:
-      azureSubscription: '$(azureServiceConnection)'
-      scriptType: 'bash'
-      scriptLocation: 'inlineScript'
-      inlineScript: |
-        set -e
-        docker build -f $(buildPath)/Dockerfile -t $(service):$(imageTag) -t $(service):latest $(buildPath)
 
-  - task: trivy@1
+  - task: trivy@2
     displayName: Scan local image with Trivy
     inputs:
-      image: '$(service):$(imageTag)'
+      type: image
+      target: '$(service):$(imageTag)'
       severities: 'CRITICAL,HIGH'
       exitCode: '0'
 
