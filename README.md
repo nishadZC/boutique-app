@@ -813,7 +813,7 @@ CodeQuality ──> Test ──> BuildAndScan
 - **Matrix Builds**: the `services` parameter at the top of `azure-pipelines.yml` lists every service (the eight backend services and `frontend`); the Test and Build jobs use it as their matrix, so each service is tested, built and scanned in parallel. Add a new service by adding one entry there. Every run builds **all** services.
 - **CodeQuality**: SonarCloud static analysis (`SonarCloudPrepare@4` / `SonarCloudAnalyze@4`) over `frontend` and `backend`, excluding `node_modules`, `dist`, `build`, `coverage`.
 - **Test**: for each matrix entry, `npm ci -w <path>` then `npm test -w <path>` from the repo root on Node 20. Services without a `package.json` or without a real `test` script (skin-tone, gateway, wishlist) are skipped.
-- **Security Scanning**: **Trivy** scans each image for `CRITICAL,HIGH` vulnerabilities before it is pushed. It runs with `exitCode: '0'`, so findings are reported but **do not fail the build**.
+- **Security Scanning**: **Trivy** scans each image for `CRITICAL,HIGH` vulnerabilities before it is pushed. It runs with `ignoreScanErrors: true`, so findings are reported (the step shows as "succeeded with issues") but **do not fail the build**.
 - **Artifacts**: Docker images are pushed to the dev Azure Container Registry, tagged with the commit SHA (`$(Build.SourceVersion)`) and `latest`. Pull-request runs build and scan but **do not push**.
 - **Pipeline scope**: `azure-pipelines.yml` ends at `BuildAndScan` — `CodeQuality → Test → BuildAndScan`. `BuildAndScan` also publishes a `deploy-info` pipeline artifact (just the built image tag, `imageTag.txt`) for consumption by the separate Dev Release pipeline described below. There are no `UpdateDev`/`UpdateQA`/`UpdateStaging`/`UpdateProd` stages in this file anymore — see [Deployment](#deployment-azure-devops-release-pipelines).
 
@@ -1061,7 +1061,7 @@ Things a reviewer or new engineer should know that the code shows today:
 - The per-service READMEs list a `DB_SSL` variable, but no service reads it; SSL is set through
   `sslmode=require` in the connection string.
 - CI tests run on Node 20 while the images use Node 26.
-- Trivy findings don't fail the build (`exitCode: '0'`).
+- Trivy findings don't fail the build (`ignoreScanErrors: true`).
 - Alertmanager sends warnings to PagerDuty as well as critical alerts (see above).
 
 ---

@@ -26,7 +26,9 @@ jobs:
       type: image
       target: '$(service):$(imageTag)'
       severities: 'CRITICAL,HIGH'
-      exitCode: '0'
+      # Report findings without failing the build (the step turns orange,
+      # "SucceededWithIssues"). trivy@2 has no exitCode input.
+      ignoreScanErrors: true
 
   - ${{ if eq(parameters.pushImage, true) }}:
     - task: AzureCLI@2

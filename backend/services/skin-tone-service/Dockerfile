@@ -1,11 +1,15 @@
-FROM python:3.12-slim-bookworm
+# Debian 13 (trixie): its packages carry far fewer unfixed CVEs than
+# Debian 12 (bookworm), which had 6 CRITICAL findings with no fix available.
+FROM python:3.12-slim-trixie
 
 WORKDIR /app
 
-# Upgrade base OS packages to fix OS-level CVEs and install dependencies securely
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
-    libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
+# Upgrade base OS packages to pick up security fixes. No extra packages are
+# installed: opencv-python-headless, scikit-learn, numpy and Pillow wheels
+# bundle their own libraries and only need libc, libstdc++ and zlib, which
+# the base image already has. (The X11/glib libraries once installed here are
+# only for GUI OpenCV and added dozens of CVEs.)
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user for security (Trivy DS002 fix)
 RUN useradd -m -r -s /bin/bash appuser
