@@ -21,7 +21,9 @@ jobs:
     displayName: Build image locally
 
   - task: trivy@2
-    displayName: Scan local image with Trivy
+    # Unique per service: the Trivy results tab tells reports apart by step
+    # name, so identical names made it show the first job's report for all.
+    displayName: Scan $(service) image with Trivy
     inputs:
       type: image
       target: '$(service):$(imageTag)'
