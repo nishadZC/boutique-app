@@ -136,8 +136,8 @@ router.get('/categories', async (_req, res) => {
 });
 
 router.get('/products', async (req, res) => {
-  const page = Math.max(parseInt(String(req.query.page ?? '1'), 10) || 1, 1);
-  const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '25'), 10) || 25, 1), 100);
+  const page = Math.max(Number.parseInt(String(req.query.page ?? '1'), 10) || 1, 1);
+  const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit ?? '25'), 10) || 25, 1), 100);
   const conditions: string[] = [];
   const params: any[] = [];
   const add = (sql: string, value: unknown) => { params.push(value); conditions.push(sql.replace('?', `$${params.length}`)); };

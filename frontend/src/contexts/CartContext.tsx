@@ -130,7 +130,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 
 const calculateTotal = (items: CartItem[]): number =>
   items.reduce((total, item) => {
-    const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+    const price = typeof item.price === 'string' ? Number.parseFloat(item.price) : item.price;
     return total + (price * item.quantity);
   }, 0);
 

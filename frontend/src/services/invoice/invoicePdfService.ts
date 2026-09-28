@@ -20,7 +20,7 @@ const CONTENT_BOTTOM = 262;
 // jsPDF measures right-aligned text without charSpace, so letter-spacing is
 // only used on left-aligned labels. The built-in PDF fonts have no rupee glyph.
 const formatMoney = (value: number | string): string => {
-  const amount = typeof value === 'string' ? parseFloat(value) : value;
+  const amount = typeof value === 'string' ? Number.parseFloat(value) : value;
   return `INR ${(Number.isFinite(amount) ? amount : 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 

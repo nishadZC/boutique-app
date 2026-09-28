@@ -39,7 +39,7 @@ const PROMISES = [
 ];
 
 const toNumber = (value: number | string | undefined) => {
-  const n = typeof value === 'string' ? parseFloat(value) : (value ?? 0);
+  const n = typeof value === 'string' ? Number.parseFloat(value) : (value ?? 0);
   return Number.isFinite(n) ? n : 0;
 };
 const formatPrice = (value: number) => `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;

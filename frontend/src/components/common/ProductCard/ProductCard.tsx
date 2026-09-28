@@ -52,8 +52,8 @@ const ProductCard = memo<ProductCardProps>(function ProductCard({
     else onAddToCart(product, 'One Size');
   }, [navigate, needsSize, onAddToCart, product]);
 
-  const price = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
-  const origPrice = typeof product.originalPrice === 'string' ? parseFloat(product.originalPrice ?? '0') : (product.originalPrice ?? 0);
+  const price = typeof product.price === 'string' ? Number.parseFloat(product.price) : product.price;
+  const origPrice = typeof product.originalPrice === 'string' ? Number.parseFloat(product.originalPrice ?? '0') : (product.originalPrice ?? 0);
   const discount = origPrice > price ? Math.round((1 - price / origPrice) * 100) : 0;
 
   return (

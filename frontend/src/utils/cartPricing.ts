@@ -13,7 +13,7 @@ export interface CartTotals {
 }
 
 export const getItemPrice = (item: PricedCartItem): number =>
-  typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+  typeof item.price === 'string' ? Number.parseFloat(item.price) : item.price;
 
 export const calculateCartTotals = (items: PricedCartItem[]): CartTotals => {
   const subtotal = items.reduce((sum, item) => sum + getItemPrice(item) * item.quantity, 0);

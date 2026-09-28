@@ -9,7 +9,7 @@ export const isProductOutOfStock = (product: Product): boolean =>
   getProductInventory(product) === 0;
 
 export const formatProductPrice = (price: Product['price'] | string | undefined): string => {
-  const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
+  const numericPrice = typeof price === 'string' ? Number.parseFloat(price) : price;
   return numericPrice !== undefined && Number.isFinite(numericPrice)
     ? numericPrice.toFixed(2)
     : '0.00';

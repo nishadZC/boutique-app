@@ -2,7 +2,7 @@ FROM node:26-alpine3.24 AS builder
 RUN apk upgrade --no-cache
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --no-audit --no-fund
+RUN npm install --ignore-scripts --no-audit --no-fund
 # Copy only the application source (explicit allowlist, not COPY . .)
 COPY tsconfig.json ./
 COPY src ./src

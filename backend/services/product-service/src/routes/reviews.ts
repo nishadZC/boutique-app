@@ -33,7 +33,7 @@ const toReview = (r: any) => ({
 router.get('/product/:productId', async (req, res) => {
   const { error } = Joi.string().guid().validate(req.params.productId);
   if (error) return res.status(404).json({ success: false, error: 'Product not found' });
-  const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '10'), 10) || 10, 1), 50);
+  const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit ?? '10'), 10) || 10, 1), 50);
   try {
     const [rows, summary] = await Promise.all([
       query(`SELECT id, product_id, rating, title, comment, reviewer_name, created_at

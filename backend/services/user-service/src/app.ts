@@ -110,8 +110,8 @@ export function createApp() {
   admin.use(requireAdmin);
 
   admin.get('/customers', async (req, res) => {
-    const page = Math.max(parseInt(String(req.query.page ?? '1'), 10) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '25'), 10) || 25, 1), 100);
+    const page = Math.max(Number.parseInt(String(req.query.page ?? '1'), 10) || 1, 1);
+    const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit ?? '25'), 10) || 25, 1), 100);
     const search = String(req.query.search ?? '').trim().slice(0, 100);
     const params: unknown[] = [];
     let where = '';

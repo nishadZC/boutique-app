@@ -153,7 +153,7 @@ const Cart: React.FC = memo(() => {
                               </Typography>
                             </Box>
                             <Typography variant="h6" className={styles.itemTotalPrice} sx={{ pl: 2 }}>
-                              ₹{((typeof item.price === 'string' ? parseFloat(item.price) : item.price) * item.quantity).toFixed(2)}
+                              ₹{((typeof item.price === 'string' ? Number.parseFloat(item.price) : item.price) * item.quantity).toFixed(2)}
                             </Typography>
                           </Box>
 

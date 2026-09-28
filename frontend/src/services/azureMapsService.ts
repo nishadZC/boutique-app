@@ -20,7 +20,7 @@ export const getCurrentAddress = (): Promise<AddressFields> => new Promise((reso
           .then((res) => res.json())
           .then((data) => {
             if (data.latitude && data.longitude) {
-              reverseGeocode(parseFloat(data.latitude), parseFloat(data.longitude)).then(resolve).catch(reject);
+              reverseGeocode(Number.parseFloat(data.latitude), Number.parseFloat(data.longitude)).then(resolve).catch(reject);
             } else {
               reject(new Error('IP fallback location failed.'));
             }

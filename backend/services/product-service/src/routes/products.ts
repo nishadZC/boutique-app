@@ -14,7 +14,7 @@ const SORT_COLUMNS: Record<string, string> = {
 };
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const clampInt = (value: unknown, fallback: number, min: number, max: number) => {
-  const n = parseInt(String(value), 10);
+  const n = Number.parseInt(String(value), 10);
   return Number.isFinite(n) ? Math.min(Math.max(n, min), max) : fallback;
 };
 
@@ -98,7 +98,7 @@ router.get('/', async (req, res) => {
       query(productsQuery, allParams)
     ]);
 
-    const total = parseInt(countResult.rows[0].total);
+    const total = Number.parseInt(countResult.rows[0].total);
     const totalPages = Math.ceil(total / limitNum);
 
     const response = {

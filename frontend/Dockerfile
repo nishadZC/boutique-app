@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-RUN npm install --prefer-offline --no-audit
+RUN npm install --ignore-scripts --prefer-offline --no-audit
 
 # Copy only the application source (explicit allowlist, not COPY . .)
 COPY index.html tsconfig.json tsconfig.node.json vite.config.ts vitest.config.mts ./
