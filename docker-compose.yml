@@ -152,8 +152,8 @@ services:
         max-file: '3'
   gateway:
     build:
-      context: ./backend/services/gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/services/gateway/Dockerfile
     container_name: boutique-gateway
     ports:
     - 3001:3001
@@ -202,8 +202,8 @@ services:
         max-file: '3'
   auth:
     build:
-      context: ./backend/services/auth
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/services/auth/Dockerfile
     container_name: boutique-auth
     ports:
     - 3002:3002
@@ -250,8 +250,8 @@ services:
         max-file: '3'
   user-service:
     build:
-      context: ./backend/services/user-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/services/user-service/Dockerfile
     container_name: boutique-user-service
     ports:
     - 3004:3004
@@ -283,8 +283,8 @@ services:
     restart: unless-stopped
   product-service:
     build:
-      context: ./backend/services/product-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/services/product-service/Dockerfile
     container_name: boutique-products
     ports:
     - 3003:3003
@@ -336,8 +336,8 @@ services:
         max-file: '3'
   wishlist-service:
     build:
-      context: ./backend/services/wishlist-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/services/wishlist-service/Dockerfile
     container_name: boutique-wishlist
     ports:
     - 3007:3007
@@ -366,8 +366,8 @@ services:
     restart: unless-stopped
   orders:
     build:
-      context: ./backend/services/orders
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/services/orders/Dockerfile
     container_name: boutique-order-management
     ports:
     - 3005:3005
@@ -412,8 +412,8 @@ services:
         max-file: '3'
   payment:
     build:
-      context: ./backend/services/payment
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/services/payment/Dockerfile
     container_name: boutique-payment
     ports:
     - 3006:3006
@@ -452,8 +452,8 @@ services:
         max-file: '3'
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: boutique-frontend
     ports:
     - 3000:8080
@@ -492,8 +492,8 @@ services:
         max-file: '3'
   skin-tone-service:
     build:
-      context: ./backend/services/skin-tone-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/services/skin-tone-service/Dockerfile
     container_name: boutique-skin-tone
     ports:
     - 5001:5001

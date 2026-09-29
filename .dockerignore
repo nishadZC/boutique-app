@@ -1,0 +1,14 @@
+# Every image builds with the repo root as its context (npm workspaces share
+# one package-lock.json). Keep the context small and never send secrets or
+# local build output; each Dockerfile still COPYs an explicit allowlist.
+.git
+**/node_modules
+**/dist
+**/build
+**/coverage
+**/.env
+**/.env.*
+**/npm-debug.log
+**/__pycache__
+**/*.pyc
+docs

@@ -14,7 +14,8 @@ RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 # Create a non-root user for security (Trivy DS002 fix)
 RUN useradd -m -r -s /bin/bash appuser
 
-COPY requirements.txt .
+# Build context is the repo root (same as every other image in CI)
+COPY backend/services/skin-tone-service/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -29,7 +30,12 @@ RUN pip uninstall -y pip
 # recursive `COPY . .`, so nothing outside this list - secrets, local
 # env files, etc. - can ever end up in the image regardless of
 # .dockerignore).
-COPY --chown=appuser:appuser main.py metrics.py color_rules.py skin_tone_analyzer.py ./
+COPY --chown=appuser:appuser \
+    backend/services/skin-tone-service/main.py \
+    backend/services/skin-tone-service/metrics.py \
+    backend/services/skin-tone-service/color_rules.py \
+    backend/services/skin-tone-service/skin_tone_analyzer.py \
+    ./
 
 # Switch to the non-root user
 USER appuser

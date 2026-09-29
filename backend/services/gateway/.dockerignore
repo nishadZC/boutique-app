@@ -1,9 +1,0 @@
-node_modules
-npm-debug.log
-dist
-build
-coverage
-.git
-.env
-__pycache__
-*.pyc

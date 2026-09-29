@@ -798,6 +798,11 @@ the kube-prometheus-stack Grafana installed by the platform pipeline.
 - Images run as non-root users (`node`, `appuser` for Python, and unprivileged nginx on port 8080) and keep only production dependencies; the Node images also remove npm, and the Python image uninstalls pip.
 - Multi-stage builds are used where applicable to minimize image sizes.
 - Each `Dockerfile` copies an explicit allowlist of source paths instead of `COPY . .`.
+- Every image builds with the **repo root as its build context** (`docker build -f <service>/Dockerfile .`,
+  and `context: .` in Compose), so the workspace's single `package-lock.json` is available. The Node
+  images install with `npm ci -w <service> --ignore-scripts`: exactly the dependency versions CI tested,
+  with no dependency install scripts run. The root `.dockerignore` keeps `node_modules`, `.git`, build
+  output and `.env` files out of every build.
 
 ### CI pipeline: azure-pipelines.yml
 
@@ -1008,7 +1013,9 @@ resolve them over HTTP.
 **Add a new backend service**
 
 1. Create `backend/services/<name>/` with `package.json`, `tsconfig.json`, `src/`, a `Dockerfile`
-   (copy an existing one, keep the explicit `COPY` allowlist and `USER node`) and a README.
+   (copy an existing one and replace its service path; keep the explicit `COPY` allowlist, the
+   `npm ci -w` install and `USER node`) and a README. Run `npm install` at the repo root so
+   `package-lock.json` includes the new service.
 2. Reuse `src/middleware/auth.ts` and `src/metrics/` from an existing service unchanged.
 3. Add it to the `services` parameter in `azure-pipelines.yml` so CI tests, builds, scans and pushes it.
 4. Add it to `docker-compose.yml` and a scrape job to `prometheus/prometheus.yml`.

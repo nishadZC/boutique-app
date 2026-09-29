@@ -1,30 +1,33 @@
 # Build stage
+# Build context is the repo root, so the workspace's single package-lock.json
+# is available and `npm ci` installs exactly the versions CI tested.
 FROM node:26-alpine3.24 AS builder
 
 RUN apk update && apk upgrade --no-cache
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-RUN npm install --ignore-scripts --prefer-offline --no-audit
+# Root manifest + lock file, and the frontend's manifest (npm workspaces)
+COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/
+RUN npm ci -w frontend --ignore-scripts --no-audit --no-fund
 
 # Copy only the application source (explicit allowlist, not COPY . .)
-COPY index.html tsconfig.json tsconfig.node.json vite.config.ts vitest.config.mts ./
-COPY src ./src
-COPY public ./public
+COPY frontend/index.html frontend/tsconfig.json frontend/tsconfig.node.json frontend/vite.config.ts frontend/vitest.config.mts frontend/
+COPY frontend/src frontend/src
+COPY frontend/public frontend/public
 
 # Build the React app
-RUN npm run build
+RUN npm run build -w frontend
 
 # Production stage - serve with nginx as a non-root user
 FROM nginxinc/nginx-unprivileged:1.31.5-alpine3.24-slim
 
 # Copy built app from builder
-COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
+COPY --from=builder --chown=nginx:nginx /app/frontend/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY frontend/nginx.conf /etc/nginx/nginx.conf
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
