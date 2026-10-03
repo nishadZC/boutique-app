@@ -23,6 +23,11 @@ RUN npm run build -w frontend
 # Production stage - serve with nginx as a non-root user
 FROM nginxinc/nginx-unprivileged:1.31.5-alpine3.24-slim
 
+# Pick up Alpine security fixes released after the base image was built
+USER root
+RUN apk upgrade --no-cache
+USER 101
+
 # Copy built app from builder
 COPY --from=builder --chown=nginx:nginx /app/frontend/dist /usr/share/nginx/html
 
