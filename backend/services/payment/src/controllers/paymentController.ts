@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { CreatePaymentOrderRequest, RefundOrderRequest, UpdatePaymentStatusRequest, VerifyPaymentRequest } from '../types/payment';
+import { CreatePaymentOrderRequest, RefundOrderRequest, UpdatePaymentStatusRequest, VerifyPaymentRequest } from '../types';
 import { PaymentError, createPaymentOrder, markPaymentFailed, refundOrder, verifyPayment } from '../services/paymentService';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

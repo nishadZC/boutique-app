@@ -1,6 +1,6 @@
-import { createApp } from './server/app';
+import { createApp } from './app';
 import { config } from './config';
-import { getJwtSecret } from './middleware/auth';
+import { getJwtSecret } from '@boutique/shared';
 
 getJwtSecret(); // fail fast if JWT_SECRET is missing in production
 

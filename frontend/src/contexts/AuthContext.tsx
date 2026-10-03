@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AuthResponse, LoginResult, PasswordChangeRequired, User } from '../types';
+import { Account, AuthResponse, LoginResult, PasswordChangeRequired, Profile, User } from '../types';
 import { authService } from '../services/authService';
 import { userService } from '../services/userService';
 
@@ -13,6 +13,7 @@ interface AuthState {
 type AuthAction =
   | { type: 'LOGIN_START' }
   | { type: 'LOGIN_SUCCESS'; payload: User }
+  | { type: 'PROFILE_UPDATED'; payload: Profile }
   | { type: 'LOGIN_FAILURE'; payload: string }
   | { type: 'LOGOUT' }
   | { type: 'AUTH_INIT_COMPLETE' }
@@ -31,6 +32,8 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return { ...state, loading: true, error: null };
     case 'LOGIN_SUCCESS':
       return { ...state, user: action.payload, isAuthenticated: true, loading: false };
+    case 'PROFILE_UPDATED':
+      return state.user ? { ...state, user: { ...state.user, ...action.payload } } : state;
     case 'LOGIN_FAILURE':
       return { ...state, user: null, isAuthenticated: false, loading: false, error: action.payload };
     case 'LOGOUT':
@@ -55,6 +58,17 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const EMPTY_PROFILE: Profile = { firstName: '', lastName: '' };
+
+async function withProfile(account: Account): Promise<User> {
+  try {
+    return { ...EMPTY_PROFILE, ...(await userService.getProfile()), ...account };
+  } catch (error) {
+    console.error('Could not load profile:', error);
+    return { ...EMPTY_PROFILE, ...account };
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
@@ -63,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const token = localStorage.getItem('accessToken');
         if (token) {
-          const user = await authService.getCurrentUser();
+          const user = await withProfile(await authService.getCurrentAccount());
           dispatch({ type: 'LOGIN_SUCCESS', payload: user });
         } else {
           dispatch({ type: 'LOGOUT' });
@@ -80,11 +94,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const startSession = (response: AuthResponse) => {
+  const startSession = async (response: AuthResponse) => {
     localStorage.setItem('accessToken', response.token);
     localStorage.setItem('refreshToken', response.refreshToken);
     localStorage.removeItem('boutique_cart');
-    dispatch({ type: 'LOGIN_SUCCESS', payload: response.user });
+    dispatch({ type: 'LOGIN_SUCCESS', payload: await withProfile(response.user) });
   };
 
   // A pending password change yields no session: the short-lived token stays in
@@ -100,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dispatch({ type: 'AUTH_INIT_COMPLETE' });
         return response;
       }
-      startSession(response as AuthResponse);
+      await startSession(response as AuthResponse);
       return { passwordChangeRequired: false };
     } catch (error: any) {
       const errorMessage = buildErrorMessage(error);
@@ -122,7 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
   const completePasswordChange = async (passwordChangeToken: string, newPassword: string) => {
-    startSession(await authService.completePasswordChange(passwordChangeToken, newPassword));
+    await startSession(await authService.completePasswordChange(passwordChangeToken, newPassword));
   };
 
   const logout = async () => {
@@ -137,8 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (data: { firstName: string; lastName: string; phone?: string; address?: string }) => {
     try {
-      const updatedUser = await userService.updateProfile(data);
-      dispatch({ type: 'LOGIN_SUCCESS', payload: updatedUser });
+      const profile = await userService.updateProfile(data);
+      dispatch({ type: 'PROFILE_UPDATED', payload: profile });
     } catch (error: any) {
       console.error('Update profile error:', error);
       throw error;

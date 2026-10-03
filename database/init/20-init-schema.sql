@@ -10,10 +10,6 @@ CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    phone VARCHAR(50),
-    address TEXT,
     role VARCHAR(50) DEFAULT 'customer',
     -- Set on the bootstrap admin: the first sign-in must choose a new password.
     must_change_password BOOLEAN NOT NULL DEFAULT false,
@@ -25,6 +21,23 @@ CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at);
 
 -- The store admin (ADMIN_EMAIL) is created by the auth service on first start from the
 -- ADMIN_INITIAL_PASSWORD secret. Grant further admins with database/scripts/grant-admin.sql.
+
+-- ============================================================
+-- USERS DB
+-- ============================================================
+\c users_db
+
+CREATE TABLE IF NOT EXISTS profiles (
+    user_id UUID PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    phone VARCHAR(50),
+    address TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles (created_at);
 
 -- ============================================================
 -- PRODUCTS DB

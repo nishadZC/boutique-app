@@ -3,7 +3,7 @@
 import express from 'express';
 import Joi from 'joi';
 import { query } from '../database/connection';
-import { requireAdmin } from '../middleware/auth';
+import { requireAdmin } from '@boutique/shared';
 import { getProducts } from '../clients/productClient';
 import { ORDER_STATUSES, PAYMENT_STATUSES, nextStatus } from '../lifecycle';
 import {

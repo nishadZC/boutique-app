@@ -5,7 +5,7 @@ import axios from 'axios';
 import express from 'express';
 import Joi from 'joi';
 import { query } from '../database/connection';
-import { requireUser } from '../middleware/auth';
+import { requireUser } from '@boutique/shared';
 
 const router = express.Router();
 const ORDERS_SERVICE_URL = process.env.ORDERS_SERVICE_URL || 'http://localhost:3005';

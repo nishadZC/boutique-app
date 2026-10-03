@@ -1,8 +1,6 @@
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
   role: 'customer' | 'admin';
   createdAt: Date;
   updatedAt: Date;

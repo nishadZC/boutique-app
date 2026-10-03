@@ -3,7 +3,7 @@
 import express from 'express';
 import Joi from 'joi';
 import { getPool } from '../database/connection';
-import { requireInternal } from '../middleware/auth';
+import { requireInternal } from '@boutique/shared';
 
 const router = express.Router();
 router.use(requireInternal);

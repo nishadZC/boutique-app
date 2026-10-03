@@ -5,8 +5,9 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import { query } from '../database/connection';
 import { isValidEmail, normalizeEmail, PASSWORD_MIN_LENGTH } from '../validation';
-import { getJwtSecret, readAuth, requireUser } from '../middleware/auth';
+import { getJwtSecret, readAuth, requireInternal, requireUser } from '@boutique/shared';
 import { ADMIN_PASSWORD_MIN_LENGTH } from '../bootstrap';
+import { createProfile } from '../clients/userService';
 
 const router = express.Router();
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
@@ -39,14 +40,12 @@ function signPasswordChangeToken(user: { id: string }) {
   return jwt.sign({ userId: user.id, type: 'password_change' }, JWT_SECRET, { expiresIn: PASSWORD_CHANGE_TTL });
 }
 
+const ACCOUNT_COLUMNS = 'id, email, role, must_change_password, created_at, updated_at';
+
 const publicUser = (user: any) => ({
   id: user.id,
   email: user.email,
-  firstName: user.first_name,
-  lastName: user.last_name,
   role: user.role,
-  phone: user.phone,
-  address: user.address,
   createdAt: user.created_at,
   updatedAt: user.updated_at,
 });
@@ -57,7 +56,7 @@ function sendSession(res: express.Response, user: any, message: string, status =
     return res.status(200).json({
       passwordChangeRequired: true,
       passwordChangeToken: signPasswordChangeToken(user),
-      user: { email: user.email, firstName: user.first_name },
+      user: { email: user.email },
       message: 'Choose a new password to finish signing in',
     });
   }
@@ -99,24 +98,15 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await query(
-      'INSERT INTO users (email, password_hash, first_name, last_name, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, first_name, last_name, role, phone, address, created_at, updated_at',
-      [email, hashedPassword, firstName, lastName, 'customer']
+      `INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING ${ACCOUNT_COLUMNS}`,
+      [email, hashedPassword, 'customer']
     );
 
     const user = result.rows[0];
+    await createProfile(user.id, { email: user.email, firstName, lastName });
 
     res.status(201).json({
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role,
-        phone: user.phone,
-        address: user.address,
-        createdAt: user.created_at,
-        updatedAt: user.updated_at
-      },
+      user: publicUser(user),
       token: signAccessToken(user),
       refreshToken: signRefreshToken(user),
       message: 'Registration successful'
@@ -144,22 +134,13 @@ router.post('/login', async (req, res) => {
       if (existing.rows.length === 0) {
         const hashedPassword = await bcrypt.hash('demo', 10);
         const newUser = await query(
-          'INSERT INTO users (email, password_hash, first_name, last_name, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, first_name, last_name, role, phone, address, created_at, updated_at',
-          [email, hashedPassword, 'Demo', 'User', 'customer']
+          `INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING ${ACCOUNT_COLUMNS}`,
+          [email, hashedPassword, 'customer']
         );
         const user = newUser.rows[0];
+        await createProfile(user.id, { email: user.email, firstName: 'Demo', lastName: 'User' });
         return res.status(201).json({
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.first_name,
-            lastName: user.last_name,
-            role: user.role,
-            phone: user.phone,
-            address: user.address,
-            createdAt: user.created_at,
-            updatedAt: user.updated_at
-          },
+          user: publicUser(user),
           token: signAccessToken(user),
           refreshToken: signRefreshToken(user),
           message: 'Demo account created'
@@ -168,8 +149,8 @@ router.post('/login', async (req, res) => {
     }
 
     // Normal password check
-    const result = await query('SELECT id, email, password_hash, first_name, last_name, role, phone, address, must_change_password, created_at, updated_at FROM users WHERE LOWER(email) = $1', [email]);
-    
+    const result = await query(`SELECT ${ACCOUNT_COLUMNS}, password_hash FROM users WHERE LOWER(email) = $1`, [email]);
+
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -208,21 +189,18 @@ router.post('/google', async (req, res) => {
     const firstName = payload.given_name || payload.name?.split(' ')[0] || 'Google';
     const lastName = payload.family_name || payload.name?.split(' ').slice(1).join(' ') || 'User';
     const googleEmail = normalizeEmail(payload.email);
-    const existingUser = await query(
-      'SELECT id, email, first_name, last_name, role, phone, address, must_change_password, created_at, updated_at FROM users WHERE LOWER(email) = $1',
-      [googleEmail]
-    );
+    const existingUser = await query(`SELECT ${ACCOUNT_COLUMNS} FROM users WHERE LOWER(email) = $1`, [googleEmail]);
 
     let user = existingUser.rows[0];
     if (!user) {
       const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
       const newUser = await query(
-        'INSERT INTO users (email, password_hash, first_name, last_name, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, first_name, last_name, role, phone, address, created_at, updated_at',
-        [googleEmail, passwordHash, firstName, lastName, 'customer']
+        `INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING ${ACCOUNT_COLUMNS}`,
+        [googleEmail, passwordHash, 'customer']
       );
       user = newUser.rows[0];
+      await createProfile(user.id, { email: user.email, firstName, lastName });
     }
-
 
     return sendSession(res, user, 'Google login successful');
   } catch (error: any) {
@@ -277,7 +255,7 @@ router.post('/complete-password-change', async (req, res) => {
   const { newPassword } = req.body ?? {};
   try {
     const result = await query(
-      'SELECT id, email, password_hash, first_name, last_name, role, phone, address, must_change_password, created_at, updated_at FROM users WHERE id = $1',
+      `SELECT ${ACCOUNT_COLUMNS}, password_hash FROM users WHERE id = $1`,
       [userId]);
     const user = result.rows[0];
     if (!user || !user.must_change_password) return res.status(401).json({ error: 'Sign in again to continue' });
@@ -294,7 +272,7 @@ router.post('/complete-password-change', async (req, res) => {
     const updated = await query(
       `UPDATE users SET password_hash = $1, must_change_password = false, updated_at = CURRENT_TIMESTAMP
        WHERE id = $2 AND must_change_password = true
-       RETURNING id, email, first_name, last_name, role, phone, address, must_change_password, created_at, updated_at`,
+       RETURNING ${ACCOUNT_COLUMNS}`,
       [hashed, userId]);
     if (updated.rows.length === 0) return res.status(409).json({ error: 'Your password was already changed. Sign in with it.' });
     return sendSession(res, updated.rows[0], 'Password updated');
@@ -341,26 +319,31 @@ router.get('/me', async (req, res) => {
   }
 
   try {
-    const result = await query(
-      'SELECT id, email, first_name, last_name, role, phone, address, created_at FROM users WHERE id = $1',
-      [userId]
-    );
+    const result = await query(`SELECT ${ACCOUNT_COLUMNS} FROM users WHERE id = $1`, [userId]);
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'User not found' });
     }
-    const user = result.rows[0];
-    res.json({
-      id: user.id,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      role: user.role,
-      phone: user.phone,
-      address: user.address,
-      createdAt: user.created_at
-    });
+    res.json(publicUser(result.rows[0]));
   } catch (error) {
     res.status(500).json({ error: 'Failed to get user' });
+  }
+});
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+router.get('/internal/accounts/roles', requireInternal, async (req, res) => {
+  const ids = String(req.query.ids ?? '').split(',').filter(id => UUID.test(id)).slice(0, 100);
+  try {
+    const [rows, admins] = await Promise.all([
+      ids.length ? query('SELECT id, role FROM users WHERE id = ANY($1::uuid[])', [ids]) : Promise.resolve({ rows: [] }),
+      query(`SELECT COUNT(*) AS n FROM users WHERE role = 'admin'`),
+    ]);
+    const roles: Record<string, string> = {};
+    for (const u of rows.rows) roles[u.id] = u.role;
+    res.json({ success: true, data: { roles, admins: Number(admins.rows[0].n) } });
+  } catch (error) {
+    console.error('Account roles error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load accounts' });
   }
 });
 

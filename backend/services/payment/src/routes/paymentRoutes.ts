@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { createOrder, refund, updateStatus, verify } from '../controllers/paymentController';
-import { requireAdmin, requireUser } from '../middleware/auth';
+import { requireAdmin, requireUser } from '@boutique/shared';
 
 const router = Router();
 

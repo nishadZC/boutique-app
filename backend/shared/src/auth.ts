@@ -1,5 +1,4 @@
-// Request authentication shared by the backend services (each service has its
-// own copy because images are built per service; keep them identical).
+// Request authentication shared by the backend services.
 //
 //  - requireUser:     a valid access token (refresh tokens are rejected)
 //  - requireAdmin:    a valid access token whose role is "admin"
