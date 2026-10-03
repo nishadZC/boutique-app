@@ -4,13 +4,15 @@
   "description": "Product catalog microservice for boutique application",
   "main": "dist/index.js",
   "scripts": {
+    "predev": "npm run build --prefix ../../shared",
     "dev": "nodemon src/index.ts",
+    "prebuild": "npm run build --prefix ../../shared",
     "build": "tsc",
     "start": "node dist/index.js",
-    "migrate:images": "node scripts/migrate-local-images.js",
     "test": "vitest run"
   },
   "dependencies": {
+    "@boutique/shared": "1.0.0",
     "axios": "^1.20.0",
     "cloudinary": "^2.10.1",
     "cors": "^2.8.5",

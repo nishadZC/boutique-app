@@ -3,7 +3,7 @@
 import express from 'express';
 import Joi from 'joi';
 import { query } from '../database/connection';
-import { requireInternal } from '../middleware/auth';
+import { requireInternal } from '@boutique/shared';
 import { sendError } from './orders';
 
 const router = express.Router();

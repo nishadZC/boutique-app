@@ -61,5 +61,4 @@ flowchart LR
 npm install
 npm run dev
 npm test               # routes/routes.test.ts
-npm run migrate:images # one-off: move product images to Cloudinary
 ```

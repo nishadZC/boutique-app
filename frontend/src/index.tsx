@@ -17,7 +17,6 @@ window.addEventListener('vite:preloadError', event => {
 });
 // The page loaded fine, so a future stale-chunk error may reload again.
 window.addEventListener('load', () => setTimeout(clearReloadFlag, 10000));
-import reportWebVitals from './reportWebVitals';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const root = ReactDOM.createRoot(
@@ -30,8 +29,3 @@ root.render(
     </GoogleOAuthProvider>
   </React.StrictMode>
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();

@@ -3,6 +3,7 @@
 // is flagged so the first sign-in must replace it. An existing account is never
 // modified, so redeploys cannot reset the admin's password.
 import bcrypt from 'bcryptjs';
+import { createProfile } from './clients/userService';
 import { isValidEmail, normalizeEmail } from './validation';
 
 export const DEFAULT_ADMIN_EMAIL = 'admin@luxatelier.in';
@@ -28,10 +29,13 @@ export async function ensureBootstrapAdmin(query: Query, env = process.env): Pro
 
   const hash = await bcrypt.hash(password, 12);
   const inserted = await query(
-    `INSERT INTO users (email, password_hash, first_name, last_name, role, must_change_password)
-     VALUES ($1, $2, 'Store', 'Admin', 'admin', true)
+    `INSERT INTO users (email, password_hash, role, must_change_password)
+     VALUES ($1, $2, 'admin', true)
      ON CONFLICT (email) DO NOTHING RETURNING id`,
     [email, hash]);
-  if (inserted.rows.length) console.log(`Bootstrap admin ${email} created; the first sign-in must set a new password`);
-  return inserted.rows.length ? 'created' : 'exists';
+  if (!inserted.rows.length) return 'exists';
+
+  console.log(`Bootstrap admin ${email} created; the first sign-in must set a new password`);
+  await createProfile(inserted.rows[0].id, { email, firstName: 'Store', lastName: 'Admin' });
+  return 'created';
 }

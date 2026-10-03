@@ -4,7 +4,7 @@ import express from 'express';
 import Joi from 'joi';
 import multer from 'multer';
 import { getPool, query } from '../database/connection';
-import { requireAdmin } from '../middleware/auth';
+import { requireAdmin } from '@boutique/shared';
 import { uploadProductImage } from '../services/imageService';
 
 const router = express.Router();

@@ -4,7 +4,7 @@ import apiClient from './api';
 // Bypasses apiClient on purpose: the password-change token must not be swapped
 // for the stored access token, and a 401 must not trigger a refresh.
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-import { AuthResponse, LoginCredentials, PasswordChangeRequired, RegisterCredentials, User } from '../types';
+import { Account, AuthResponse, LoginCredentials, PasswordChangeRequired, RegisterCredentials } from '../types';
 
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse | PasswordChangeRequired> => {
@@ -46,7 +46,7 @@ export const authService = {
     await apiClient.post('/auth/change-password', { currentPassword, newPassword });
   },
 
-  getCurrentUser: async (): Promise<User> => {
+  getCurrentAccount: async (): Promise<Account> => {
     const response = await apiClient.get('/auth/me');
     return response.data;
   },

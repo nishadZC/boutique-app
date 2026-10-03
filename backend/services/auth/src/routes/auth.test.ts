@@ -6,6 +6,10 @@ vi.mock('../database/connection', () => ({
   query: vi.fn(),
 }));
 
+vi.mock('../clients/userService', () => ({
+  createProfile: vi.fn(async () => undefined),
+}));
+
 vi.mock('bcryptjs', () => ({
   default: {
     hash: vi.fn(async () => 'hashed-password'),
@@ -34,10 +38,12 @@ vi.mock('jsonwebtoken', () => ({
 
 import { createApp } from '../app';
 import { query } from '../database/connection';
+import { createProfile } from '../clients/userService';
 import bcrypt from 'bcryptjs';
 
 const app = createApp();
 const mockedQuery = vi.mocked(query);
+const mockedCreateProfile = vi.mocked(createProfile);
 // bcryptjs' compare() has an overloaded (callback-based) signature that makes
 // vi.mocked() infer the wrong return type here, so mock it as a plain spy.
 const mockedCompare = bcrypt.compare as unknown as Mock;
@@ -45,17 +51,15 @@ const mockedCompare = bcrypt.compare as unknown as Mock;
 const sampleUser = {
   id: 1,
   email: 'jane@example.com',
-  first_name: 'Jane',
-  last_name: 'Doe',
   role: 'customer',
-  phone: null,
-  address: null,
+  must_change_password: false,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
 };
 
 beforeEach(() => {
   mockedQuery.mockReset();
+  mockedCreateProfile.mockClear();
   mockedCompare.mockReset();
   mockedCompare.mockResolvedValue(false);
 });
@@ -77,6 +81,22 @@ describe('POST /register', () => {
     expect(res.body.user.email).toBe(sampleUser.email);
     expect(res.body.token).toBe(`token-for-${sampleUser.id}`);
   });
+
+  it('keeps names out of auth_db and sends them to the user service', async () => {
+    mockedQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [sampleUser] });
+
+    const res = await request(app).post('/register').send({
+      email: sampleUser.email, password: 'super-secret', firstName: ' Jane ', lastName: 'Doe',
+    });
+
+    expect(res.status).toBe(201);
+    expect(mockedQuery.mock.calls[1][0]).not.toMatch(/first_name|last_name|phone|address/);
+    expect(mockedCreateProfile).toHaveBeenCalledWith(sampleUser.id, { email: sampleUser.email, firstName: 'Jane', lastName: 'Doe' });
+    expect(res.body.user).not.toHaveProperty('firstName');
+  });
+
 
   it('rejects registration when the email already exists', async () => {
     mockedQuery.mockResolvedValueOnce({ rows: [{ id: sampleUser.id }] });
@@ -333,6 +353,31 @@ describe('GET /me', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.email).toBe(sampleUser.email);
+    expect(res.body.role).toBe('customer');
+  });
+});
+
+describe('GET /internal/accounts/roles', () => {
+  const ID = '11111111-1111-4111-8111-111111111111';
+
+  it('is internal-only', async () => {
+    process.env.INTERNAL_API_TOKEN = 'internal-test-token';
+    const res = await request(app).get(`/internal/accounts/roles?ids=${ID}`).set('Authorization', `Bearer token-for-${ID}`);
+    expect(res.status).toBe(403);
+    expect(mockedQuery).not.toHaveBeenCalled();
+  });
+
+  it('returns roles for valid ids and the admin count', async () => {
+    process.env.INTERNAL_API_TOKEN = 'internal-test-token';
+    mockedQuery
+      .mockResolvedValueOnce({ rows: [{ id: ID, role: 'admin' }] })
+      .mockResolvedValueOnce({ rows: [{ n: '2' }] });
+
+    const res = await request(app).get(`/internal/accounts/roles?ids=${ID},not-a-uuid`).set('x-internal-token', 'internal-test-token');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({ roles: { [ID]: 'admin' }, admins: 2 });
+    expect(mockedQuery.mock.calls[0][1]).toEqual([[ID]]);
   });
 });
 

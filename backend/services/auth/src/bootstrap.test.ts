@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import bcrypt from 'bcryptjs';
 import { ensureBootstrapAdmin } from './bootstrap';
+import { createProfile } from './clients/userService';
+
+vi.mock('./clients/userService', () => ({ createProfile: vi.fn() }));
 
 const env = (extra: Record<string, string> = {}) => ({ ADMIN_EMAIL: 'Admin@LuxAtelier.in', ADMIN_INITIAL_PASSWORD: 'initial-secret-123', ...extra });
 
@@ -18,12 +21,16 @@ describe('ensureBootstrapAdmin', () => {
     expect(email).toBe('admin@luxatelier.in');
     expect(hash).not.toBe('initial-secret-123');
     expect(await bcrypt.compare('initial-secret-123', hash)).toBe(true);
+    expect(sql).not.toMatch(/first_name/);
+    expect(createProfile).toHaveBeenCalledWith('x', { email: 'admin@luxatelier.in', firstName: 'Store', lastName: 'Admin' });
   });
 
   it('never touches an existing account (redeploys cannot reset the password)', async () => {
     const query = vi.fn().mockResolvedValueOnce({ rows: [{ id: 'x' }] });
+    vi.mocked(createProfile).mockClear();
     expect(await ensureBootstrapAdmin(query, env())).toBe('exists');
     expect(query).toHaveBeenCalledTimes(1);
+    expect(createProfile).not.toHaveBeenCalled();
   });
 
   it('refuses a missing or weak initial password', async () => {

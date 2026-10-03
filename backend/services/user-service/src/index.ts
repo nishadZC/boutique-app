@@ -2,9 +2,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { createApp } from './app';
-import { pool } from './db';
+import { pool } from './database/connection';
 import { setDatabasePool } from './metrics';
-import { getJwtSecret } from './middleware/auth';
+import { getJwtSecret } from '@boutique/shared';
 
 getJwtSecret(); // fail fast if JWT_SECRET is missing in production
 setDatabasePool(pool);

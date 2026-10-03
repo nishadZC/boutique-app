@@ -2,7 +2,7 @@
 import express from 'express';
 import Joi from 'joi';
 import { getPool, query } from '../database/connection';
-import { requireAdmin, requireInternal, requireUser } from '../middleware/auth';
+import { requireAdmin, requireInternal, requireUser } from '@boutique/shared';
 import { getProducts } from '../clients/productClient';
 import {
   OrderError, changeOrderStatus, changePaymentStatus, customerCancel, formatOrder, getOrderItems, getRequests, recordEvent,

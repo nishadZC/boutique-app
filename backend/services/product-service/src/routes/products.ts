@@ -1,7 +1,7 @@
 import express from 'express';
 import { query } from '../database/connection';
 import { ServiceResponse } from '../types';
-import { hasInternalToken } from '../middleware/auth';
+import { hasInternalToken } from '@boutique/shared';
 
 const router = express.Router();
 

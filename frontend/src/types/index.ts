@@ -34,17 +34,22 @@ export interface ProductImage {
   sortOrder: number;
 }
 
-export interface User {
+export interface Account {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
   role: 'customer' | 'admin';
-  phone?: string;
-  address?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Profile {
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  address?: string;
+}
+
+export interface User extends Account, Profile {}
 
 export type OrderStatus =
   | 'pending' | 'confirmed' | 'packed' | 'shipped' | 'out_for_delivery' | 'delivered' | 'cancelled';
@@ -105,7 +110,7 @@ export interface Address {
 }
 
 export interface AuthResponse {
-  user: User;
+  user: Account;
   token: string;
   refreshToken: string;
 }
@@ -114,7 +119,7 @@ export interface AuthResponse {
 export interface PasswordChangeRequired {
   passwordChangeRequired: true;
   passwordChangeToken: string;
-  user: { email: string; firstName?: string };
+  user: { email: string };
 }
 
 export type LoginResult = { passwordChangeRequired: false } | PasswordChangeRequired;
