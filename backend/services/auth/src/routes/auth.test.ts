@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
 import request from 'supertest';
+import { randomBytes } from 'crypto';
 
 vi.mock('../database/connection', () => ({
   query: vi.fn(),
@@ -40,6 +41,9 @@ import { createApp } from '../app';
 import { query } from '../database/connection';
 import { createProfile } from '../clients/userService';
 import bcrypt from 'bcryptjs';
+
+// Fresh random value on every run: no token is ever written in the code.
+const TEST_INTERNAL_TOKEN = randomBytes(24).toString('hex');
 
 const app = createApp();
 const mockedQuery = vi.mocked(query);
@@ -361,19 +365,19 @@ describe('GET /internal/accounts/roles', () => {
   const ID = '11111111-1111-4111-8111-111111111111';
 
   it('is internal-only', async () => {
-    process.env.INTERNAL_API_TOKEN = 'internal-test-token';
+    process.env.INTERNAL_API_TOKEN = TEST_INTERNAL_TOKEN;
     const res = await request(app).get(`/internal/accounts/roles?ids=${ID}`).set('Authorization', `Bearer token-for-${ID}`);
     expect(res.status).toBe(403);
     expect(mockedQuery).not.toHaveBeenCalled();
   });
 
   it('returns roles for valid ids and the admin count', async () => {
-    process.env.INTERNAL_API_TOKEN = 'internal-test-token';
+    process.env.INTERNAL_API_TOKEN = TEST_INTERNAL_TOKEN;
     mockedQuery
       .mockResolvedValueOnce({ rows: [{ id: ID, role: 'admin' }] })
       .mockResolvedValueOnce({ rows: [{ n: '2' }] });
 
-    const res = await request(app).get(`/internal/accounts/roles?ids=${ID},not-a-uuid`).set('x-internal-token', 'internal-test-token');
+    const res = await request(app).get(`/internal/accounts/roles?ids=${ID},not-a-uuid`).set('x-internal-token', TEST_INTERNAL_TOKEN);
 
     expect(res.status).toBe(200);
     expect(res.body.data).toEqual({ roles: { [ID]: 'admin' }, admins: 2 });

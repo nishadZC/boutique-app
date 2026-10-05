@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import { randomBytes } from 'crypto';
 
 const client = { query: vi.fn(), release: vi.fn() };
 vi.mock('../database/connection', () => ({ query: vi.fn(), getPool: () => ({ connect: async () => client }) }));
@@ -12,8 +13,11 @@ import { adminRoutes } from './admin';
 import { internalRoutes } from './internal';
 import { query } from '../database/connection';
 
-process.env.JWT_SECRET = 'test-secret';
-process.env.INTERNAL_API_TOKEN = 'internal-test-token';
+// Fresh random values on every run: no secret is ever written in the code.
+const TEST_JWT_SECRET = randomBytes(32).toString('hex');
+const TEST_INTERNAL_TOKEN = randomBytes(24).toString('hex');
+process.env.JWT_SECRET = TEST_JWT_SECRET;
+process.env.INTERNAL_API_TOKEN = TEST_INTERNAL_TOKEN;
 const app = express();
 app.use(express.json());
 app.use('/admin', adminRoutes);
@@ -23,7 +27,7 @@ app.use('', productRoutes);
 const mockedQuery = vi.mocked(query);
 const PRODUCT = '22222222-2222-4222-8222-222222222222';
 const CATEGORY = '20000000-0000-4000-8000-000000000001';
-const bearer = (claims: object) => `Bearer ${jwt.sign(claims, 'test-secret')}`;
+const bearer = (claims: object) => `Bearer ${jwt.sign(claims, TEST_JWT_SECRET)}`;
 const admin = bearer({ userId: 'a', email: 'owner@example.com', role: 'admin' });
 const customer = bearer({ userId: 'c', role: 'customer' });
 
@@ -49,7 +53,7 @@ describe('public catalogue', () => {
 
   it('still resolves archived products for other services', async () => {
     mockedQuery.mockResolvedValue({ rows: [{ id: PRODUCT, is_active: false, image_url: 'x' }] });
-    const res = await request(app).get(`/${PRODUCT}`).set('x-internal-token', 'internal-test-token');
+    const res = await request(app).get(`/${PRODUCT}`).set('x-internal-token', TEST_INTERNAL_TOKEN);
     expect(res.status).toBe(200);
   });
 
@@ -149,7 +153,7 @@ describe('internal stock commit', () => {
       .mockResolvedValueOnce({})
       .mockResolvedValueOnce({ rows: [{ inventory_quantity: 1 }] })
       .mockResolvedValue({});
-    const res = await request(app).post('/internal/inventory/commit').set('x-internal-token', 'internal-test-token')
+    const res = await request(app).post('/internal/inventory/commit').set('x-internal-token', TEST_INTERNAL_TOKEN)
       .send({ orderId: '33333333-3333-4333-8333-333333333333', direction: 'sale', items: [{ productId: PRODUCT, quantity: 2 }] });
     expect(res.body.data.shortages).toEqual([{ productId: PRODUCT, requested: 2, available: 1 }]);
     const update = client.query.mock.calls.find(c => String(c[0]).startsWith('UPDATE products'));

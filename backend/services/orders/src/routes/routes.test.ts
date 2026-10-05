@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import { randomBytes } from 'crypto';
 
 const client = { query: vi.fn(), release: vi.fn() };
 vi.mock('../database/connection', () => ({
@@ -24,8 +25,11 @@ import { internalRoutes } from './internal';
 import { query } from '../database/connection';
 import { getProducts } from '../clients/productClient';
 
-process.env.JWT_SECRET = 'test-secret';
-process.env.INTERNAL_API_TOKEN = 'internal-test-token';
+// Fresh random values on every run: no secret is ever written in the code.
+const TEST_JWT_SECRET = randomBytes(32).toString('hex');
+const TEST_INTERNAL_TOKEN = randomBytes(24).toString('hex');
+process.env.JWT_SECRET = TEST_JWT_SECRET;
+process.env.INTERNAL_API_TOKEN = TEST_INTERNAL_TOKEN;
 
 const app = express();
 app.use(express.json());
@@ -38,7 +42,7 @@ const mockedGetProducts = vi.mocked(getProducts);
 const USER = '11111111-1111-4111-8111-111111111111';
 const PRODUCT = '22222222-2222-4222-8222-222222222222';
 const ORDER = '33333333-3333-4333-8333-333333333333';
-const token = (claims: object) => `Bearer ${jwt.sign(claims, 'test-secret')}`;
+const token = (claims: object) => `Bearer ${jwt.sign(claims, TEST_JWT_SECRET)}`;
 const customer = token({ userId: USER, email: 'jane@example.com', role: 'customer' });
 const admin = token({ userId: USER, email: 'owner@example.com', role: 'admin' });
 
@@ -60,7 +64,7 @@ describe('authentication and authorisation', () => {
   });
 
   it('rejects a token signed with another secret', async () => {
-    const forged = `Bearer ${jwt.sign({ userId: USER, role: 'admin' }, 'your-secret-key')}`;
+    const forged = `Bearer ${jwt.sign({ userId: USER, role: 'admin' }, randomBytes(32).toString('hex'))}`;
     const res = await request(app).get('/admin/kpis').set('Authorization', forged);
     expect(res.status).toBe(401);
   });
@@ -90,7 +94,7 @@ describe('authentication and authorisation', () => {
       .mockResolvedValue({ rows: [] });
     mockedQuery.mockResolvedValue({ rows: [{ id: ORDER, status: 'confirmed', payment_status: 'paid', total_amount: '100' }] });
 
-    const res = await request(app).patch(`/${ORDER}/payment-status`).set('x-internal-token', 'internal-test-token').send({ paymentStatus: 'paid', paymentId: 'pay_123' });
+    const res = await request(app).patch(`/${ORDER}/payment-status`).set('x-internal-token', TEST_INTERNAL_TOKEN).send({ paymentStatus: 'paid', paymentId: 'pay_123' });
 
     expect(res.status).toBe(200);
     expect(res.body.data.status).toBe('confirmed');
@@ -173,7 +177,7 @@ describe('review eligibility', () => {
     const res = await request(app)
       .get(`/internal/orders/${ORDER}/review-eligibility`)
       .query({ userId: USER, productId: PRODUCT })
-      .set('x-internal-token', 'internal-test-token');
+      .set('x-internal-token', TEST_INTERNAL_TOKEN);
     expect(res.body.data).toEqual({ eligible: false, reason: 'You can review items once your order is delivered' });
   });
 });

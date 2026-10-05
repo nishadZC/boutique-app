@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import { randomBytes } from 'crypto';
 
 vi.mock('./database/connection', () => ({ query: vi.fn(), pool: {} }));
 vi.mock('./metrics', () => ({ setupMetrics: vi.fn(), metricsMiddleware: (_q: unknown, _s: unknown, next: () => void) => next() }));
@@ -10,13 +11,16 @@ import { createApp } from './app';
 import { fetchAccountRoles } from './clients/authService';
 import { query } from './database/connection';
 
-process.env.JWT_SECRET = 'test-secret';
-process.env.INTERNAL_API_TOKEN = 'internal-test-token';
+// Fresh random values on every run: no secret is ever written in the code.
+const TEST_JWT_SECRET = randomBytes(32).toString('hex');
+const TEST_INTERNAL_TOKEN = randomBytes(24).toString('hex');
+process.env.JWT_SECRET = TEST_JWT_SECRET;
+process.env.INTERNAL_API_TOKEN = TEST_INTERNAL_TOKEN;
 const app = createApp();
 const mockedQuery = vi.mocked(query);
 const mockedRoles = vi.mocked(fetchAccountRoles);
 const USER = '11111111-1111-4111-8111-111111111111';
-const bearer = (claims: object) => `Bearer ${jwt.sign(claims, 'test-secret')}`;
+const bearer = (claims: object) => `Bearer ${jwt.sign(claims, TEST_JWT_SECRET)}`;
 const customer = bearer({ userId: USER, email: 'j@example.com', role: 'customer' });
 const admin = bearer({ userId: USER, role: 'admin' });
 
@@ -83,7 +87,7 @@ describe('GET /profile', () => {
 });
 
 describe('internal profile creation', () => {
-  const internal = { 'x-internal-token': 'internal-test-token' };
+  const internal = { 'x-internal-token': TEST_INTERNAL_TOKEN };
 
   it('is internal-only', async () => {
     const res = await request(app).put(`/internal/users/${USER}/profile`).set('Authorization', admin).send({ email: 'j@example.com' });
@@ -132,7 +136,7 @@ describe('admin customer list', () => {
 describe('internal display name', () => {
   it('exposes first name and last initial only', async () => {
     mockedQuery.mockResolvedValueOnce({ rows: [{ first_name: 'Jane', last_name: 'Doe' }] } as any);
-    const res = await request(app).get(`/internal/users/${USER}/display-name`).set('x-internal-token', 'internal-test-token');
+    const res = await request(app).get(`/internal/users/${USER}/display-name`).set('x-internal-token', TEST_INTERNAL_TOKEN);
     expect(res.body.data.displayName).toBe('Jane D.');
   });
 });

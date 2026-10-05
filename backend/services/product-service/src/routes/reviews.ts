@@ -82,7 +82,7 @@ router.post('/', requireUser, async (req, res) => {
   if (error) return res.status(400).json({ success: false, error: error.details.map(d => d.message.replace(/"/g, '')).join('; ') });
 
   try {
-    const eligibility = await axios.get(`${ORDERS_SERVICE_URL}/internal/orders/${value.orderId}/review-eligibility`, {
+    const eligibility = await axios.get(`${ORDERS_SERVICE_URL}/internal/orders/${encodeURIComponent(value.orderId)}/review-eligibility`, {
       params: { userId: req.auth!.userId, productId: value.productId },
       headers: internalHeaders(),
       timeout: 5000,
@@ -93,7 +93,7 @@ router.post('/', requireUser, async (req, res) => {
 
     let reviewerName = 'Verified buyer';
     try {
-      const profile = await axios.get(`${USER_SERVICE_URL}/internal/users/${req.auth!.userId}/display-name`, { headers: internalHeaders(), timeout: 3000 });
+      const profile = await axios.get(`${USER_SERVICE_URL}/internal/users/${encodeURIComponent(req.auth!.userId)}/display-name`, { headers: internalHeaders(), timeout: 3000 });
       reviewerName = profile.data?.data?.displayName || reviewerName;
     } catch {
       // The review is still valid without a display name.

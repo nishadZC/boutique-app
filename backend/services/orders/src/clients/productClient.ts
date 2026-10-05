@@ -18,7 +18,7 @@ export interface ProductSnapshot {
 
 export async function getProduct(productId: string): Promise<ProductSnapshot | null> {
   try {
-    const response = await axios.get(`${PRODUCTS_SERVICE_URL}/${productId}`, { headers: headers(), timeout: 5000 });
+    const response = await axios.get(`${PRODUCTS_SERVICE_URL}/${encodeURIComponent(productId)}`, { headers: headers(), timeout: 5000 });
     const p = response.data.data;
     return {
       id: p.id,
