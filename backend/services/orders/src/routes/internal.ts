@@ -5,19 +5,17 @@ import Joi from 'joi';
 import { query } from '../database/connection';
 import { requireInternal } from '@boutique/shared';
 import { sendError } from './orders';
+import { requireOrderId, findOrder, orderNotFound } from './orderLookup';
 
 const router = express.Router();
 router.use(requireInternal);
 const guid = Joi.string().guid();
 
 /** What the payment service needs to create and verify a Razorpay order. */
-router.get('/orders/:id', async (req, res) => {
-  if (guid.validate(req.params.id).error) return res.status(404).json({ success: false, error: 'Order not found' });
+router.get('/orders/:id', requireOrderId, async (req, res) => {
   try {
-    const result = await query(
-      'SELECT id, user_id, total_amount, status, payment_status, razorpay_order_id, razorpay_payment_id FROM orders WHERE id = $1', [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Order not found' });
-    const o = result.rows[0];
+    const o = await findOrder(req.params.id);
+    if (!o) return orderNotFound(res);
     return res.json({
       success: true,
       data: {
@@ -31,8 +29,7 @@ router.get('/orders/:id', async (req, res) => {
 });
 
 /** Binds the Razorpay order created for this order, so a payment can only settle it. */
-router.put('/orders/:id/razorpay-order', async (req, res) => {
-  if (guid.validate(req.params.id).error) return res.status(404).json({ success: false, error: 'Order not found' });
+router.put('/orders/:id/razorpay-order', requireOrderId, async (req, res) => {
   const razorpayOrderId = req.body?.razorpayOrderId;
   if (typeof razorpayOrderId !== 'string' || !/^order_[A-Za-z0-9]{6,40}$/.test(razorpayOrderId)) {
     return res.status(400).json({ success: false, error: 'Invalid Razorpay order id' });

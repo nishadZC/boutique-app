@@ -7,22 +7,26 @@ RUN apk upgrade --no-cache
 
 WORKDIR /app
 
-# Root manifest + lock file, and this service's manifest (npm workspaces)
+# Root manifest + lock file, and the manifests of this service and the shared
+# package it depends on (npm workspaces)
 COPY package.json package-lock.json ./
+COPY backend/shared/package.json backend/shared/
 COPY backend/services/gateway/package.json backend/services/gateway/
-RUN npm ci -w backend/services/gateway --ignore-scripts --no-audit --no-fund
+RUN npm ci -w backend/services/gateway -w backend/shared --ignore-scripts --no-audit --no-fund
 
 # Copy only the application source (explicit allowlist, not COPY . .)
+COPY backend/shared/tsconfig.json backend/shared/
+COPY backend/shared/src backend/shared/src
 COPY backend/services/gateway/tsconfig.json backend/services/gateway/
 COPY backend/services/gateway/src backend/services/gateway/src
 
-# Build TypeScript
+# Build TypeScript (the service's prebuild script builds backend/shared first)
 RUN npm run build -w backend/services/gateway
 
 # Drop dev dependencies. The service's own node_modules only exists when a
 # dependency needs a different version than the hoisted one; create it so the
 # COPY below always has something to copy.
-RUN npm prune --omit=dev -w backend/services/gateway && mkdir -p backend/services/gateway/node_modules
+RUN npm prune --omit=dev -w backend/services/gateway -w backend/shared && mkdir -p backend/services/gateway/node_modules
 
 # Production stage
 FROM node:26-alpine3.24
@@ -34,7 +38,10 @@ RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 WORKDIR /app/backend/services/gateway
 
 # Copy the built application and production dependencies from the builder.
+# node_modules/@boutique/shared is a symlink to /app/backend/shared.
 COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/backend/shared/package.json /app/backend/shared/
+COPY --from=builder /app/backend/shared/dist /app/backend/shared/dist
 COPY --from=builder /app/backend/services/gateway/node_modules ./node_modules
 COPY --from=builder /app/backend/services/gateway/dist ./dist
 

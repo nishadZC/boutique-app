@@ -7,9 +7,10 @@ import { requireAdmin } from '@boutique/shared';
 import { getProducts } from '../clients/productClient';
 import { ORDER_STATUSES, PAYMENT_STATUSES, nextStatus } from '../lifecycle';
 import {
-  changeOrderStatus, changePaymentStatus, formatOrder, getEvents, getOrderItems, getRequests, rejectRequest, withProducts,
+  changeOrderStatus, changePaymentStatus, formatOrder, getEvents, getRequests, rejectRequest,
 } from '../services/orderService';
 import { sendError } from './orders';
+import { requireOrderId, findOrder, orderNotFound, itemsWithProducts } from './orderLookup';
 
 const router = express.Router();
 router.use(requireAdmin);
@@ -74,14 +75,12 @@ router.get('/orders', async (req, res) => {
   }
 });
 
-router.get('/orders/:id', async (req, res) => {
-  if (guid.validate(req.params.id).error) return res.status(404).json({ success: false, error: 'Order not found' });
+router.get('/orders/:id', requireOrderId, async (req, res) => {
   try {
-    const result = await query('SELECT * FROM orders WHERE id = $1', [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Order not found' });
-    const row = result.rows[0];
+    const row = await findOrder(req.params.id);
+    if (!row) return orderNotFound(res);
     const [items, events, requests] = await Promise.all([
-      withProducts((await getOrderItems([row.id])).get(row.id) ?? []),
+      itemsWithProducts(row.id),
       getEvents(row.id),
       getRequests([row.id]),
     ]);
@@ -107,8 +106,7 @@ const statusSchema = Joi.object({
   note: Joi.string().trim().max(500).allow(''),
 });
 
-router.patch('/orders/:id/status', async (req, res) => {
-  if (guid.validate(req.params.id).error) return res.status(404).json({ success: false, error: 'Order not found' });
+router.patch('/orders/:id/status', requireOrderId, async (req, res) => {
   const { value, error } = statusSchema.validate(req.body, { stripUnknown: true });
   if (error) return res.status(400).json({ success: false, error: error.message });
   try {
@@ -120,8 +118,7 @@ router.patch('/orders/:id/status', async (req, res) => {
 });
 
 // Records a refund made in the Razorpay dashboard (money is not moved from here).
-router.post('/orders/:id/refund', async (req, res) => {
-  if (guid.validate(req.params.id).error) return res.status(404).json({ success: false, error: 'Order not found' });
+router.post('/orders/:id/refund', requireOrderId, async (req, res) => {
   const note = String(req.body?.note ?? '').trim().slice(0, 500);
   if (!note) return res.status(400).json({ success: false, error: 'Add a note with the Razorpay refund reference' });
   try {

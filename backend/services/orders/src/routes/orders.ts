@@ -8,6 +8,7 @@ import {
   OrderError, changeOrderStatus, changePaymentStatus, customerCancel, formatOrder, getOrderItems, getRequests, recordEvent,
   requestReturn, withProducts,
 } from '../services/orderService';
+import { requireOrderId } from './orderLookup';
 import { PAYMENT_STATUSES } from '../lifecycle';
 import { priceOrder } from '../pricing';
 
@@ -120,8 +121,7 @@ const requestSchema = Joi.object({
 const returnSchema = requestSchema.keys({ type: Joi.string().valid('return', 'refund').required() });
 
 // The customer cancels their own order before it is delivered.
-router.post('/:id/cancel', requireUser, async (req, res) => {
-  if (Joi.string().guid().validate(req.params.id).error) return res.status(404).json({ success: false, error: 'Order not found' });
+router.post('/:id/cancel', requireOrderId, requireUser, async (req, res) => {
   const { value, error } = requestSchema.validate(req.body, { stripUnknown: true });
   if (error) return res.status(400).json({ success: false, error: 'Tell us why you are cancelling' });
   try {
@@ -137,8 +137,7 @@ router.post('/:id/cancel', requireUser, async (req, res) => {
 });
 
 // The customer asks to return, or be refunded for, a delivered order.
-router.post('/:id/return', requireUser, async (req, res) => {
-  if (Joi.string().guid().validate(req.params.id).error) return res.status(404).json({ success: false, error: 'Order not found' });
+router.post('/:id/return', requireOrderId, requireUser, async (req, res) => {
   const { value, error } = returnSchema.validate(req.body, { stripUnknown: true });
   if (error) return res.status(400).json({ success: false, error: 'Choose return or refund and tell us why' });
   try {
@@ -150,9 +149,7 @@ router.post('/:id/return', requireUser, async (req, res) => {
 });
 
 // Kept for compatibility; fulfilment normally goes through /admin/orders/:id/status.
-router.patch('/:id/status', requireAdmin, async (req, res) => {
-  const { error } = Joi.string().guid().validate(req.params.id);
-  if (error) return res.status(404).json({ success: false, error: 'Order not found' });
+router.patch('/:id/status', requireOrderId, requireAdmin, async (req, res) => {
   try {
     const result = await changeOrderStatus(req.params.id, String(req.body?.status ?? ''), req.auth!.email ?? req.auth!.userId, String(req.body?.note ?? '').slice(0, 500));
     return res.json({ success: true, data: result.order, refundRequired: result.refundRequired });
@@ -162,9 +159,7 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
 });
 
 // Called by the payment service after verifying a Razorpay signature.
-router.patch('/:id/payment-status', requireInternal, async (req, res) => {
-  const { error } = Joi.string().guid().validate(req.params.id);
-  if (error) return res.status(404).json({ success: false, error: 'Order not found' });
+router.patch('/:id/payment-status', requireOrderId, requireInternal, async (req, res) => {
   const { paymentStatus, paymentId, refundId, note, actor } = req.body ?? {};
   if (!PAYMENT_STATUSES.includes(paymentStatus)) return res.status(400).json({ success: false, error: 'Invalid payment status' });
   try {

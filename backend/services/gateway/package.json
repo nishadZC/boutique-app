@@ -4,11 +4,14 @@
   "description": "API Gateway for boutique microservices",
   "main": "dist/index.js",
   "scripts": {
+    "predev": "npm run build --prefix ../../shared",
     "dev": "nodemon src/index.ts",
+    "prebuild": "npm run build --prefix ../../shared",
     "build": "tsc",
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@boutique/shared": "1.0.0",
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "helmet": "^7.1.0",
