@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: boutique_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
       POSTGRES_MULTIBYTE: auth_db,users_db,products_db,orders_db,wishlist_db
     ports:
     - 5433:5432
@@ -212,7 +212,7 @@ services:
     - PORT=3002
     - LOG_LEVEL=info
     - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:?Set GOOGLE_CLIENT_ID in .env}
-    - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/auth_db
+    - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/auth_db
     - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
     - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env}
     - USER_SERVICE_URL=http://user-service:3004
@@ -260,7 +260,7 @@ services:
     environment:
     - NODE_ENV=production
     - PORT=3004
-    - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/users_db
+    - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/users_db
     - AUTH_SERVICE_URL=http://auth:3002
     - AZURE_MAPS_SUBSCRIPTION_KEY=${AZURE_MAPS_SUBSCRIPTION_KEY:?Set AZURE_MAPS_SUBSCRIPTION_KEY
       in .env}
@@ -295,7 +295,7 @@ services:
     - NODE_ENV=production
     - PORT=3003
     - LOG_LEVEL=info
-    - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/products_db
+    - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/products_db
     - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:?Set CLOUDINARY_CLOUD_NAME in
       .env}
     - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:?Set CLOUDINARY_API_KEY in .env}
@@ -347,7 +347,7 @@ services:
     environment:
     - NODE_ENV=production
     - PORT=3007
-    - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/wishlist_db
+    - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/wishlist_db
     - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
     depends_on:
       postgres:
@@ -378,7 +378,7 @@ services:
     - NODE_ENV=production
     - PORT=3005
     - LOG_LEVEL=info
-    - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/orders_db
+    - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/orders_db
     - PRODUCTS_SERVICE_URL=http://product-service:3003
     - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
     - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env}
@@ -536,7 +536,7 @@ services:
     image: quay.io/prometheuscommunity/postgres-exporter:latest
     container_name: boutique-postgres-exporter
     environment:
-    - DATA_SOURCE_NAME=postgresql://postgres:postgres123@postgres:5432/postgres?sslmode=disable
+    - DATA_SOURCE_NAME=postgresql://postgres:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/postgres?sslmode=disable
     restart: unless-stopped
     networks:
     - boutique-network
