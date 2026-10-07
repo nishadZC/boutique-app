@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import helmet from 'helmet';
 import { authRoutes } from './routes/auth';
 import { metricsMiddleware, setupMetrics } from './metrics';
@@ -12,7 +11,6 @@ export function createApp() {
       crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     })
   );
-  app.use(cors());
   app.use(express.json());
 
   setupMetrics(app, { serviceName: 'auth', serviceVersion: '1.0.0' });

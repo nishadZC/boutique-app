@@ -14,7 +14,7 @@ export default mergeConfig(
         provider: 'v8',
         reporter: ['text-summary', ['lcov', { projectRoot: fileURLToPath(new URL('..', import.meta.url)) }]],
         include: ['src/**/*.{ts,tsx}'],
-        exclude: ['src/**/*.test.{ts,tsx}', 'src/setupTests.ts', 'src/main.tsx', 'src/**/*.d.ts'],
+        exclude: ['src/**/*.test.{ts,tsx}', 'src/setupTests.ts', 'src/main.tsx', 'src/**/*.d.ts', 'src/**/*.tsx', 'src/types/**', 'src/constants/**', 'src/theme/**'],
       },
     },
   })

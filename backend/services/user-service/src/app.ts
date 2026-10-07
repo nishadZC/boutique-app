@@ -1,4 +1,3 @@
-import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { metricsMiddleware, setupMetrics } from './metrics';
@@ -10,7 +9,6 @@ import { profileRoutes } from './routes/profile';
 export function createApp() {
   const app = express();
   app.use(helmet({ crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' } }));
-  app.use(cors());
   app.use(express.json());
   setupMetrics(app, 'user-service');
   app.use(metricsMiddleware);

@@ -1,4 +1,3 @@
-import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { metricsMiddleware, setupMetrics } from './metrics';
@@ -11,7 +10,6 @@ export function createApp() {
       crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     })
   );
-  app.use(cors());
   app.use(express.json());
   setupMetrics(app, 'wishlist-service');
   app.use(metricsMiddleware);

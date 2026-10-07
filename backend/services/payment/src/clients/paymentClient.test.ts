@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../config', () => ({
-  config: { razorpayKeyId: 'rzp_test', razorpayKeySecret: 'rzp_secret', ordersServiceUrl: 'http://orders', internalApiToken: 't' },
-}));
+vi.mock('../config', async () => {
+  const { randomBytes } = await import('crypto');
+  return { config: { razorpayKeyId: 'rzp_test', razorpayKeySecret: randomBytes(16).toString('hex'), ordersServiceUrl: 'http://orders', internalApiToken: randomBytes(16).toString('hex') } };
+});
 vi.mock('axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn() } }));
 
 import axios from 'axios';

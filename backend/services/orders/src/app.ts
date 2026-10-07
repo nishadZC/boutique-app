@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import helmet from 'helmet';
 import { orderRoutes } from './routes/orders';
 import { adminRoutes } from './routes/admin';
@@ -13,7 +12,6 @@ export function createApp() {
       crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     })
   );
-  app.use(cors());
   app.use(express.json());
 
   setupMetrics(app, { serviceName: 'orders', serviceVersion: '1.0.0' });

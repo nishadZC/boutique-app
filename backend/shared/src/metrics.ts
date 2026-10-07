@@ -42,32 +42,30 @@ export interface PoolStats {
 }
 
 let databasePool: PoolStats | undefined;
-let poolGaugesRegistered = false;
+// Created on the first setDatabasePool call (they register themselves in `register`).
+export const databasePoolGauges: Gauge[] = [];
 
 // Pool gauges exist only in services that call this, so services without a
 // database (gateway, payment) don't export empty db_pool_* series.
 export const setDatabasePool = (pool: PoolStats): void => {
   databasePool = pool;
-  if (poolGaugesRegistered) return;
-  poolGaugesRegistered = true;
-  new Gauge({
+  if (databasePoolGauges.length > 0) return;
+  databasePoolGauges.push(new Gauge({
     name: 'db_pool_connections',
     help: 'Total PostgreSQL connections in the pool',
     registers: [register],
     collect() { this.set(databasePool?.totalCount || 0); },
-  });
-  new Gauge({
+  }), new Gauge({
     name: 'db_pool_idle_connections',
     help: 'Idle PostgreSQL connections in the pool',
     registers: [register],
     collect() { this.set(databasePool?.idleCount || 0); },
-  });
-  new Gauge({
+  }), new Gauge({
     name: 'db_pool_waiting_clients',
     help: 'Clients waiting for a PostgreSQL connection',
     registers: [register],
     collect() { this.set(databasePool?.waitingCount || 0); },
-  });
+  }));
 };
 
 // A gauge read from the database at scrape time, so every replica reports the same

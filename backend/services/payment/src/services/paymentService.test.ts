@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import crypto from 'crypto';
 
+const RZP_SECRET = vi.hoisted(() => (require('crypto') as typeof import('crypto')).randomBytes(24).toString('hex'));
 vi.mock('../config', () => ({
-  config: { razorpayKeyId: 'rzp_test', razorpayKeySecret: 'rzp_secret', ordersServiceUrl: 'http://orders', internalApiToken: 't' },
+  config: { razorpayKeyId: 'rzp_test', razorpayKeySecret: RZP_SECRET, ordersServiceUrl: 'http://orders', internalApiToken: 'unused' },
 }));
 vi.mock('../metrics', () => ({
   paymentOrdersCreated: { inc: vi.fn() }, paymentsVerified: { inc: vi.fn() }, paymentStatusUpdates: { inc: vi.fn() },
@@ -18,7 +19,7 @@ const ORDER = '33333333-3333-4333-8333-333333333333';
 const USER = '11111111-1111-4111-8111-111111111111';
 const OTHER = '99999999-9999-4999-8999-999999999999';
 const sign = (orderId: string, paymentId: string) =>
-  crypto.createHmac('sha256', 'rzp_secret').update(`${orderId}|${paymentId}`).digest('hex');
+  crypto.createHmac('sha256', RZP_SECRET).update(`${orderId}|${paymentId}`).digest('hex');
 const order = (extra = {}) => ({ id: ORDER, userId: USER, totalAmount: 4999, status: 'pending', paymentStatus: 'pending', razorpayOrderId: 'order_ABC123', ...extra });
 
 beforeEach(() => vi.clearAllMocks());

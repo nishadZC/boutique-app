@@ -21,10 +21,32 @@ jobs:
   # Coverage for SonarCloud. Test failures are reported by the Test stage, so a
   # failing suite here only means less coverage, not a failed scan.
   - script: |
-      for w in frontend backend/services/auth backend/services/orders backend/services/payment backend/services/product-service backend/services/user-service; do
+      for w in frontend backend/services/auth backend/services/orders backend/services/payment backend/services/product-service backend/services/user-service backend/services/gateway backend/services/wishlist-service; do
         npm test -w "$w" -- --coverage || echo "##vso[task.logissue type=warning]Tests failed in $w; its coverage may be incomplete"
       done
-    displayName: 'Run tests with coverage'
+    displayName: 'Run Node tests with coverage'
+
+  - task: UsePythonVersion@0
+    displayName: 'Use Python 3.12'
+    inputs:
+      versionSpec: '3.12'
+
+  # The Python skin-tone service (pytest); coverage.xml goes to SonarCloud.
+  - script: |
+      set -e
+      cd backend/services/skin-tone-service
+      pip install -q -r requirements.txt -r requirements-dev.txt
+      python -m pytest --cov=. --cov-report=term --cov-report=xml:coverage.xml --junitxml="$(Build.SourcesDirectory)/test-results/skin-tone.xml"
+    displayName: 'Run Python tests with coverage'
+
+  - task: PublishTestResults@2
+    displayName: 'Publish Python test results'
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '$(Build.SourcesDirectory)/test-results/skin-tone.xml'
+      testRunTitle: 'skin-tone-service'
+      failTaskOnMissingResultsFile: false
 
   - task: SonarCloudPrepare@4
     displayName: 'SonarCloud Prepare'
@@ -37,9 +59,12 @@ jobs:
       cliProjectName: 'Boutique App'
       cliSources: 'frontend,backend'
       extraProperties: |
-        sonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**
-        sonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info,backend/services/auth/coverage/lcov.info,backend/services/orders/coverage/lcov.info,backend/services/payment/coverage/lcov.info,backend/services/product-service/coverage/lcov.info,backend/services/user-service/coverage/lcov.info
-        sonar.coverage.exclusions=frontend/src/**/*.tsx,frontend/src/main.tsx,frontend/src/setupTests.ts,**/src/index.ts
+        sonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**,**/.venv/**,**/*.test.ts,**/*.test.tsx,**/tests/**
+        sonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info,backend/services/auth/coverage/lcov.info,backend/services/orders/coverage/lcov.info,backend/services/payment/coverage/lcov.info,backend/services/product-service/coverage/lcov.info,backend/services/user-service/coverage/lcov.info,backend/services/gateway/coverage/lcov.info,backend/services/wishlist-service/coverage/lcov.info
+        sonar.python.coverage.reportPaths=backend/services/skin-tone-service/coverage.xml
+        sonar.coverage.exclusions=frontend/src/**/*.tsx,frontend/src/main.tsx,frontend/src/setupTests.ts,frontend/src/types/**,frontend/src/constants/**,frontend/src/theme/**,**/src/index.ts
+        sonar.qualitygate.wait=true
+        sonar.qualitygate.timeout=300
 
   - task: SonarCloudAnalyze@4
     displayName: 'SonarCloud Analysis'

@@ -97,7 +97,7 @@ export const useCheckout = ({ address, addressComplete, phone, setAddressError, 
             }
           },
           modal: { ondismiss: () => reject(new Error('Payment cancelled')) },
-        });
+        }).catch(reject); // e.g. the Razorpay script failed to load
       });
 
       showToast('Payment successful. Your order is confirmed.', 'success');

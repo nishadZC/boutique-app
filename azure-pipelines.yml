@@ -46,7 +46,10 @@ stages:
 
 - stage: BuildAndScan
   displayName: 'Build, Scan & Push Images'
-  dependsOn: Test
+  # Build only when the SonarCloud quality gate and the tests both passed.
+  dependsOn:
+  - CodeQuality
+  - Test
   condition: succeeded()
   jobs:
   - template: azure/templates/build-push.yml

@@ -30,7 +30,8 @@ RUN pip uninstall -y pip
 # recursive `COPY . .`, so nothing outside this list - secrets, local
 # env files, etc. - can ever end up in the image regardless of
 # .dockerignore).
-COPY --chown=appuser:appuser \
+# Owned by root, so the app (running as appuser) can read but not modify its code.
+COPY \
     backend/services/skin-tone-service/main.py \
     backend/services/skin-tone-service/metrics.py \
     backend/services/skin-tone-service/color_rules.py \

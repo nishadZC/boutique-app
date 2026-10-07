@@ -33,3 +33,7 @@ logs/
 Thumbs.db
 .idea/
 *.swp
+
+# Python test artifacts (skin-tone service)
+.coverage
+coverage.xml
