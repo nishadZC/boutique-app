@@ -112,7 +112,7 @@ const AdminProductForm = memo(function AdminProductForm() {
       if (isNew) {
         const created = await adminService.createProduct({ ...payload, inventoryQuantity: Number(form.inventoryQuantity) });
         showToast('Product created — add a photo next', 'success');
-        navigate(`${ROUTES.ADMIN_PRODUCTS}/${created.id}`, { replace: true });
+        void navigate(`${ROUTES.ADMIN_PRODUCTS}/${created.id}`, { replace: true });
       } else {
         const updated = await adminService.updateProduct(id!, payload);
         setProduct(updated);

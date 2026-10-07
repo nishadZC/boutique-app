@@ -75,7 +75,7 @@ const AdminOrders = memo(function AdminOrders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.toString()]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   // Debounce the order-id search box into the URL.
   useEffect(() => {

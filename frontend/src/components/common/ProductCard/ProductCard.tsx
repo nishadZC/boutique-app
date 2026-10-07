@@ -48,7 +48,7 @@ const ProductCard = memo<ProductCardProps>(function ProductCard({
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (needsSize) navigate(`/products/${product.id}`);
+    if (needsSize) void navigate(`/products/${product.id}`);
     else onAddToCart(product, 'One Size');
   }, [navigate, needsSize, onAddToCart, product]);
 

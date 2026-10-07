@@ -61,7 +61,7 @@ const Header = memo(function Header() {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    navigate(productsUrl({ q }));
+    void navigate(productsUrl({ q }));
     closeSearch();
   }, [navigate, query, closeSearch]);
 
@@ -74,7 +74,7 @@ const Header = memo(function Header() {
     closeAccountMenu();
     closeDrawer();
     await logout();
-    navigate(ROUTES.HOME);
+    void navigate(ROUTES.HOME);
   }, [closeAccountMenu, closeDrawer, logout, navigate]);
 
   return (

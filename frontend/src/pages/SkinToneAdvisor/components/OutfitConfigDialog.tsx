@@ -103,7 +103,7 @@ const OutfitConfigDialog: React.FC<OutfitConfigDialogProps> = ({ outfit, index, 
       const addedAll = products.every((product, i) => addItem(product, selectedSizes[i], false));
       if (addedAll) {
         onClose();
-        navigate('/cart');
+        void navigate('/cart');
       }
     } finally {
       setAdding(false);

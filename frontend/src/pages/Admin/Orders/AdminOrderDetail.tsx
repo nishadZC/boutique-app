@@ -55,7 +55,7 @@ const AdminOrderDetail = memo(function AdminOrderDetail() {
     }
   }, [id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   const changeStatus = async (status: OrderStatus) => {
     setBusy(true);

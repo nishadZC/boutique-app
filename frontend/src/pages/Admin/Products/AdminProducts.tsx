@@ -65,7 +65,7 @@ const AdminProducts = memo(function AdminProducts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.toString()]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     const handle = setTimeout(() => { if (search !== filters.search) setFilter('search', search.trim()); }, 350);
     return () => clearTimeout(handle);
@@ -180,7 +180,7 @@ const AdminProducts = memo(function AdminProducts() {
       <StockDialog
         product={stockProduct}
         onClose={() => setStockProduct(null)}
-        onSaved={quantity => { showToast(`Stock updated to ${quantity}`, 'success'); setStockProduct(null); load(); }}
+        onSaved={quantity => { showToast(`Stock updated to ${quantity}`, 'success'); setStockProduct(null); void load(); }}
       />
     </Box>
   );

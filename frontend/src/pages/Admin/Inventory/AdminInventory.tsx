@@ -38,7 +38,7 @@ const AdminInventory = memo(function AdminInventory() {
     }
   }, [filter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   return (
     <Box>
@@ -100,7 +100,7 @@ const AdminInventory = memo(function AdminInventory() {
       </TableContainer>
 
       <StockDialog product={stockProduct} onClose={() => setStockProduct(null)}
-        onSaved={quantity => { showToast(`Stock updated to ${quantity}`, 'success'); setStockProduct(null); load(); }} />
+        onSaved={quantity => { showToast(`Stock updated to ${quantity}`, 'success'); setStockProduct(null); void load(); }} />
     </Box>
   );
 });

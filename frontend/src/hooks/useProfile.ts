@@ -144,7 +144,7 @@ export function useProfile() {
 
   const handleLogout = useCallback(async () => {
     await logout();
-    navigate(ROUTES.HOME);
+    void navigate(ROUTES.HOME);
   }, [logout, navigate]);
 
   return {

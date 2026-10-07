@@ -38,7 +38,7 @@ const AdminCustomers = memo(function AdminCustomers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.toString()]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     const handle = setTimeout(() => {
       if (search.trim() === (params.get('search') ?? '')) return;

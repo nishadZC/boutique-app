@@ -184,7 +184,7 @@ const SkinToneAdvisor: React.FC = memo(() => {
               endIcon={<ArrowIcon />}
               onClick={() => {
                 handleClose();
-                navigate('/products');
+                void navigate('/products');
               }}
               className={styles.primaryBtn}
             >

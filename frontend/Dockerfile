@@ -29,7 +29,8 @@ RUN apk upgrade --no-cache
 USER 101
 
 # Copy built app from builder
-COPY --from=builder --chown=nginx:nginx /app/frontend/dist /usr/share/nginx/html
+# Owned by root: nginx (user 101) can read the site but not modify it.
+COPY --from=builder /app/frontend/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY frontend/nginx.conf /etc/nginx/nginx.conf
