@@ -15,10 +15,11 @@ RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 RUN useradd -m -r -s /bin/bash appuser
 
 # Build context is the repo root (same as every other image in CI)
-COPY backend/services/skin-tone-service/requirements.txt .
-# Every dependency is pinned in requirements.txt and installed from prebuilt
-# wheels only, so no package's setup script runs at build time.
-RUN pip install --no-cache-dir --only-binary=:all: -r requirements.txt
+COPY backend/services/skin-tone-service/requirements.lock .
+# requirements.lock pins every dependency (including transitive ones) to an
+# exact version and hash, so the build fails if any package changes. Wheels
+# only, so no package's setup script runs at build time.
+RUN pip install --no-cache-dir --require-hashes --only-binary=:all: -r requirements.lock
 
 # pip is a build-time tool, not needed to run the app, and vendors its own
 # old internal copies of several libraries (e.g. msgpack 1.1.2, bundled
