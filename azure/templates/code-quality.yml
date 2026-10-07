@@ -39,6 +39,18 @@ jobs:
       python -m pytest --cov=. --cov-report=term --cov-report=xml:coverage.xml --junitxml="$(Build.SourcesDirectory)/test-results/skin-tone.xml"
     displayName: 'Run Python tests with coverage'
 
+  # Code Coverage tab: every service's Cobertura report, merged into one view.
+  - task: PublishCodeCoverageResults@2
+    displayName: 'Publish code coverage'
+    condition: succeededOrFailed()
+    inputs:
+      summaryFileLocation: |
+        $(Build.SourcesDirectory)/frontend/coverage/cobertura-coverage.xml
+        $(Build.SourcesDirectory)/backend/services/*/coverage/cobertura-coverage.xml
+        $(Build.SourcesDirectory)/backend/services/skin-tone-service/coverage.xml
+      pathToSources: '$(Build.SourcesDirectory)'
+      failIfCoverageEmpty: false
+
   - task: PublishTestResults@2
     displayName: 'Publish Python test results'
     condition: succeededOrFailed()

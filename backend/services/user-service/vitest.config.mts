@@ -14,7 +14,7 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
-      reporter: ['text-summary', ['lcov', { projectRoot: fileURLToPath(new URL('../../..', import.meta.url)) }]],
+      reporter: ['text-summary', ['lcov', { projectRoot: fileURLToPath(new URL('../../..', import.meta.url)) }], ['cobertura', { projectRoot: fileURLToPath(new URL('../../..', import.meta.url)) }]],
       include: ['**/src/**/*.ts'],
       exclude: ['**/*.test.ts', '**/src/index.ts'],
       allowExternal: true,

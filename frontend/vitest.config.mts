@@ -12,7 +12,7 @@ export default mergeConfig(
       // Used with --coverage (CI). lcov paths are relative to the repo root for SonarCloud.
       coverage: {
         provider: 'v8',
-        reporter: ['text-summary', ['lcov', { projectRoot: fileURLToPath(new URL('..', import.meta.url)) }]],
+        reporter: ['text-summary', ['lcov', { projectRoot: fileURLToPath(new URL('..', import.meta.url)) }], ['cobertura', { projectRoot: fileURLToPath(new URL('..', import.meta.url)) }]],
         include: ['src/**/*.{ts,tsx}'],
         exclude: ['src/**/*.test.{ts,tsx}', 'src/setupTests.ts', 'src/main.tsx', 'src/**/*.d.ts', 'src/**/*.tsx', 'src/types/**', 'src/constants/**', 'src/theme/**'],
       },
